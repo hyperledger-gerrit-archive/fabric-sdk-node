@@ -74,3 +74,7 @@ module.exports.getChain = function(chainName, create) {
 module.exports.newKeyValueStore = function(options) {
 	return utils.newKeyValueStore(options);
 };
+
+module.exports.newCryptoSuite_ECDSA_SHA = function() {
+	return utils.getCryptoSuite();
+};
