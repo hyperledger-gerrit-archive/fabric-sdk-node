@@ -74,3 +74,4 @@ module.exports.getChain = function(chainName, create) {
 module.exports.newKeyValueStore = function(options) {
 	return utils.newKeyValueStore(options);
 };
+
