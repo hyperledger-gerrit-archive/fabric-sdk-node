@@ -41,6 +41,7 @@
     "gulp": "^3.9.1",
     "gulp-eslint": "^3.0.1",
     "gulp-jsdoc3": "^0.3.0",
+    "gulp-npm-test": "0.0.4",
     "require-dir": "^0.3.0",
     "tape": "^4.5.1",
     "tape-promise": "^1.1.0"
