@@ -16,7 +16,7 @@
 
 var test = require('tape');
 var path = require('path');
-var hfc = require(path.join(__dirname,'../..'));
+var hfc = require('../..');
 var fs = require('fs');
 var execSync = require('child_process').execSync;
 var utils = require('../../lib/utils.js');
@@ -31,6 +31,8 @@ var keyValStorePath = path.join(getUserHome(), 'kvsTemp');
 //windows relative path starts with '/'
 var keyValStorePath1 = 'tmp/keyValStore1';
 var keyValStorePath2 = '/tmp/keyValStore2';
+var keyValStorePath3 = '/tmp/keyValStore3';
+var keyValStorePath4 = '/tmp/keyValStore4';
 var testKey = 'keyValFileStoreName';
 var testValue = 'secretKeyValue';
 var store1 = '';
@@ -58,11 +60,6 @@ var memberCfg = {'enrollmentID': enrollmentID ,
 // CryptoSuite_ECDSA_SHA tests //////////
 var cryptoUtils = null;
 // End: CryptoSuite_ECDSA_SHA tests /////
-
-// Peer tests ////////
-// var Peer = require('../../lib/Peer.js');
-// var EventEmitter = require('events');
-// End: Peer tests ////////
 
 
 //
@@ -149,6 +146,7 @@ test('FileKeyValueStore constructor test', function(t){
 	else
 		t.fail('FileKeyValueStore constructor test:  Failed to create new directory: ' + keyValStorePath2);
 
+
 	t.end();
 });
 
@@ -167,7 +165,7 @@ test('FileKeyValueStore setValue test', function(t) {
 						// Log the fulfillment value
 						function(val) {
 							if (val != testValue) {
-								t.fail('FileKeyValueStore store1 getValue test:  '+ val + ' does not equal testValue of ' + testValue + 'for FileKeyValueStore read and write test');
+								t.fail('FileKeyValueStore store1 getValue test:  '+ val + ' does not equal testValue of ' + testValue);
 							} else {
 								t.pass('FileKeyValueStore store1 getValue test:  Successfully retrieved value');
 							}
@@ -201,7 +199,7 @@ test('FileKeyValueStore setValue test', function(t) {
 						// Log the fulfillment value
 						function(val) {
 							if (val != testValue)
-								t.fail('FileKeyValueStore store2 getValue test:  '+ val + ' does not equal testValue of ' + testValue + 'for FileKeyValueStore read and write test');
+								t.fail('FileKeyValueStore store2 getValue test:  '+ val + ' does not equal testValue of ' + testValue);
 							else
 								t.pass('FileKeyValueStore store2 getValue test:  Successfully retrieved value');
 						})
@@ -221,6 +219,87 @@ test('FileKeyValueStore setValue test', function(t) {
 
 	t.end();
 });
+
+test('FileKeyValueStore error check tests', function(t){
+
+	t.throws(
+		function() {
+			store3 = new FileKeyValueStore();
+		},
+		/^Error: Must provide the path/,
+		'FileKeyValueStore error check tests: new FileKeyValueStore with no options should throw '+
+		'"Must provide the path to the directory to hold files for the store."'
+	);
+
+	t.throws(
+		function() {
+			store3 = new FileKeyValueStore({dir: getRelativePath(keyValStorePath3)});
+		},
+		/^Error: Must provide the path/,
+		'FileKeyValueStore error check tests: new FileKeyValueStore with no options.path should throw '+
+		'"Must provide the path to the directory to hold files for the store."'
+	);
+
+	cleanupFileKeyValueStore(keyValStorePath3);
+	var store3 = new FileKeyValueStore({path: getRelativePath(keyValStorePath3)});
+	store3.setValue(testKey, testValue)
+	.then(
+		function(result) {
+			if (result) {
+				t.comment('FileKeyValueStore error check tests:  Delete store & getValue test. Successfully set value');
+
+				var exists = utils.existsSync(getAbsolutePath(keyValStorePath3), testKey);
+				if (exists) {
+					t.comment('FileKeyValueStore error check tests:  Delete store & getValue test. Verified the file for key ' + testKey + ' does exist');
+					cleanupFileKeyValueStore(keyValStorePath3);
+					exists = utils.existsSync(getAbsolutePath(keyValStorePath3), testKey);
+					t.comment('FileKeyValueStore error check tests:  Delete store & getValue test. Deleted store, exists: '+exists);
+					store3.getValue(testKey)
+					.then(
+						// Log the fulfillment value
+						function(val) {
+							if (val === null) {
+								t.pass('FileKeyValueStore error check tests:  Delete store & getValue test. getValue is null');
+							} else {
+								t.fail('FileKeyValueStore error check tests:  Delete store & getValue test. getValue successfully retrieved value: '+val);
+							}
+						})
+					.catch(
+						// Log the rejection reason
+						function(reason) {
+							t.fail('FileKeyValueStore error check tests:  Delete store & getValue test. getValue caught unexpected error: '+reason);
+						});
+				} else {
+					t.fail('FileKeyValueStore error check tests:  Delete store & getValue test. Failed to create file for key ' + testKey);
+				}
+			}
+		})
+	.catch(
+		function(reason) {
+			t.fail('FileKeyValueStore error check tests: Delete store & getValue test. Failed to set value: '+reason);
+		});
+
+	cleanupFileKeyValueStore(keyValStorePath4);
+	var store4 = new FileKeyValueStore({path: getRelativePath(keyValStorePath4)});
+	cleanupFileKeyValueStore(keyValStorePath4);
+	var exists = utils.existsSync(getAbsolutePath(keyValStorePath4));
+	t.comment('FileKeyValueStore error check tests:  Delete store & setValue test. Deleted store, exists: '+exists);
+	store4.setValue(testKey, testValue)
+	.then(
+		function(result) {
+			if (result) {
+				t.fail('FileKeyValueStore error check tests:  Delete store & setValue test.  Successfully set value');
+			}
+		})
+	.catch(
+		function(reason) {
+			t.pass('FileKeyValueStore error check tests:  Delete store & setValue test.  Failed to set value: '+reason);
+		});
+
+
+	t.end();
+});
+
 
 // Chain tests /////////////
 test('Chain constructor test', function(t) {
@@ -375,7 +454,7 @@ test('CryptoSuite_ECDSA_SHA function tests', function(t) {
 	t.equal('secp384r1', keyPair.prvKeyObj.curveName,
 		'CryptoSuite_ECDSA_SHA function tests: cryptoReq generateKeyPair private curveName == secp384r1');
 
-	// Test SHA2-256 //	
+	// Test SHA2-256 //
 	cryptoUtils.setSecurityLevel(256);
 	cryptoUtils.setHashAlgorithm('SHA2');
 	t.equal(256, cryptoUtils.getSecurityLevel(),
@@ -414,7 +493,7 @@ test('CryptoSuite_ECDSA_SHA function tests', function(t) {
 		'CryptoSuite_ECDSA_SHA function tests: SHA2 and 384 should throw '+
 		'Error: Unsupported hash algorithm and security level pair sha2-384'
 	);
-	
+
 	t.throws(
 		function() {
 			cryptoUtils.setSecurityLevel(123);
@@ -441,12 +520,12 @@ test('CryptoSuite_ECDSA_SHA function tests', function(t) {
 		'CryptoSuite_ECDSA_SHA function tests: setHashAlgorithm("SHA5") should throw Illegal Hash function family'
 	);
 
-	var nonce1 = cryptoUtils.generateNonce();
+	var nonce1 = cryptoSuiteReq.generateNonce();
 	if (t.equal(24, nonce1.length,
 		'CryptoSuite_ECDSA_SHA function tests: generateNonce length'));
 
-	var nonce2 = cryptoUtils.generateNonce();
-	var nonce3 = cryptoUtils.generateNonce();
+	var nonce2 = cryptoSuiteReq.generateNonce();
+	var nonce3 = cryptoSuiteReq.generateNonce();
 	if (nonce1 != nonce2 && nonce2 != nonce3)
 		t.pass('CryptoSuite_ECDSA_SHA function tests: verify generateNonce buffers are different');
 	else
@@ -473,7 +552,7 @@ test('CryptoSuite_ECDSA_SHA function tests', function(t) {
 			cryptoUtils.asymmetricDecrypt(keyPair.prvKeyObj, 'fakeCipherText');
 		},
 		/^Error: Illegal cipherText length/,
-		'CryptoSuite_ECDSA_SHA function tests: asymmetricDecrypt should throw ' + 
+		'CryptoSuite_ECDSA_SHA function tests: asymmetricDecrypt should throw ' +
 		'"Error: Illegal cipherText length: 14 must be > 97"'
 	);
 
@@ -485,16 +564,14 @@ test('CryptoSuite_ECDSA_SHA function tests', function(t) {
 			cryptoUtils.asymmetricDecrypt(keyPair.prvKeyObj, '66616b654369706865725465787431323334353637383930313233343536373839303132333435363738393031323334353637383930313233343536373839303132333435363738393031323334353637383930313233343536373839303132333435363738393031323334353637383930');
 		},
 		/^TypeError: Invalid hex string/,
-		'CryptoSuite_ECDSA_SHA function tests: asymmetricDecrypt should throw ' + 
+		'CryptoSuite_ECDSA_SHA function tests: asymmetricDecrypt should throw ' +
 		'"TypeError: Invalid hex string"'
 	);
 
 	cryptoUtils.setSecurityLevel(256);
 	cryptoUtils.setHashAlgorithm('SHA2');
 	keyPair = cryptoUtils.generateKeyPair();
-	//console.log('keyPair.prvKeyObj.prvKeyHex: '+keyPair.prvKeyObj.prvKeyHex);
 	var kps = cryptoUtils.getKeyPairForSigning(keyPair.prvKeyObj.prvKeyHex, 'hex');
-    //console.log(util.inspect(keyPair, false, null))
 	t.equal(keyPair.prvKeyObj.prvKeyHex.toString(16, 2), kps.priv.toString(16, 2),
 		'CryptoSuite_ECDSA_SHA function tests: getKeyPairForSigning prvKeyHex == priv');
 
@@ -520,7 +597,7 @@ function cleanupFileKeyValueStore(keyValStorePath) {
 
 // prepend absolute path where this test is running, then join to the relative path
 function getAbsolutePath(dir) {
-	return path.join(__dirname, getRelativePath(dir));
+	return path.join(process.cwd(), getRelativePath(dir));
 }
 
 // get relative file path for either Unix or Windows
