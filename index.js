@@ -23,9 +23,16 @@
 
 var util = require('util');
 var Chain = require('./lib/Chain.js');
+var Config = require('./lib/Config.js');
+var Peer = require('./lib/Peer.js');
 var utils = require('./lib/utils.js');
 
 var _chains = {};
+
+var config_settings = require('config');
+var hfc_config = new Config(config_settings);
+
+global.hfc = { config: hfc_config };
 
 /**
  * Create a new chain.  If it already exists, throws an Error.
@@ -60,6 +67,20 @@ module.exports.getChain = function(chainName, create) {
 
 	return chain;
 };
+
+/**
+ * Constructs and returns a Peer given its endpoint configuration settings.
+ *
+ * @param {string} url The URL with format of "grpcs://host:port".
+ * @param {Object} opts The options for the connection to the peer.
+ * @returns {Peer} Returns the new peer.
+ */
+module.exports.getPeer = function(url, opts) {
+	var peer = new Peer(url, opts);
+
+	return peer;
+};
+
 
 /**
  * Obtains an instance of the [KeyValueStore]{@link module:api.KeyValueStore} class. By default

@@ -64,17 +64,65 @@ var memberCfg = {'enrollmentID': enrollmentID ,
 var cryptoUtils = null;
 // End: CryptoSuite_ECDSA_SHA tests /////
 
-// Peer tests ////////
-// var Peer = require('../../lib/Peer.js');
-// var EventEmitter = require('events');
-// End: Peer tests ////////
+// GRPC Options tests ///////////////
+var Remote = require('../../lib/Remote.js');
+var Peer = require('../../lib/Peer.js');
+var Orderer = require('../../lib/Orderer.js');
+var Config = require('../../lib/Config.js');
+var MemberServices = require('../../lib/impl/MemberServices.js');
+var aPem = '-----BEGIN CERTIFICATE-----'+
+'MIIBwTCCAUegAwIBAgIBATAKBggqhkjOPQQDAzApMQswCQYDVQQGEwJVUzEMMAoG'+
+'A1UEChMDSUJNMQwwCgYDVQQDEwNPQkMwHhcNMTYwMTIxMjI0OTUxWhcNMTYwNDIw'+
+'MjI0OTUxWjApMQswCQYDVQQGEwJVUzEMMAoGA1UEChMDSUJNMQwwCgYDVQQDEwNP'+
+'QkMwdjAQBgcqhkjOPQIBBgUrgQQAIgNiAAR6YAoPOwMzIVi+P83V79I6BeIyJeaM'+
+'meqWbmwQsTRlKD6g0L0YvczQO2vp+DbxRN11okGq3O/ctcPzvPXvm7Mcbb3whgXW'+
+'RjbsX6wn25tF2/hU6fQsyQLPiJuNj/yxknSjQzBBMA4GA1UdDwEB/wQEAwIChDAP'+
+'BgNVHRMBAf8EBTADAQH/MA0GA1UdDgQGBAQBAgMEMA8GA1UdIwQIMAaABAECAwQw'+
+'CgYIKoZIzj0EAwMDaAAwZQIxAITGmq+x5N7Q1jrLt3QFRtTKsuNIosnlV4LR54l3'+
+'yyDo17Ts0YLyC0pZQFd+GURSOQIwP/XAwoMcbJJtOVeW/UL2EOqmKA2ygmWX5kte'+
+'9Lngf550S6gPEWuDQOcY95B+x3eH'+
+'-----END CERTIFICATE-----';
+var aHostname = 'atesthostname';
+var aHostnameOverride = 'atesthostnameoverride';
 
+test('\n\n ** Index **', function(t) {
+	var chain = hfc.getChain('someChain', true);
+	t.equals(chain.getName(),'someChain','Checking chain names match');
+	t.throws(
+		function() {
+			hfc.newChain('someChain');
+		},
+		/^Error: Chain someChain already exist/,
+		'Index tests: checking that chain already exists.'
+	);
+	var peer = hfc.getPeer('grpc://somehost.com:9000');
+	t.throws(
+		function() {
+			hfc.getPeer('http://somehost.com:9000');
+		},
+		/^InvalidProtocol: Invalid protocol: http.  URLs must begin with grpc:\/\/ or grpcs:\/\//,
+		'Index tests: checking that getPeer will fail with bad address.'
+	);
+	t.end();
+});
+
+/*
+ * This test assumes that there is a ./config directory from the running location and that
+ * there is file called 'default.json' and 'local.json'. The setting from local will override
+ * the one set in default file.
+ */
+test('\n\n ** Config **', function(t) {
+	var config_settings = require('config');
+	var hfc_config = new Config(config_settings);
+	t.equals(hfc_config.get('ssl-target-name-override', 'other'), 'localca', 'checking that the config has the default value from default file');
+	t.end();
+});
 
 //
-// Run the FileKeyValueStore test
+// Run the FileKeyValueStore tests
 //
 
-test('FileKeyValueStore read and write test', function(t){
+test('\n\n ** FileKeyValueStore - read and write test', function(t){
 	// clean up
 	fs.existsSync(keyValStorePath, (exists) =>{
 		if (exists){
@@ -136,7 +184,7 @@ test('FileKeyValueStore read and write test', function(t){
 	t.end();
 });
 
-test('FileKeyValueStore constructor test', function(t){
+test('\n\n ** FileKeyValueStore - constructor test', function(t){
 	cleanupFileKeyValueStore(keyValStorePath1);
 	cleanupFileKeyValueStore(keyValStorePath2);
 
@@ -157,7 +205,7 @@ test('FileKeyValueStore constructor test', function(t){
 	t.end();
 });
 
-test('FileKeyValueStore setValue test', function(t) {
+test('\n\n ** FileKeyValueStore - setValue test', function(t) {
 	store1.setValue(testKey, testValue)
 	.then(
 		function(result) {
@@ -228,7 +276,7 @@ test('FileKeyValueStore setValue test', function(t) {
 });
 
 // Chain tests /////////////
-test('Chain constructor test', function(t) {
+test('\n\n ** Chain - constructor test', function(t) {
 	_chain = new Chain(chainName);
 	if (_chain.getName() === chainName)
 		t.pass('Chain constructor test: getName successful');
@@ -263,7 +311,7 @@ test('Chain constructor test', function(t) {
 	});
 });
 
-test('Chain setKeyValueStore getKeyValueStore test', function(t) {
+test('\n\n ** Chain - setKeyValueStore getKeyValueStore test', function(t) {
 	cleanupFileKeyValueStore(chainKeyValStorePath);
 
 	_chain.setKeyValueStore(hfc.newKeyValueStore({path: getRelativePath(chainKeyValStorePath)}));
@@ -294,7 +342,7 @@ test('Chain setKeyValueStore getKeyValueStore test', function(t) {
 	t.end();
 });
 
-test('Chain public methods parameters tests', function(t) {
+test('\n\n ** Chain register methods parameters tests', function(t) {
 	let chain = new Chain('testChain1');
 
 	chain.register({})
@@ -323,8 +371,70 @@ test('Chain public methods parameters tests', function(t) {
 	});
 });
 
+test('\n\n ** Chain - method tests', function(t) {
+	t.doesNotThrow(
+		function() {
+			_chain.setRegistrar('something');
+		},
+		null,
+		'checking the setRegistrar'
+	);
+	t.equal(_chain.getRegistrar(),'something','checking the getRegistrar');
+	t.doesNotThrow(
+		function() {
+			_chain.setMemberServicesUrl('grpc://somehost.com:9999');
+		},
+		null,
+		'checking the setMemberServicesUrl'
+	);
+	t.equal(_chain.getMemberServices().toString(),' MemberServices : {url:grpc://somehost.com:9999}','checking the getMemberServices');
+	t.equal(_chain.isSecurityEnabled(), true, 'checking security setting');
+	t.doesNotThrow(
+		function() {
+			_chain.setPreFetchMode(true);
+		},
+		null,
+		'checking the set of prefetchMode'
+	);
+	t.equal(_chain.isPreFetchMode(), true, 'checking prefetchMode');
+	t.doesNotThrow(
+			function() {
+				_chain.setDevMode(true);
+			},
+			null,
+			'checking the set of DevMode'
+		);
+	t.equal(_chain.isDevMode(), true, 'checking DevMode');
+	t.doesNotThrow(
+			function() {
+				_chain.setKeyValueStore('something');
+			},
+			null,
+			'checking the set of KeyValueStore'
+		);
+	t.equal(_chain.getKeyValueStore(), 'something', 'checking getKeyValueStore');
+	t.doesNotThrow(
+			function() {
+				_chain.setTCertBatchSize(123);
+			},
+			null,
+			'checking the set of TCertBatchSize'
+		);
+	t.equal(_chain.getTCertBatchSize(), 123, 'checking getTCertBatchSize');
+	t.doesNotThrow(
+			function() {
+				_chain.setOrderer('grpc://somehost.com:1234');
+			},
+			null,
+			'checking the set of Orderer'
+		);
+	t.equal(_chain.getOrderer().toString(), ' Orderer : {url:grpc://somehost.com:1234}', 'checking getOrderer');
+	t.equal(_chain.toString(),'{"name":"testChain","orderer":"grpc://somehost.com:1234"}','checking chain toString');
+	t.end();
+});
+
 // Member tests /////////
-test('Member constructor set get tests', function(t) {
+test('\n\n ** Member - constructor set get tests', function(t) {
 	var member1 = new Member(memberName, _chain);
 	if (member1.getName() === memberName)
 		t.pass('Member constructor set get tests 1: new Member getName was successful');
@@ -372,11 +482,9 @@ test('Member constructor set get tests', function(t) {
 		t.fail('Member constructor get set tests 2: getChain new Member cfg getName was not successful');
 
 	t.end();
-
-
 });
 
-test('CryptoSuite_ECDSA_SHA constructor tests', function(t) {
+test('\n\n ** CryptoSuite_ECDSA_SHA - constructor tests', function(t) {
 	cryptoUtils = utils.getCryptoSuite();
 
 	t.equal(256, cryptoUtils.getSecurityLevel(),
@@ -397,7 +505,7 @@ test('CryptoSuite_ECDSA_SHA constructor tests', function(t) {
 	t.end();
 });
 
-test('CryptoSuite_ECDSA_SHA function tests', function(t) {
+test('\n\n ** CryptoSuite_ECDSA_SHA - function tests', function(t) {
 
 	t.equal('ECDSA', cryptoUtils.getPublicKeyAlgorithm(),
 		'CryptoSuite_ECDSA_SHA function tests: default getPublicKeyAlgorithm == "ECDSA"');
@@ -567,6 +675,208 @@ test('CryptoSuite_ECDSA_SHA function tests', function(t) {
 	t.end();
 });
 
+test('\n\n ** Remote node tests **', function(t) {
+	console.log('\n * REMOTE *');
+	//Peer: secure grpcs, requires opts.pem
+	var url = 'grpcs://'+aHostname+':aport';
+	var opts = null;
+	var remote = null;
+	t.throws(
+		function() {
+			remote = new Remote(url, opts);
+		},
+		/^TypeError: First argument must be a string/,
+		'GRPC Options tests: new Remote grpcs with opts = null should throw '+
+		'TypeError: First argument must be a string, Buffer, ArrayBuffer, Array, or array-like object.'
+	);
+
+	opts = {pem: aPem, 'ssl-target-name-override': aHostnameOverride};
+	remote = new Remote(url,opts);
+	t.equal(aHostname, remote._endpoint.addr, 'GRPC Options tests: new Remote grpcs with opts created');
+	t.equal(remote.toString(),' Remote : {url:grpcs://'+aHostname+':aport}', 'Checking that peer.toString() reports correctly');
+
+	url = 'grpc://'+aHostname+':aport';
+	opts = null;
+	remote = new Remote(url,opts);
+	t.equal(aHostname, remote._endpoint.addr, 'GRPC Options tests: new Remote grpc with opts = null _endpoint.addr created');
+	t.ok(remote._endpoint.creds, 'GRPC Options tests: new Remote grpc with opts = null _endpoint.creds created');
+
+	opts = {pem: aPem, 'default-authority': 'some_ca'};
+	remote = new Remote(url,opts);
+	t.equal(aHostname, remote._endpoint.addr, 'GRPC Options tests: new Remote grpc with opts _endpoint.addr created');
+	t.ok(remote._endpoint.creds, 'GRPC Options tests: new Remote grpc with opts _endpoint.creds created');
+	t.equal(remote.getUrl(), url, 'checking that getURL works');
+
+	console.log('\n * PEER *');
+	//Peer: secure grpcs, requires opts.pem
+	url = 'grpcs://'+aHostname+':aport';
+	opts = null;
+	var peer = null;
+	t.throws(
+		function() {
+			peer = new Peer(url, opts);
+		},
+		/^TypeError: First argument must be a string/,
+		'GRPC Options tests: new Peer grpcs with opts = null should throw '+
+		'TypeError: First argument must be a string, Buffer, ArrayBuffer, Array, or array-like object.'
+	);
+
+	opts = {pem: aPem, 'ssl-target-name-override': aHostnameOverride};
+	peer = new Peer(url,opts);
+	t.equal(aHostname, peer._endpoint.addr, 'GRPC Options tests: new Peer grpcs with opts created');
+	t.equal(peer.toString(),' Peer : {url:grpcs://'+aHostname+':aport}', 'Checking that peer.toString() reports correctly');
+	//Peer: insecure grpc, opts.pem optional
+	url = 'grpc://'+aHostname+':aport';
+	opts = null;
+	peer = new Peer(url,opts);
+	t.equal(aHostname, peer._endpoint.addr, 'GRPC Options tests: new Peer grpc with opts = null _endpoint.addr created');
+	t.ok(peer._endpoint.creds, 'GRPC Options tests: new Peer grpc with opts = null _endpoint.creds created');
+
+	opts = {pem: aPem, 'ssl-target-name-override': aHostnameOverride};
+	peer = new Peer(url,opts);
+	t.equal(aHostname, peer._endpoint.addr, 'GRPC Options tests: new Peer grpc with opts _endpoint.addr created');
+	t.ok(peer._endpoint.creds, 'GRPC Options tests: new Peer grpc with opts _endpoint.creds created');
+	t.equal(peer.getUrl(), url, 'checking that getURL works');
+
+	peer.sendProposal('bad data')
+		.then(function(results) { t.fail('This will not happen');})
+		.catch(function(err) { t.pass('This should fail');});
+
+	t.throws(
+		function() {
+			url = 'http://'+aHostname+':aport';
+			peer = new Peer(url, opts);
+		},
+		/^InvalidProtocol: Invalid protocol: http./,
+		'GRPC Options tests: new Peer http should throw '+
+		'InvalidProtocol: Invalid protocol: http. URLs must begin with grpc:// or grpcs://.'
+	);
+
+	console.log('\n * ORDERER *');
+	//Peer: secure grpcs, requires opts.pem
+	var url = 'grpcs://'+aHostname+':aport';
+	var opts = null;
+	var orderer = null;
+	t.throws(
+		function() {
+			orderer = new Orderer(url, opts);
+		},
+		/^TypeError: First argument must be a string/,
+		'GRPC Options tests: new Orederer grpcs with opts = null should throw '+
+		'TypeError: First argument must be a string, Buffer, ArrayBuffer, Array, or array-like object.'
+	);
+
+	opts = {pem: aPem, 'ssl-target-name-override': aHostnameOverride};
+	orderer = new Orderer(url,opts);
+	t.equal(aHostname, orderer._endpoint.addr, 'GRPC Options tests: new Orederer grpcs with opts created');
+	t.equal(orderer.toString(),' Orderer : {url:grpcs://'+aHostname+':aport}', 'Checking that orderer.toString() reports correctly');
+	//Peer: insecure grpc, opts.pem optional
+	url = 'grpc://'+aHostname+':aport';
+	opts = null;
+	orderer = new Orderer(url,opts);
+	t.equal(aHostname, orderer._endpoint.addr, 'GRPC Options tests: new Orederer grpc with opts = null _endpoint.addr created');
+	t.ok(orderer._endpoint.creds, 'GRPC Options tests: new orderer grpc with opts = null _endpoint.creds created');
+
+	opts = {pem: aPem, 'ssl-target-name-override': aHostnameOverride};
+	orderer = new Orderer(url,opts);
+	t.equal(aHostname, orderer._endpoint.addr, 'GRPC Options tests: new Orederer grpc with opts _endpoint.addr created');
+	t.ok(orderer._endpoint.creds, 'GRPC Options tests: new orderer grpc with opts _endpoint.creds created');
+
+	opts = {pem: aPem, 'request-timeout': 2000};
+	orderer = new Orderer(url,opts);
+	t.equals(orderer._request_timeout, 2000, 'checking that the request timeout was set using the passed in value');
+
+	t.throws(
+		function() {
+			url = 'http://'+aHostname+':aport';
+			orderer = new Orderer(url, opts);
+		},
+		/^InvalidProtocol: Invalid protocol: http./,
+		'GRPC Options tests: new orderer http should throw '+
+		'InvalidProtocol: Invalid protocol: http. URLs must begin with grpc:// or grpcs://.'
+	);
+
+	console.log('\n * MemberServices *');
+	//MemberServices: secure grpcs, requires opts.pem
+	url = 'grpcs://'+aHostname+':aport';
+	opts = null;
+	var memberServices = null;
+	t.throws(
+		function() {
+			memberServices = new MemberServices(url, opts);
+		},
+		/^TypeError: First argument must be a string/,
+		'GRPC Options tests: new MemberServices grpcs with opts = null should throw '+
+		'TypeError: First argument must be a string, Buffer, ArrayBuffer, Array, or array-like object.'
+	);
+
+	opts = {pem: aPem, 'ssl-target-name-override': aHostnameOverride};
+	memberServices = new MemberServices(url,opts);
+
+	t.equal(aHostname, memberServices._endpoint.addr, 'GRPC Options tests: new MemberServices grpcs with opts created');
+	t.equal(memberServices.toString(),' MemberServices : {url:grpcs://'+aHostname+':aport}', 'Checking that memberServices.toString() reports correctly');
+
+	t.doesNotThrow(
+		function() {
+			memberServices.setSecurityLevel(256);
+		},
+		null,
+		'check setting the security level'
+	);
+	t.equal(memberServices.getSecurityLevel(),256, 'checking the security level');
+	t.doesNotThrow(
+			function() {
+				memberServices.setHashAlgorithm('SHA3');
+			},
+			null,
+			'check setting the HashAlgorithm'
+		);
+	t.equal(memberServices.getHashAlgorithm(),'SHA3', 'checking the HashAlgorithm');
+	t.ok(memberServices.getCrypto(),'checking get crypto');
+
+	t.equal(memberServices._rolesToMask('bad'),1, 'rolesToMask = 1');
+	t.equal(memberServices._rolesToMask(['client']),1, 'rolesToMask = 1');
+	t.equal(memberServices._rolesToMask(['peer']),2, 'rolesToMask = 2');
+	t.equal(memberServices._rolesToMask(['validator']),4, 'rolesToMask = 4');
+	t.equal(memberServices._rolesToMask(['auditor']),8, 'rolesToMask = 8');
+
+
+	//MemberServices: insecure grpc, opts.pem optional
+	url = 'grpc://'+aHostname+':aport';
+	opts = null;
+	memberServices = new MemberServices(url,opts);
+	t.equal(aHostname, memberServices._endpoint.addr, 'GRPC Options tests: new MemberServices grpc with opts = null _endpoint.addr created');
+	t.ok(memberServices._endpoint.creds, 'GRPC Options tests: new MemberServices grpc with opts = null _endpoint.creds created');
+
+	opts = {pem: aPem, 'ssl-target-name-override': aHostnameOverride};
+	memberServices = new MemberServices(url,opts);
+
+	t.equal(aHostname, memberServices._endpoint.addr, 'GRPC Options tests: new MemberServices grpc with opts _endpoint.addr created');
+	t.ok(memberServices._endpoint.creds, 'GRPC Options tests: new MemberServices grpc with opts _endpoint.creds created');
+
+	t.throws(
+		function() {
+			url = 'http://'+aHostname+':aport';
+			memberServices = new MemberServices(url, opts);
+		},
+		/^InvalidProtocol: Invalid protocol: http./,
+		'GRPC Options tests: new MemberServices http should throw '+
+		'InvalidProtocol: Invalid protocol: http. URLs must begin with grpc:// or grpcs://.'
+	);
+
+	t.throws(
+		function() {
+			url = 'https://'+aHostname+':aport';
+			memberServices = new MemberServices(url, opts);
+		},
+		/^InvalidProtocol: Invalid protocol: https./,
+		'GRPC Options tests: new MemberServices https should throw '+
+		'InvalidProtocol: Invalid protocol: http. URLs must begin with grpc:// or grpcs://.'
+	);
+
+	t.end();
+});
+
 // Logger tests /////////
 function testLogger(t, ignoreLevels) {
 	var output = '';
@@ -596,13 +906,13 @@ function testLogger(t, ignoreLevels) {
 	}
 }
 
-test('Logging utility tests - built-in logger', function(t) {
+test('\n\n ** Logging utility tests - built-in logger', function(t) {
 	// test 1: default logging levels for console logging
 	testLogger(t);
 
 	// test 2: custom logging levels for console logging
 	var output = '';
-	process.env.HFC_LOGGING = "{'debug': 'console'}"; // expected json format so this is invalid
+	process.env.HFC_LOGGING = '{"debug": "console"}'; // expected json format so this is invalid
 	// internal call. clearing the cached logger.
 	global.hfc.logger = undefined;
 
@@ -726,7 +1036,7 @@ test('Logging utility tests - built-in logger', function(t) {
 	}, 1000);
 });
 
-test('Logging utility tests - test setting an external logger based on bunyan', function(t) {
+test('\n\n ** Logging utility tests - test setting an external logger based on bunyan', function(t) {
 	var logger = bunyan.createLogger({name: 'bunyanLogger'});
 	hfc.setLogger(logger);
 
@@ -734,7 +1044,7 @@ test('Logging utility tests - test setting an external logger based on bunyan', 
 	t.end();
 });
 
-test('Logging utility tests - test setting an external logger based on log4js', function(t) {
+test('\n\n ** Logging utility tests - test setting an external logger based on log4js', function(t) {
 	var logger = log4js.getLogger();
 	hfc.setLogger(logger);
 
@@ -742,7 +1052,7 @@ test('Logging utility tests - test setting an external logger based on log4js', 
 	t.end();
 });
 
-test('Logging utility tests - test setting an invalid external logger', function(t) {
+test('\n\n ** Logging utility tests - test setting an invalid external logger', function(t) {
 	// construct an invalid logger
 	var logger = {
 		inf: function() { console.log('info'); },

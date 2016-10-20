@@ -1,0 +1,6 @@
+{ 
+	"request-timeout" : 3000,
+	"tcert-batch-size" : 10,
+	"ssl-target-name-override" : "tlsca",
+	"default-authority" : "tlsca"
+}
