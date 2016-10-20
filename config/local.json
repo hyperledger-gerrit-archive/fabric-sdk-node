@@ -1,0 +1,5 @@
+{
+	"request-timeout" : 7000,
+	"tcert-batch-size" : 200,
+	"ssl-target-name-override" : "localca"
+}
