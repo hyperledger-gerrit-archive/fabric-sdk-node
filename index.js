@@ -23,6 +23,8 @@
 
 var util = require('util');
 var Chain = require('./lib/Chain.js');
+var Config = require('./lib/Config.js');
+var Peer = require('./lib/Peer.js');
 var utils = require('./lib/utils.js');
 
 var _chains = {};
@@ -60,6 +62,20 @@ module.exports.getChain = function(chainName, create) {
 
 	return chain;
 };
+
+/**
+ * Constructs and returns a Peer given its endpoint configuration settings.
+ *
+ * @param {string} url The URL with format of "grpcs://host:port".
+ * @param {Object} opts The options for the connection to the peer.
+ * @returns {Peer} Returns the new peer.
+ */
+module.exports.getPeer = function(url, opts) {
+	var peer = new Peer(url, opts);
+
+	return peer;
+};
+
 
 /**
  * Obtains an instance of the [KeyValueStore]{@link module:api.KeyValueStore} class. By default
@@ -119,5 +135,41 @@ module.exports.setLogger = function(logger) {
 			logger: logger
 		};
 	}
+};
+
+/*
+ * Adds configuration settings file to override default file settings
+ *
+ */
+module.exports.addConfigFile = function(path) {
+
+	utils.addConfigFile(path);
+};
+
+/*
+ * Adds configuration settings to override current settings
+ *
+ */
+module.exports.addConfigSettings = function(settings) {
+
+	utils.addConfigSettings(config);
+};
+
+/*
+ * set a configuration setting to override current setting
+ *
+ */
+module.exports.setConfigSetting = function(name, value) {
+
+	utils.setConfigSetting(name, value);
+};
+
+/*
+ * get a current configuration setting
+ *
+ */
+module.exports.getConfigSetting = function(name, default_value) {
+
+	return utils.getConfigSetting(name, default_value);
 };
 
