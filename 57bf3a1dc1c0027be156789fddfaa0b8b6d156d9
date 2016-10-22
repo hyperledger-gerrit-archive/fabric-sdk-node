@@ -1,0 +1,8 @@
+Verified+1: Hyperledger Jobbuilder <jobbuilder@jenkins.hyperledger.org>
+Code-Review+2: Jonathan Levi <jonathan@levi.name>
+Code-Review+2: Gari Singh <gari.r.singh@gmail.com>
+Submitted-by: Gari Singh <gari.r.singh@gmail.com>
+Submitted-at: Sat, 22 Oct 2016 23:07:38 +0000
+Reviewed-on: http://gerrit.hyperledger.org/r/1861
+Project: fabric-sdk-node
+Branch: refs/heads/master
