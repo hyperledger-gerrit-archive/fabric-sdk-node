@@ -31,6 +31,7 @@ The following tests require setting up a local blockchain network as the target.
 * run `docker-compose up --force-recreate` to launch the network
 * Back in your native host (MacOS, or Windows, or Ubuntu, etc), run the following tests:
   * Clear out your previous keyvalue store if needed (rm -fr /tmp/KeyValStore*)
+  * Run `gulp test` to run the entire test bucket and generate coverage reports (both in console output and HTMLs)
   * Test user management with a member services, run `node test/unit/ca-tests.js`
   * Test happy path from end to end, run `node test/unit/end-2-end.js`
   * Test transaction proposals, run `node test/unit/endorser-tests.js`
