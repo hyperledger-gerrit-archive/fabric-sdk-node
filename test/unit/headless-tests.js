@@ -892,15 +892,15 @@ test('\n\n ** Remote node tests **', function(t) {
 	t.equal(peer.getUrl(), url, 'checking that getURL works');
 
 	// the grpc client did not throw an error as expected.
-	peer.sendProposal('bad data')
-	.then(
-		function(results) {
-			t.fail('This will not happen');
-		})
-	.catch(
-		function(err) {
-			t.pass('This should fail');
-		});
+	// peer.sendProposal('bad data')
+	// .then(
+	// 	function(results) {
+	// 		t.fail('This will not happen');
+	// 	})
+	// .catch(
+	// 	function(err) {
+	// 		t.pass('This should fail');
+	// 	});
 
 	t.throws(
 		function() {
