@@ -12,7 +12,7 @@ gulp.task('pre-test', function() {
 });
 
 gulp.task('test', ['pre-test'], function() {
-	return gulp.src('test/unit/*.js')
+	return gulp.src(['test/unit/ca-tests.js', 'test/unit/endorser-tests.js', 'test/unit/orderer-tests.js', 'test/unit/orderer-member-tests.js', 'test/unit/end-to-end.js', 'test/unit/headless-tests.js'])
 		.pipe(tape({
 			reporter: tapColorize()
 		}))
