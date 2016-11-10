@@ -1,0 +1,2 @@
+FROM hyperledger/fabric-membersrvc:x86_64-0.6.1-preview
+RUN mkdir -p /var/hyperledger/production/.membersrvc/

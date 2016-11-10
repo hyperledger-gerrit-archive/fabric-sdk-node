@@ -1,0 +1,4 @@
+FROM hyperledger/fabric-peer:x86_64-0.6.1-preview
+COPY wait-for-membersrvc.sh /tmp
+RUN mkdir -p /var/hyperledger/production/.membersrvc/
+RUN chmod +x /tmp/wait-for-membersrvc.sh

@@ -1,0 +1,76 @@
+version: '2.0'
+services:
+  membersrvc:
+    # try 'docker ps' to see the container status after starting this compose
+    container_name: membersrvc
+    image: hyperledger/fabric-membersrvc:x86_64-0.6.1-preview
+    ports:
+      - "7054:7054"
+      - "7053:7053"
+    environment:
+      - MEMBERSRVC_CA_SERVER_TLS_CERT_FILE=/var/hyperledger/production/.membersrvc/tlsca.cert
+      - MEMBERSRVC_CA_SERVER_TLS_KEY_FILE=/var/hyperledger/production/.membersrvc/tlsca.priv
+      - MEMBERSRVC_CA_SERVER_TLS_CERTFILE=/var/hyperledger/production/.membersrvc/tlsca.cert
+      - MEMBERSRVC_CA_SERVER_TLS_KEYFILE=/var/hyperledger/production/.membersrvc/tlsca.priv
+      - MEMBERSRVC_CA_SECURITY_TLS_ENABLED=true
+      - MEMBERSRVC_CA_SECURITY_SERVERHOSTOVERRIDE=tlsca
+      - MEMBERSRVC_CA_SECURITY_CLIENT_CERT_FILE=/var/hyperledger/production/.membersrvc/tlsca.cert
+      - MEMBERSRVC_CA_LOGGING_TRACE=1
+      - MEMBERSRVC_CA_LOGGING_SERVER=debug
+      - MEMBERSRVC_CA_LOGGING_CA=debug
+      - MEMBERSRVC_CA_LOGGING_ECA=debug
+      - MEMBERSRVC_CA_LOGGING_ECAP=debug
+      - MEMBERSRVC_CA_LOGGING_ECAA=debug
+      - MEMBERSRVC_CA_LOGGING_ACA=debug
+      - MEMBERSRVC_CA_LOGGING_ACAP=debug
+      - MEMBERSRVC_CA_LOGGING_TCA=debug
+      - MEMBERSRVC_CA_LOGGING_TCAP=debug
+      - MEMBERSRVC_CA_LOGGING_TCAA=debug
+      - MEMBERSRVC_CA_LOGGING_TLSCA=debug
+    command: membersrvc
+    volumes:
+      - /var/hyperledger/production/
+  
+  peer:
+    build:
+      context: .
+      dockerfile: Dockerfile-peer
+    container_name: peer
+    image: hyperledger/fabric-peer:x86_64-0.6.1-preview
+    ports:
+      - "7051:7051"
+    environment:
+      - SDK_TLS=${SDK_TLS}
+      - CORE_PEER_TLS_ENABLED=true
+      - CORE_PEER_TLS_CERT_FILE=/var/hyperledger/production/.membersrvc/tlsca.cert
+      - CORE_PEER_TLS_KEY_FILE=/var/hyperledger/production/.membersrvc/tlsca.priv
+      - CORE_PEER_TLS_SERVERHOSTOVERRIDE=tlsca
+      - CORE_PEER_PKI_TLS_ENABLED=true
+      - CORE_PEER_PKI_TLS_ROOTCERT_FILE=/var/hyperledger/production/.membersrvc/tlsca.cert
+      - CORE_PEER_PKI_TLS_SERVERHOSTOVERRIDE=tlsca
+      - CORE_LOGGING_LEVEL=debug
+      - CORE_LOGGING_PEER=debug
+      - CORE_LOGGING_NODE=debug
+      - CORE_LOGGING_NETWORK=debug
+      - CORE_LOGGING_CHAINCODE=debug
+      - CORE_LOGGING_VERSION=debug
+      - CORE_PEER_ADDRESSAUTODETECT=true
+      - CORE_VM_ENDPOINT=unix:///var/run/docker.sock
+      - CORE_LOGGING_LEVEL=DEBUG
+      - CORE_PEER_ID=vp0
+      - CORE_SECURITY_ENABLED=true
+      - CORE_PEER_PKI_ECA_PADDR=membersrvc:7054
+      - CORE_PEER_PKI_TCA_PADDR=membersrvc:7054
+      - CORE_PEER_PKI_TLSCA_PADDR=membersrvc:7054
+      - CORE_PEER_VALIDATOR_CONSENSUS_PLUGIN=noops
+    # this gives access to the docker host daemon to deploy chain code in network mode
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    volumes_from:
+      - membersrvc
+    # have the peer wait 10 sec for membersrvc to start
+    command: sh -c "peer node start"
+    links:
+      - membersrvc
+    entrypoint: /tmp/wait-for-membersrvc.sh 
+    privileged: true
