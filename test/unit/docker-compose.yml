@@ -1,0 +1,28 @@
+version: '2.0'
+services:
+   membersrvc0:
+      container_name: membersrvc0
+      extends:
+         file: compose-defaults.yml
+         service: membersrvc
+   
+   orderer0:
+      container_name: orderer0
+      extends:
+         file: compose-defaults.yml
+         service: orderer
+
+   vp0:
+      container_name: vp0
+      extends:
+         file: compose-defaults.yml
+         service: peer
+      environment:
+         - CORE_PEER_ID=vp0
+         - CORE_SECURITY_ENROLLID=test_vp0
+         - CORE_SECURITY_ENROLLSECRET=MwYpmSRjupbT
+      links:
+         - membersrvc0
+         - orderer0
+      volumes_from:
+         - membersrvc0

@@ -1,0 +1,2 @@
+FROM hyperledger/fabric-membersrvc
+RUN mkdir -p /var/hyperledger/production/.membersrvc/
