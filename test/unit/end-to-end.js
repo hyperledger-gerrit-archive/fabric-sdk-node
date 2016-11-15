@@ -35,15 +35,22 @@ var chaincode_id = 'mycc1';
 
 testUtil.setupChaincodeDeploy();
 
-chain.setKeyValueStore(hfc.newKeyValueStore({
-	path: testUtil.KVS
-}));
-
 chain.setMemberServicesUrl('grpc://localhost:7054');
 chain.setOrderer('grpc://localhost:5151');
 
 test('End-to-end flow of chaincode deploy, transaction invocation, and query', function(t) {
-	chain.enroll('admin', 'Xurw3yU9zI0l')
+	hfc.newKeyValueStore({name: 'member_db', path: testUtil.KVS})
+	.then(
+		function(keyValStore) {
+			chain.setKeyValueStore(keyValStore);
+			console.log('chain keyValStore - ' + JSON.stringify(chain.getKeyValueStore()));
+
+			return chain.enroll('admin', 'Xurw3yU9zI0l');
+		},
+		function(err) {
+			return cb('Error initializing keyValStoreDB. Exiting.');
+		}
+	)
 	.then(
 		function(admin) {
 			t.pass('Successfully enrolled user \'admin\'');
@@ -180,4 +187,3 @@ test('End-to-end flow of chaincode deploy, transaction invocation, and query', f
 function sleep(ms) {
 	return new Promise(resolve => setTimeout(resolve, ms));
 }
-
