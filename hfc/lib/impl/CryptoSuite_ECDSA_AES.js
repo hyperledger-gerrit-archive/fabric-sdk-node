@@ -61,6 +61,7 @@ var CryptoSuite_ECDSA_AES = class extends api.CryptoSuite {
 
 		if (typeof kvs === 'undefined' || kvs === null) {
 			logger.info('This class requires a KeyValueStore to save keys, no store was passed in, using the default store');
+			// _store is a Promise that must be resolved.
 			this._store = utils.newKeyValueStore({
 				path: '/tmp/hfc-key-store'
 			});
@@ -132,16 +133,21 @@ var CryptoSuite_ECDSA_AES = class extends api.CryptoSuite {
 			var self = this;
 			return new Promise(
 				function(resolve, reject) {
-					self._store.setValue(key.getSKI(), KEYUTIL.getPEM(pair.prvKeyObj, 'PKCS8PRV'))
-					.then(
-						function() {
-							return resolve(key);
-						}
-					).catch(
-						function(err) {
-							reject(err);
-						}
-					);
+					self._getKeyValueStore(self._store)
+					.then (
+						function (store) {
+							logger.debug('generateKey, store.setValue');
+							store.setValue(key.getSKI(), KEYUTIL.getPEM(pair.prvKeyObj, 'PKCS8PRV'))
+							.then(
+								function() {
+									return resolve(key);
+								}
+							).catch(
+								function(err) {
+									reject(err);
+								}
+							);
+						});
 				}
 			);
 		}
@@ -193,20 +199,40 @@ var CryptoSuite_ECDSA_AES = class extends api.CryptoSuite {
 
 		return new Promise(
 			function(resolve, reject) {
-				self._store.getValue(ski)
-				.then(function(raw) {
-					if (raw !== null) {
-						var privKey = KEYUTIL.getKeyFromPlainPrivatePKCS8PEM(raw);
-						return resolve(new ECDSAKey(privKey, self._keySize));
-					} else {
-						return resolve(null);
-					}
-				})
-				.catch(function(err) {
-					reject(err);
-				});
+				self._getKeyValueStore(self._store)
+				.then (
+					function (store) {
+						store.getValue(ski)
+						.then(function(raw) {
+							if (raw !== null) {
+								var privKey = KEYUTIL.getKeyFromPlainPrivatePKCS8PEM(raw);
+								return resolve(new ECDSAKey(privKey, self._keySize));
+							} else {
+								return resolve(null);
+							}
+						})
+						.catch(function(err) {
+							reject(err);
+						});
+					});
 			}
 		);
+	}
+
+	_getKeyValueStore(store) {
+		return new Promise(function(resolve, reject) {
+			if (utils.isPromise(store)) {
+				store.then (
+					function (kvs) {
+						logger.debug('_getKeyValueStore returning kvs');
+						resolve(kvs);
+					}
+				);
+			} else {
+				logger.debug('_getKeyValueStore resolving store');
+				resolve(store);
+			}
+		});
 	}
 
 	/**
