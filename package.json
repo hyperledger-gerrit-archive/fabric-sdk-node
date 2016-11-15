@@ -31,6 +31,7 @@
     "jsrsasign": "^5.0.10",
     "jssha": "^2.1.0",
     "lodash": "^4.15.0",
+    "nano": "^6.2.0",
     "nconf": "^0.8.4",
     "node-uuid": "^1.4.7",
     "node.extend": "^1.1.5",

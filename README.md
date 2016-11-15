@@ -35,10 +35,59 @@ The following tests require setting up a local blockchain network as the target.
 * Back in your native host (MacOS, or Windows, or Ubuntu, etc), run the following tests:
   * Clear out your previous keyvalue store if needed (rm -fr /tmp/KeyValStore*)
   * Run `gulp test` to run the entire test bucket and generate coverage reports (both in console output and HTMLs)
-  * Test user management with a member services, run `node test/unit/ca-tests.js`
+  * Test user management by member services with the `test/unit/ca-tests.js`. This test exercises the KeyValueStore implementations for a file-based KeyValueStore as well as a CouchDB KeyValueStore. To successfully run this test, you must first set up a CouchDB database instance on your local machine. Please see the instructions below.
   * Test happy path from end to end, run `node test/unit/end-2-end.js`
   * Test transaction proposals, run `node test/unit/endorser-tests.js`
   * Test sending endorsed transactions for consensus, run `node test/unit/orderer-tests.js`
+
+### Set Up CouchDB Database for ca-tests.js
+
+The KeyValueStore database implementation is done using [Apache CouchDB](http://couchdb.apache.org/). To quickly set up a database instance on your local machine, pull in the CouchDB Docker image from [Docker hub](https://hub.docker.com/_/couchdb/).
+
+	docker pull couchdb
+
+Start up the database instance and expose the default port 5984 on the host.
+
+	docker run -d -p 5984:5984 --name my-couchdb couchdb
+
+Ensure that the Docker container running CouchDB is up.
+
+	docker ps
+
+You will see output similar to the one below:
+
+```
+CONTAINER ID        IMAGE               COMMAND                  CREATED             STATUS              PORTS                    NAMES
+33caf5a80fca        couchdb             "tini -- /docker-entr"   47 hours ago        Up 47 hours         0.0.0.0:5984->5984/tcp   my-couchdb
+```
+
+Ensure that CouchDB instance is up and ready for requests.
+
+	curl DOCKER_HOST_IP:5984/
+
+For example, the default `DOCKER_HOST_IP` on Mac is `192.168.99.100`, therefore the request becomes:
+
+	curl 192.168.99.100:5984/
+
+If the database is up and running, you will receive the following response:
+
+	{
+		"couchdb": "Welcome",
+		"uuid": "01b6d4481b7ff9e6e067d90c6d20aa83",
+		"version": "1.6.1",
+		"vendor": {
+			"name": "The Apache Software Foundation",
+			"version":"1.6.1"
+		}
+	}
+
+Once the CouchDB instance is up and running, set the following environment variable:
+
+	export DB_IP_ADDR = <CouchDB_IP_Address>
+
+Subsequently, run the associated unit test with the following command:
+
+	node test/unit/ca-tests.js
 
 ### Contributor Check-list
 The following check-list is for code contributors to make sure their changesets are compliant to the coding standards and avoid time wasted in rejected changesets:

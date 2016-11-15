@@ -1,0 +1,5 @@
+{
+	"couchdb-ip-addr" : "http://192.168.99.100",
+	"couchdb-port" : "5984",
+	"key-value-store" : "./impl/CouchDBKeyValueStore.js"
+}

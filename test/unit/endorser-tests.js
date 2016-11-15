@@ -35,13 +35,21 @@ test('\n\n** TEST ** endorser test - missing targets', function(t) {
 	//
 	// Create and configure the test chain
 	var chain = hfc.getChain('testChain', true);
-	chain.setKeyValueStore(hfc.newKeyValueStore({
-		path: keyValStorePath
-	}));
 
 	chain.setMemberServicesUrl('grpc://localhost:7054');
 
-	chain.enroll('admin', 'Xurw3yU9zI0l')
+	hfc.newKeyValueStore({name: 'member_db', path: keyValStorePath})
+	.then(
+		function(keyValStore) {
+			chain.setKeyValueStore(keyValStore);
+			console.log('chain keyValStore - ' + JSON.stringify(chain.getKeyValueStore()));
+
+			return chain.enroll('admin', 'Xurw3yU9zI0l');
+		},
+		function(err) {
+			return cb('Error initializing keyValStoreDB. Exiting.');
+		}
+	)
 	.then(
 		function(admin) {
 			t.pass('Successfully enrolled user \'admin\'');
@@ -88,13 +96,20 @@ test('\n\n** TEST ** endorse transaction missing chaincodeId test', function(t) 
 	//
 	var chain = hfc.getChain('testChain', true);
 
-	chain.setKeyValueStore(hfc.newKeyValueStore({
-		path: keyValStorePath
-	}));
-
 	chain.setMemberServicesUrl('grpc://localhost:7054');
 
-	chain.enroll('admin', 'Xurw3yU9zI0l')
+	hfc.newKeyValueStore({name: 'member_db', path: keyValStorePath})
+	.then(
+		function(keyValStore) {
+			chain.setKeyValueStore(keyValStore);
+			console.log('chain keyValStore - ' + JSON.stringify(chain.getKeyValueStore()));
+
+			return chain.enroll('admin', 'Xurw3yU9zI0l');
+		},
+		function(err) {
+			return cb('Error initializing keyValStoreDB. Exiting.');
+		}
+	)
 	.then(
 		function(admin) {
 			t.pass('Successfully enrolled user \'admin\'');
@@ -142,13 +157,20 @@ test('\n\n** TEST ** endorse chaincode deployment good test', function(t) {
 	//
 	var chain = hfc.getChain('testChain', true);
 
-	chain.setKeyValueStore(hfc.newKeyValueStore({
-		path: keyValStorePath
-	}));
-
 	chain.setMemberServicesUrl('grpc://localhost:7054');
 
-	chain.enroll('admin', 'Xurw3yU9zI0l')
+	hfc.newKeyValueStore({name: 'member_db', path: keyValStorePath})
+	.then(
+		function(keyValStore) {
+			chain.setKeyValueStore(keyValStore);
+			console.log('chain keyValStore - ' + JSON.stringify(chain.getKeyValueStore()));
+
+			return chain.enroll('admin', 'Xurw3yU9zI0l');
+		},
+		function(err) {
+			return cb('Error initializing keyValStoreDB. Exiting.');
+		}
+	)
 	.then(
 		function(admin) {
 			t.pass('Successfully enrolled user \'admin\'');

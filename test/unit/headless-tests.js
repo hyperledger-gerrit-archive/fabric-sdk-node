@@ -22,6 +22,7 @@ var test = _test(tape);
 
 var path = require('path');
 var util = require('util');
+var testUtil = require('./util.js');
 var hfc = require('../..');
 var fs = require('fs');
 var execSync = require('child_process').execSync;
@@ -135,78 +136,109 @@ test('\n\n ** Config **', function(t) {
 // Run the FileKeyValueStore tests
 //
 
-test('\n\n ** FileKeyValueStore - read and write test', function(t){
+test('\n\n ** FileKeyValueStore - read and write test', function(t) {
 	// clean up
 	if (utils.existsSync(keyValStorePath)) {
 		execSync('rm -rf ' + keyValStorePath);
 	}
 
-	var store = utils.newKeyValueStore({
-		path: keyValStorePath
-	});
+	// Store the reference to the KeyValueStore
+	var store;
+	utils.newKeyValueStore({path: keyValStorePath})
+	.then(
+		function(keyValStore) {
+			if (utils.existsSync(keyValStorePath)) {
+				t.pass('FileKeyValueStore read and write test: Successfully created new directory for testValueStore');
 
-	if (utils.existsSync(keyValStorePath)) {
-		t.pass('FileKeyValueStore read and write test: Successfully created new directory for testValueStore');
-
-		store.setValue(testKey, testValue)
-		.then(
-			function(result){
-				t.pass('FileKeyValueStore read and write test: Successfully set value');
-
-				if (utils.existsSync(path.join(keyValStorePath, testKey))) {
-					t.pass('FileKeyValueStore read and write test: Verified the file for key ' + testKey + ' does exist');
-
-					return store.getValue(testKey);
-				} else {
-					t.fail('FileKeyValueStore read and write test: Failed to create file for key ' + testKey);
-					t.end();
-				}
-			},
-			function(reason){
-				t.fail('FileKeyValueStore read and write test: Failed to set value, reason: '+reason);
+				store = keyValStore;
+				return store.setValue(testKey, testValue);
+			} else {
+				t.fail('FileKeyValueStore read and write test: Failed to create new directory: ' + keyValStorePath);
 				t.end();
-			})
-		.then(
-			// Log the fulfillment value
-			function(val){
-				if (val != testValue)
-					t.fail('FileKeyValueStore read and write test: '+ val + ' does not equal testValue of ' + testValue);
-				else
-					t.pass('FileKeyValueStore read and write test: Successfully retrieved value');
+			}
+		},
+		function(err) {
+			t.fail('Error initializing keyValStore. Exiting.');
+			t.end();
+		}
+	).then(
+		function(result) {
+			t.pass('FileKeyValueStore read and write test: Successfully set value');
 
+			if (utils.existsSync(path.join(keyValStorePath, testKey))) {
+				t.pass('FileKeyValueStore read and write test: Verified the file for key ' + testKey + ' does exist');
+
+				return store.getValue(testKey);
+			} else {
+				t.fail('FileKeyValueStore read and write test: Failed to create file for key ' + testKey);
 				t.end();
-			},
-			// Log the rejection reason
-			function(reason){
-				t.fail('FileKeyValueStore read and write test: Failed getValue, reason: '+reason);
-				t.end();
-			});
-	} else{
-		t.fail('FileKeyValueStore read and write test: Failed to create new directory: ' + keyValStorePath);
-		t.end();
-	}
+			}
+		},
+		function(reason) {
+			t.fail('FileKeyValueStore read and write test: Failed to set value, reason: '+reason);
+			t.end();
+		}
+	).then(
+		// Log the fulfillment value
+		function(val) {
+			if (val != testValue)
+				t.fail('FileKeyValueStore read and write test: '+ val + ' does not equal testValue of ' + testValue);
+			else
+				t.pass('FileKeyValueStore read and write test: Successfully retrieved value');
+
+			t.end();
+		},
+		// Log the rejection reason
+		function(reason) {
+			t.fail('FileKeyValueStore read and write test: Failed getValue, reason: '+reason);
+			t.end();
+		}
+	);
 });
 
-test('\n\n ** FileKeyValueStore - constructor test', function(t){
+test('\n\n ** FileKeyValueStore - constructor test', function(t) {
 	cleanupFileKeyValueStore(keyValStorePath1);
 	cleanupFileKeyValueStore(keyValStorePath2);
 
-	store1 = new FileKeyValueStore({path: getRelativePath(keyValStorePath1)});
-	var exists = utils.existsSync(getAbsolutePath(keyValStorePath1));
-	if (exists)
-		t.pass('FileKeyValueStore constructor test:  Successfully created new directory');
-	else
-		t.fail('FileKeyValueStore constructor test:  Failed to create new directory: ' + keyValStorePath1);
+	new FileKeyValueStore({path: getRelativePath(keyValStorePath1)})
+	.then(
+		function(keyValStore) {
+			store1 = keyValStore;
 
-	store2 = new FileKeyValueStore({path: getRelativePath(keyValStorePath2)});
-	exists = utils.existsSync(getAbsolutePath(keyValStorePath2));
-	if (exists)
-		t.pass('FileKeyValueStore constructor test:  Successfully created new directory');
-	else
-		t.fail('FileKeyValueStore constructor test:  Failed to create new directory: ' + keyValStorePath2);
+			var exists = utils.existsSync(getAbsolutePath(keyValStorePath1));
+			if (exists)
+				t.pass('FileKeyValueStore constructor test:  Successfully created new directory ' + keyValStorePath1);
+			else {
+				t.fail('FileKeyValueStore constructor test:  Failed to create new directory: ' + keyValStorePath1);
+				t.end();
+			}
+		},
+		function(err) {
+			t.fail('Error initializing keyValStore. Exiting.');
+			t.end();
+		}
+	);
 
+	new FileKeyValueStore({path: getRelativePath(keyValStorePath2)})
+	.then(
+		function(keyValStore) {
+			store2 = keyValStore;
 
-	t.end();
+			var exists = utils.existsSync(getAbsolutePath(keyValStorePath2));
+			if (exists) {
+				t.pass('FileKeyValueStore constructor test:  Successfully created new directory ' + keyValStorePath2);
+				t.end();
+			}
+			else{
+				t.fail('FileKeyValueStore constructor test:  Failed to create new directory: ' + keyValStorePath2);
+				t.end();
+			}
+		},
+		function(err) {
+			t.fail('Error initializing keyValStore. Exiting.');
+			t.end();
+		}
+	);
 });
 
 test('\n\n ** FileKeyValueStore - setValue test', function(t) {
@@ -279,7 +311,7 @@ test('\n\n ** FileKeyValueStore - setValue test', function(t) {
 		});
 });
 
-test('FileKeyValueStore error check tests', function(t){
+test('FileKeyValueStore error check tests', function(t) {
 
 	t.throws(
 		function() {
@@ -300,8 +332,17 @@ test('FileKeyValueStore error check tests', function(t){
 	);
 
 	cleanupFileKeyValueStore(keyValStorePath3);
-	var store3 = new FileKeyValueStore({path: getRelativePath(keyValStorePath3)});
-	store3.setValue(testKey, testValue)
+	var store3;
+	new FileKeyValueStore({path: getRelativePath(keyValStorePath3)})
+	.then(
+		function(keyValStore) {
+			store3 = keyValStore;
+			return store3.setValue(testKey, testValue);
+		},
+		function(err) {
+			t.fail('Error initializing keyValStore. Exiting.');
+			t.end();
+		})
 	.then(
 		function(result) {
 			t.comment('FileKeyValueStore error check tests:  Delete store & getValue test. Successfully set value');
@@ -394,16 +435,24 @@ test('\n\n ** Chain - constructor test', function(t) {
 test('\n\n ** Chain - setKeyValueStore getKeyValueStore test', function(t) {
 	cleanupFileKeyValueStore(chainKeyValStorePath);
 
-	_chain.setKeyValueStore(hfc.newKeyValueStore({path: getRelativePath(chainKeyValStorePath)}));
+	hfc.newKeyValueStore({path: getRelativePath(chainKeyValStorePath)})
+	.then(
+		function(keyValStore) {
+			_chain.setKeyValueStore(keyValStore);
 
-	var exists = utils.existsSync(getAbsolutePath(chainKeyValStorePath));
-	if (exists)
-		t.pass('Chain setKeyValueStore test:  Successfully created new directory');
-	else
-		t.fail('Chain setKeyValueStore test:  Failed to create new directory: ' + chainKeyValStorePath);
+			var exists = utils.existsSync(getAbsolutePath(chainKeyValStorePath));
+			if (exists)
+				t.pass('Chain setKeyValueStore test:  Successfully created new directory');
+			else
+				t.fail('Chain setKeyValueStore test:  Failed to create new directory: ' + chainKeyValStorePath);
 
-	store3 = _chain.getKeyValueStore();
-	store3.setValue(testKey, testValue)
+			store3 = _chain.getKeyValueStore();
+			return store3.setValue(testKey, testValue);
+		},
+		function(err) {
+			t.fail('Error initializing keyValStore. Exiting.');
+			t.end();
+		})
 	.then(
 		function(result){
 			t.pass('Chain getKeyValueStore test:  Successfully set value, result: '+result);
