@@ -36,21 +36,23 @@ var sha3_256 = require('js-sha3').sha3_256;
 // The following methods are for loading the proper implementation of an extensible APIs.
 //
 
-module.exports.getCryptoSuite = function() {
+module.exports.getCryptoSuite = function(kvs) {
 	// expecting a path to an alternative implementation
 	var csEnv = this.getConfigSetting('crypto-suite');
 	var cryptoSuite = require(csEnv);
-
 	var keySize = this.getConfigSetting('crypto-keysize');
-
-	return new cryptoSuite(keySize);
+	return new cryptoSuite(keySize, kvs);
 };
 
+// Provide a Promise-based keyValueStore for couchdb, etc.
 module.exports.newKeyValueStore = function(options) {
-	// expecting a path to an alternative implementation
-	var kvsEnv = this.getConfigSetting('key-value-store');
-	var store = require(kvsEnv);
-	return new store(options);
+	// initialize the correct KeyValueStore
+	var self = this;
+	return new Promise(function(resolve, reject) {
+		var kvsEnv = self.getConfigSetting('key-value-store','./impl/FileKeyValueStore.js');
+		var store = require(kvsEnv);
+		return resolve(new store(options));
+	});
 };
 
 const LOGGING_LEVELS = ['debug', 'info', 'warn', 'error'];
@@ -404,5 +406,11 @@ module.exports.getClassMethods = function(clazz) {
 			if (e !== 'constructor' && typeof i[e] === 'function')
 				return true;
 		});
+};
+
+module.exports.isPromise = function(obj) {
+	if (!!obj && (typeof obj === 'object' || typeof obj === 'function') && typeof obj.then === 'function') {
+		return true;
+	} else return false;
 };
 
