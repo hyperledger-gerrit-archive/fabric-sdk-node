@@ -24,11 +24,11 @@ var test = _test(tape);
 
 var path = require('path');
 
-var hfc = require('../..');
+var hfc = require('../../hfc');
 var util = require('util');
 var grpc = require('grpc');
 var testUtil = require('./util.js');
-var utils = require('../../lib/utils.js');
+var utils = require('../../hfc/lib/utils.js');
 
 var chain = hfc.newChain('testChain-e2e');
 var webUser;
