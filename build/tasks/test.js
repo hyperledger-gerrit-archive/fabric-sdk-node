@@ -6,7 +6,7 @@ var tapColorize = require('tap-colorize');
 var istanbul = require('gulp-istanbul');
 
 gulp.task('pre-test', function() {
-	return gulp.src(['lib/**/*.js'])
+	return gulp.src(['hfc/lib/**/*.js','hfc-cop/lib/**/*.js'])
 		.pipe(istanbul())
 		.pipe(istanbul.hookRequire());
 });
