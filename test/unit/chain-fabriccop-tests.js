@@ -18,10 +18,10 @@ var tape = require('tape');
 var _test = require('tape-promise');
 var test = _test(tape);
 
-var hfc = require('../..');
-var FabricCOPServices = require('../../lib/impl/FabricCOPImpl').FabricCOPServices;
+var hfc = require('../../hfc');
+var FabricCOPServices = require('../../lib/impl/FabricCOPImpl');
 
-var utils = require('../../lib/utils.js');
+var utils = require('../../hfc/lib/utils.js');
 var testUtil = require('./util.js');
 
 var keyValStorePath = testUtil.KVS;

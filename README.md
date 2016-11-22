@@ -11,12 +11,19 @@ The following section targets a current or future contributor to this project it
 
 ### Build and Test
 To build and test, the following pre-requisites must be installed first:
-* node runtime version 4.3 or later (which also installs the npm tool)
+* node runtime version 6.0 or later (which also installs the npm tool)
 * gulp command
 * docker (not required if you only want to run the headless tests with `npm test`, see below)
 
-Clone the project and launch the following commands in the project root folder to install the dependencies and perform various tasks:
-* `npm install` to install all dependencies
+Clone the project and launch the following commands to install the dependencies and perform various tasks.
+
+Because v1.0 is still in active development, you will need to create symbolic links for the Mac or copy the files for Windows.
+In the project hfc-cop/lib folder, create symbolic links as follows:  
+* `  ln -s ../../hfc/lib/api.js api.js`
+* `  ln -s ../../hfc/lib/utils.js utils.js`
+
+In the project root folder:
+* `npm install` to install dependencies
 * `gulp doc` to generate API docs
 * `npm test` to run the headless tests that do not require any additional set up
 
@@ -26,6 +33,7 @@ The following tests require setting up a local blockchain network as the target.
   * `  config.vm.network :forwarded_port, guest: 5151, host: 5151 # orderer service`
   * `  config.vm.network :forwarded_port, guest: 7056, host: 7056 # Openchain gRPC services`
   * `  config.vm.network :forwarded_port, guest: 7058, host: 7058 # GRPCCient gRPC services`
+  * `  config.vm.network :forwarded_port, guest: 8888, host: 8888 # COP services`
 
 * run `vagrant up` to launch the vagrant VM
 * Once inside vagrant, `cd $GOPATH/src/github.com/hyperledger/fabric`

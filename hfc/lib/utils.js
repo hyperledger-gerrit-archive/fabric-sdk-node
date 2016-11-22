@@ -1,4 +1,4 @@
-/**
+ /**
  * Copyright 2016 IBM All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -56,13 +56,6 @@ module.exports.newKeyValueStore = function(options) {
 	var kvsEnv = this.getConfigSetting('key-value-store');
 	var store = require(kvsEnv);
 	return new store(options);
-};
-
-module.exports.getMemberService = function() {
-	// expecting a path to an alternative implementation
-	var msEnv = this.getConfigSetting('member-service');
-	var ms = require(msEnv);
-	return ms;
 };
 
 //

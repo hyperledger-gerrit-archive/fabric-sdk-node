@@ -24,11 +24,11 @@ var test = _test(tape);
 
 var path = require('path');
 
-var hfc = require('../..');
+var hfc = require('../../hfc');
 var util = require('util');
 var grpc = require('grpc');
 var testUtil = require('./util.js');
-var utils = require('../../lib/utils.js');
+var utils = require('../../hfc/lib/utils.js');
 
 var chain = hfc.newChain('testChain-e2e');
 var webUser;
@@ -52,7 +52,7 @@ chain.setMemberServicesUrl('http://localhost:8888');
 chain.setOrderer('grpc://localhost:5151');
 
 test('End-to-end flow of chaincode deploy, transaction invocation, and query', function(t) {
-	chain.enroll('sdk', 'sdkpw')
+	chain.enroll('admin', 'adminpw')
 	.then(
 		function(admin) {
 			t.pass('Successfully enrolled user \'admin\'');
