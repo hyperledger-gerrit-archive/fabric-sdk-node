@@ -1,6 +1,8 @@
 coverage
 docs/gen
 node_modules/*
+hfc/node_modules/*
+hfc-cop/node_modules/*
 test/fixtures/src/github.com/example_cc/Dockerfile
 test/fixtures/src/github.com/marbles_cc/Dockerfile
 npm-shrinkwrap.json
@@ -8,3 +10,5 @@ npm-debug.log
 tmp
 .project
 .DS_Store
+hfc/.DS_Store
+hfc-cop/.DS_Store

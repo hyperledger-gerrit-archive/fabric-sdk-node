@@ -15,8 +15,18 @@ To build and test, the following pre-requisites must be installed first:
 * gulp command
 * docker (not required if you only want to run the headless tests with `npm test`, see below)
 
-Clone the project and launch the following commands in the project root folder to install the dependencies and perform various tasks:
-* `npm install` to install all dependencies
+Clone the project and launch the following commands to install the dependencies and perform various tasks.
+
+In the project root folder:
+* `npm install` to install dependencies for test/unit tests
+
+In the project hfc folder:
+* `npm install` to install dependencies for the hfc npm module
+
+In the project hfc-cop folder:
+* `npm install` to install dependencies for the hfc-cop npm module
+
+In the project root folder:
 * `gulp doc` to generate API docs
 * `npm test` to run the headless tests that do not require any additional set up
 
