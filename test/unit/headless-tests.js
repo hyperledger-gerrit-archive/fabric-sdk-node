@@ -22,17 +22,17 @@ var test = _test(tape);
 
 var path = require('path');
 var util = require('util');
-var hfc = require('../..');
+var hfc = require('../../hfc');
 var fs = require('fs');
 var execSync = require('child_process').execSync;
-var utils = require('../../lib/utils.js');
-var cryptoSuiteReq = require('../../lib/impl/CryptoSuite_ECDSA_AES.js');
+var utils = require('../../hfc/lib/utils.js');
+var cryptoSuiteReq = require('../../hfc/lib/impl/CryptoSuite_ECDSA_AES.js');
 var bunyan = require('bunyan');
 var log4js = require('log4js');
 var intercept = require('intercept-stdout');
 
 // FileKeyValueStore tests /////////////
-var FileKeyValueStore = require('../../lib/impl/FileKeyValueStore.js');
+var FileKeyValueStore = require('../../hfc/lib/impl/FileKeyValueStore.js');
 
 var keyValStorePath = path.join(getUserHome(), 'kvsTemp');
 //Note: unix relative path does not start with '/'
@@ -48,7 +48,7 @@ var store2 = '';
 // End: FileKeyValueStore tests ////////
 
 // Chain tests /////////////
-var Chain = require('../../lib/Chain.js');
+var Chain = require('../../hfc/lib/Chain.js');
 var _chain = null;
 var chainName = 'testChain';
 var chainKeyValStorePath = 'tmp/chainKeyValStorePath';
@@ -56,7 +56,7 @@ var store3 = '';
 // End: Chain tests ////////
 
 // Member tests //////////
-var Member = require('../../lib/Member.js');
+var Member = require('../../hfc/lib/Member.js');
 var memberName = 'Donald T. Duck';
 var enrollmentID = 123454321;
 var roles = ['admin', 'user'];
@@ -68,11 +68,11 @@ var memberCfg = {
 };
 
 // GRPC Options tests ///////////////
-var Remote = require('../../lib/Remote.js');
-var Peer = require('../../lib/Peer.js');
-var Orderer = require('../../lib/Orderer.js');
-var Config = require('../../lib/Config.js');
-var MemberServices = require('../../lib/impl/MemberServices.js');
+var Remote = require('../../hfc/lib/Remote.js');
+var Peer = require('../../hfc/lib/Peer.js');
+var Orderer = require('../../hfc/lib/Orderer.js');
+var Config = require('../../hfc/lib/Config.js');
+var MemberServices = require('../../hfc/lib/impl/MemberServices.js');
 var aPem = '-----BEGIN CERTIFICATE-----' +
 	'MIIBwTCCAUegAwIBAgIBATAKBggqhkjOPQQDAzApMQswCQYDVQQGEwJVUzEMMAoG' +
 	'A1UEChMDSUJNMQwwCgYDVQQDEwNPQkMwHhcNMTYwMTIxMjI0OTUxWhcNMTYwNDIw' +
@@ -91,7 +91,7 @@ var aHostnameOverride = 'atesthostnameoverride';
 // specifically set the values to defaults because they may have been overridden when
 // running in the overall test bucket ('gulp test')
 function resetDefaults() {
-	var defaultSettings = require('../../config/default.json');
+	var defaultSettings = require('../../hfc/config/default.json');
 	for (var setting in defaultSettings) {
 		hfc.setConfigSetting(setting, defaultSettings[setting]);
 	}
@@ -852,7 +852,7 @@ var KEYUTIL = jsrsa.KEYUTIL;
 var ECDSA = jsrsa.ECDSA;
 var asn1 = jsrsa.asn1;
 
-var ecdsaKey = require('../../lib/impl/ecdsa/key.js');
+var ecdsaKey = require('../../hfc/lib/impl/ecdsa/key.js');
 
 test('\n\n ** CryptoSuite_ECDSA_AES - function tests **\n\n', function (t) {
 	resetDefaults();
@@ -1166,6 +1166,7 @@ test('\n\n ** ECDSA Key Impl tests **\n\n', function (t) {
 	var csrObject;
 	var subjectDN = 'CN=dummy';
 	try {
+		debugger;
 		var csrPEM = key3.generateCSR(subjectDN);
 		csrObject = asn1.csr.CSRUtil.getInfo(csrPEM);
 	}

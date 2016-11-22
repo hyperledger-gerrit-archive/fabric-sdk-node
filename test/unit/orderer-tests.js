@@ -18,12 +18,12 @@ var tape = require('tape');
 var _test = require('tape-promise');
 var test = _test(tape);
 
-var hfc = require('../..');
+var hfc = require('../../hfc');
 var util = require('util');
 var fs = require('fs');
 var testUtil = require('./util.js');
 
-var Orderer = require('../../lib/Orderer.js');
+var Orderer = require('../../hfc/lib/Orderer.js');
 
 var keyValStorePath = testUtil.KVS;
 
