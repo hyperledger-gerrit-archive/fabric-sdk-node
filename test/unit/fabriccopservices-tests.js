@@ -18,6 +18,8 @@ var tape = require('tape');
 var _test = require('tape-promise');
 var test = _test(tape);
 
+var X509 = require('jsrsasign').X509;
+
 var hfc = require('../..');
 var util = require('util');
 var fs = require('fs');
@@ -189,9 +191,14 @@ test('FabricCOPClient: Test enroll', function (t) {
 
 	//
 	return client.enroll(enrollmentID,enrollmentSecret, csr)
-		.then(function (csr) {
-			t.comment(csr);
-			t.pass('Successfully enrolled with enrollmentID \''+ enrollmentID + '\'');
+		.then(function (pem) {
+			t.comment(pem);
+			t.pass('Successfully invoked enroll API with enrollmentID \''+ enrollmentID + '\'');
+			//check that we got back the expected certificate
+			var cert = new X509();
+			cert.readCertPEM(pem);
+			t.comment(cert.getSubjectString());
+			t.equal(cert.getSubjectString(),'/CN='+enrollmentID,'Subject should be /CN='+enrollmentID);
 		})
 		.catch(function (err) {
 			t.fail('Failed to enroll \'' + enrollmentID + '\'.  ' + err);
@@ -291,8 +298,14 @@ test('FabricCOPServices: Test enroll()', function (t) {
 	return cop.enroll(req)
 		.then(
 		function (enrollment) {
-			console.log(enrollment.toString());
+
 			t.pass('Successfully enrolled \'' + req.enrollmentID + '\'.');
+
+			//check that we got back the expected certificate
+			var cert = new X509();
+			cert.readCertPEM(enrollment.certificate);
+			t.comment(cert.getSubjectString());
+			t.equal(cert.getSubjectString(),'/CN='+req.enrollmentID,'Subject should be /CN='+req.enrollmentID);
 		},
 		function (err) {
 			t.fail('Failed to enroll \'' + req.enrollmentID + '\'.  ' + err);
