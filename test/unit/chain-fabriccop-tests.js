@@ -22,7 +22,9 @@ var hfc = require('hfc');
 var FabricCOPServices = require('hfc-cop/lib/FabricCOPImpl');
 
 var utils = require('hfc/lib/utils.js');
-var Member = require('hfc/lib/Member.js');
+var User = require('hfc/lib/User.js');
+var Client = require('hfc/lib/Client.js');
+
 var testUtil = require('./util.js');
 
 var keyValStorePath = testUtil.KVS;
@@ -34,13 +36,14 @@ var keyValStorePath = testUtil.KVS;
 test('Attempt to use FabricCOPServices',function(t){
 
 	var chain = hfc.newChain('copTest');
+	var client = new Client();
 
 	utils.setConfigSetting('crypto-keysize', 256);
 
 	var kvs = hfc.newKeyValueStore({
 		path: keyValStorePath
 	});
-	chain.setKeyValueStore(kvs);
+	client.setStateStore(kvs);
 
 	var copService = new FabricCOPServices('http://localhost:8888');
 	copService.enroll({
@@ -49,12 +52,12 @@ test('Attempt to use FabricCOPServices',function(t){
 	})
 	.then(
 		function(admin) {
-			console.log(admin);
 			t.pass('Successfully enrolled admin with COP server');
 
-			var member = new Member('admin', chain);
-			member.setEnrollment(admin);
-			return member.saveState();
+			var member = new User('admin', chain);
+			member.setEnrollmentCertificate(admin);
+			client.setUserContext(member);
+			return client.saveState();
 		},
 		function(err){
 			t.fail('Failed to enroll admin with COP server. Error: ' + err);
@@ -62,8 +65,8 @@ test('Attempt to use FabricCOPServices',function(t){
 		}
 	).then(
 		function(success) {
-			// attempt to load the persisted member from the kvs using the Chain object
-			return chain.getUser('admin');
+			// attempt to load the persisted member from the kvs using the Client object
+			return client.getUserContext('admin');
 		},
 		function(err) {
 			t.fail('Failed to save member to key value store. Error: ' + err);
