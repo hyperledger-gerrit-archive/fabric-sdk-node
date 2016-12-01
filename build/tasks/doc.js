@@ -29,6 +29,8 @@ gulp.task('doc', function () {
 		'hfc/lib/Chain.js',
 		'hfc/lib/Member.js',
 		'hfc/lib/Peer.js',
+		'hfc/lib/User.js',
+		'hfc/lib/Client.js',
 		'hfc/lib/X509Certificate.js'
 	], {read: false})
 	.pipe(jsdoc())
