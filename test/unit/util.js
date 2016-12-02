@@ -1,4 +1,5 @@
 var path = require('path');
+var fs = require('fs');
 
 module.exports.CHAINCODE_PATH = 'github.com/example_cc';
 module.exports.CHAINCODE_MARBLES_PATH = 'github.com/marbles_cc';
@@ -52,4 +53,18 @@ function getSubmitter(username, password, chain, t) {
 
 module.exports.getSubmitter = function(chain, test) {
 	return getSubmitter('admin', 'adminpw', chain, test);
+};
+
+module.exports.rmdir = function(path) {
+	if (fs.existsSync(path)) {
+		fs.readdirSync(path).forEach(function(file, index) {
+			var curPath = path + '/' + file;
+			if (fs.lstatSync(curPath).isDirectory()) { // recurse
+				rmdir(curPath);
+			} else { // delete file
+				fs.unlinkSync(curPath);
+			}
+		});
+		fs.rmdirSync(path);
+	}
 };
