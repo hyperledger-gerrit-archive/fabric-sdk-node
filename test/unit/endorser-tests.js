@@ -41,7 +41,7 @@ utils.setConfigSetting('crypto-keysize', 256);
 test('\n\n** TEST ** endorser test - missing targets', function(t) {
 	//
 	// Create and configure the test chain
-	var chain = hfc.getChain('testChain', true);
+	var chain = hfc.getChain('testChain', true, 1);
 	chain.setKeyValueStore(hfc.newKeyValueStore({
 		path: keyValStorePath
 	}));
@@ -91,7 +91,7 @@ test('\n\n** TEST ** endorse transaction missing chaincodeId test', function(t) 
 	//
 	// Create and configure the test chain
 	//
-	var chain = hfc.getChain('testChain', true);
+	var chain = hfc.getChain('testChain', true, 1);
 
 	chain.setKeyValueStore(hfc.newKeyValueStore({
 		path: keyValStorePath
@@ -143,7 +143,7 @@ test('\n\n** TEST ** endorse chaincode deployment good test', function(t) {
 	//
 	// Create and configure the test chain
 	//
-	var chain = hfc.getChain('testChain', true);
+	var chain = hfc.getChain('testChain', true, 1);
 
 	chain.setKeyValueStore(hfc.newKeyValueStore({
 		path: keyValStorePath

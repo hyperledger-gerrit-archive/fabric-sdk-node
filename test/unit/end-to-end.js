@@ -29,7 +29,7 @@ var util = require('util');
 var testUtil = require('./util.js');
 var utils = require('hfc/lib/utils.js');
 
-var chain = hfc.newChain('testChain-e2e');
+var chain = hfc.newChain('testChain-e2e',1);
 var webUser;
 var chaincode_id = 'mycc1';
 

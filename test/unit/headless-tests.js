@@ -106,11 +106,11 @@ function resetDefaults() {
 process.setMaxListeners(0);
 
 test('\n\n ** Index **\n\n', function (t) {
-	var chain = hfc.getChain('someChain', true);
+	var chain = hfc.getChain('someChain', true, 1);
 	t.equals(chain.getName(), 'someChain', 'Checking chain names match');
 	t.throws(
 		function () {
-			hfc.newChain('someChain');
+			hfc.newChain('someChain',1);
 		},
 		/^Error: Chain someChain already exist/,
 		'Index tests: checking that chain already exists.'

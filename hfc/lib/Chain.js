@@ -36,10 +36,14 @@ var Chain = class {
 	/**
 	 * @param {string} name to identify different chain instances. The naming of chain instances
 	 * is completely at the client application's discretion.
+	 * @param {int} type language type of chaincode deployed
 	 */
-	constructor(name) {
+	constructor(name,type) {
 		// Name of the chain is only meaningful to the client
 		this._name = name;
+
+		// Language type
+		this._type = type;
 
 		// Security enabled flag
 		this._securityEnabled = true;
@@ -253,6 +257,13 @@ var Chain = class {
 
 		return JSON.stringify(state);
 	}
+
+    /**
+     * Get the language type for this chain.
+     */
+    getType() {
+        return this._type;
+    }
 
 };
 

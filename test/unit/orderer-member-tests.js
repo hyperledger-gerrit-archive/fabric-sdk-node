@@ -39,7 +39,7 @@ test('\n\n** TEST ** orderer via chain setOrderer/getOrderer', function(t) {
 	//
 	// Create and configure the test chain
 	//
-	var chain = hfc.getChain('testChain-orderer-member', true);
+	var chain = hfc.getChain('testChain-orderer-member', true, 1);
 	try {
 		var order_address = 'grpc://localhost:7050';
 		chain.setOrderer(order_address);
@@ -93,7 +93,7 @@ test('\n\n** TEST ** orderer via chain set/get bad address', function(t) {
 	//
 	// Create and configure the test chain
 	//
-	var chain = hfc.getChain('testChain', true);
+	var chain = hfc.getChain('testChain', true, 1);
 	try {
 		var order_address = 'xxx';
 		chain.setOrderer(order_address);
@@ -116,7 +116,7 @@ test('\n\n** TEST ** orderer via chain set/get empty address', function(t) {
 	//
 	// Create and configure the test chain
 	//
-	var chain = hfc.getChain('testChain', true);
+	var chain = hfc.getChain('testChain', true, 1);
 	try {
 		chain.setOrderer();
 		t.failed('Failed by setting the orderer to a empty address');
@@ -139,7 +139,7 @@ test('\n\n** TEST ** orderer via member missing orderer', function(t) {
 	//
 	// Create and configure the test chain
 	//
-	var chain = hfc.getChain('testChain', true);
+	var chain = hfc.getChain('testChain', true, 1);
 
 	chain.setKeyValueStore(hfc.newKeyValueStore({
 		path: keyValStorePath
@@ -190,7 +190,7 @@ test('\n\n** TEST ** orderer via member null data', function(t) {
 	//
 	// Create and configure the test chain
 	//
-	var chain = hfc.getChain('testChain', true);
+	var chain = hfc.getChain('testChain', true, 1);
 
 	chain.setKeyValueStore(hfc.newKeyValueStore({
 		path: keyValStorePath
@@ -243,7 +243,7 @@ test('\n\n** TEST ** orderer via member bad orderer address', function(t) {
 	//
 	// Create and configure the test chain
 	//
-	var chain = hfc.getChain('testChain', true);
+	var chain = hfc.getChain('testChain', true, 1);
 
 	chain.setKeyValueStore(hfc.newKeyValueStore({
 		path: keyValStorePath
@@ -295,7 +295,7 @@ test('\n\n** TEST ** orderer via member bad data', function(t) {
 	//
 	// Create and configure the test chain
 	//
-	var chain = hfc.getChain('testChain', true);
+	var chain = hfc.getChain('testChain', true, 1);
 
 	chain.setKeyValueStore(hfc.newKeyValueStore({
 		path: keyValStorePath

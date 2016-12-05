@@ -34,7 +34,7 @@ test('Test enroll() and registrar privileges with registerAndEnroll()', function
 	//
 	// Create and configure the test chain
 	//
-	var chain = hfc.newChain('testChain-ca');
+	var chain = hfc.newChain('testChain-ca',1);
 	var expect = '';
 	var found = '';
 	var webUser;
@@ -147,7 +147,7 @@ test('Test register() and Enroll() methods', function(t) {
 	//
 	// Create and configure the test chain
 	//
-	var chain = hfc.newChain('testChain1');
+	var chain = hfc.newChain('testChain1',1);
 	var expect = '';
 	var found = '';
 	var webUser;
@@ -211,7 +211,7 @@ test('enroll again', function(t) {
 	// This is necessary to start without a local cache.
 	//
 	fs.renameSync(keyValStorePath, keyValStorePath2);
-	var chain = hfc.newChain('testChain2');
+	var chain = hfc.newChain('testChain2',1);
 	chain.setKeyValueStore(
 		hfc.newKeyValueStore({
 			path: '/tmp/keyValStore'

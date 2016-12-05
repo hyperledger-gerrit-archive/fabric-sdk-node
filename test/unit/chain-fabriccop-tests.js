@@ -33,7 +33,7 @@ var keyValStorePath = testUtil.KVS;
 // key value store
 test('Attempt to use FabricCOPServices',function(t){
 
-	var chain = hfc.newChain('copTest');
+	var chain = hfc.newChain('copTest',1);
 
 	utils.setConfigSetting('crypto-keysize', 256);
 

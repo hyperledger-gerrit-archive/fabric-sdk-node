@@ -100,7 +100,7 @@ test('FabricCOPServices: Test enroll()', function (t) {
 	//
 	// Create and configure the test chain
 	//
-	var chain = hfc.newChain('testChain-ca');
+	var chain = hfc.newChain('testChain-ca',1);
 
 	// need to override the default key size 384 to match the member service backend
 	// otherwise the client will not be able to decrypt the enrollment challenge

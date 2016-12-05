@@ -27,21 +27,23 @@ var Config = require('./lib/Config.js');
 var Peer = require('./lib/Peer.js');
 var utils = require('./lib/utils.js');
 
+
 var _chains = {};
 
 /**
  * Create a new chain.  If it already exists, throws an Error.
  * @param name {string} Name of the chain.  It can be any name and has value only for the client.
+ * @param type {int} Language type of chaincode deployed.
  *
  * @returns [Chain]{@link module:api.Chain} a new instance of the Chain class
  */
-module.exports.newChain = function(name) {
+module.exports.newChain = function(name,type) {
 	var chain = _chains[name];
 
 	if (chain)
 		throw new Error(util.format('Chain %s already exists', name));
 
-	chain = new Chain(name);
+	chain = new Chain(name,type);
 
 	_chains[name] = chain;
 	return chain;
@@ -51,13 +53,14 @@ module.exports.newChain = function(name) {
  * Get a chain.  If it doesn't yet exist and 'create' is true, create it.
  * @param {string} chainName The name of the chain to get or create.
  * @param {boolean} create If the chain doesn't already exist, specifies whether to create it.
+ * @param {string} type of the chaincode deployed if creation needed.
  * @returns {Chain} Returns the chain, or null if it doesn't exist and create is false.
  */
-module.exports.getChain = function(chainName, create) {
+module.exports.getChain = function(chainName, create, type) {
 	var chain = _chains[chainName];
 
 	if (!chain && create) {
-		chain = this.newChain(chainName);
+		chain = this.newChain(chainName,type);
 	}
 
 	return chain;
