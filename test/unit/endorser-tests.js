@@ -53,6 +53,7 @@ test('\n\n** TEST ** endorser test - missing targets', function(t) {
 
 			// send proposal to endorser
 			var request = {
+                type:1,
 				chaincodeId: 'mycc',
 				chaincodePath: 'something',
 				fcn: 'invoke',
@@ -156,6 +157,7 @@ test('\n\n** TEST ** endorse chaincode deployment good test', function(t) {
 
 			// send proposal to endorser
 			var request = {
+                type:1,
 				targets: [hfc.getPeer('grpc://localhost:7051')],
 				chaincodePath: testUtil.CHAINCODE_PATH,
 				chaincodeId : 'endorsertest',

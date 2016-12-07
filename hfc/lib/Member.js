@@ -314,6 +314,7 @@ var Member = class {
 	 * Sends a deployment proposal to one or more endorsing peers.
 	 *
 	 * @param {Object} request - An object containing the following fields:
+	 *      <br>`type` : required - int corresponding to the language of the chaincode. 1 for GO, 4 for Java
 	 *		<br>`targets` : required - An array or single Endorsing {@link Peer} objects as the targets of the request
 	 *		<br>`chaincodePath` : required - String of the path to location of the source code of the chaincode
 	 *		<br>`chaincodeId` : required - String of the name of the chaincode
@@ -324,6 +325,13 @@ var Member = class {
 	 * @see /protos/peer/fabric_proposal_response.proto
 	 */
 	sendDeploymentProposal(request) {
+
+        // Verify that type is being passed
+        if (!request.type || request.type === '') {
+            logger.error('Missing type in the Deployment proposal request');
+            return Promise.reject(new Error('Missing type in the Deployment proposal request'));
+        }
+
 		// Verify that chaincodePath is being passed
 		if (!request.chaincodePath || request.chaincodePath === '') {
 			logger.error('Invalid input parameter to "sendDeploymentProposal": must have "chaincodePath"');
@@ -364,7 +372,7 @@ var Member = class {
 					args.push(Buffer.from(request.args[i], 'utf8'));
 
 				let ccSpec = {
-					type: _ccProto.ChaincodeSpec.Type.GOLANG,
+					type: request.type,
 					chaincodeID: {
 						name: request.chaincodeId
 					},
@@ -386,7 +394,7 @@ var Member = class {
 
 							// TODO add ESCC/VSCC info here ??????
 							let lcccSpec = {
-								type: _ccProto.ChaincodeSpec.Type.GOLANG,
+                                type: request.type,
 								chaincodeID: {
 									name: 'lccc'
 								},
@@ -425,13 +433,20 @@ var Member = class {
 	 * Sends a transaction proposal to one or more endorsing peers.
 	 *
 	 * @param {Object} request
-	 *		<br>`targets` : An array or single Endorsing {@link Peer} objects as the targets of the request
+	 *      <br>`type` : required - int corresponding to the language of the chaincode. 1 for GO, 4 for Java
+     *		<br>`targets` : An array or single Endorsing {@link Peer} objects as the targets of the request
 	 *		<br>`chaincodeId` : The id of the chaincode to perform the transaction proposal
 	 *		<br>`args` : an array of arguments specific to the chaincode 'innvoke'
 	 * @returns {Promise} A Promise for a `ProposalResponse`
 	 */
 	sendTransactionProposal(request) {
 		logger.debug('Member.sendTransactionProposal - start');
+
+        // Verify that type is being passed
+        if (!request.type || request.type === '') {
+            logger.error('Missing type in the Transaction proposal request');
+            return Promise.reject(new Error('Missing type in the Transaction proposal request'));
+        }
 
 		// verify that the caller has included a peer object
 		if(!request.targets) {
@@ -461,7 +476,7 @@ var Member = class {
 		}
 
 		let invokeSpec = {
-			type: _ccProto.ChaincodeSpec.Type.GOLANG,
+			type: request.type,
 			chaincodeID: {
 				name: request.chaincodeId
 			},
@@ -494,7 +509,8 @@ var Member = class {
 	 * these results
 	 *
 	 * @param {Object} request A JSON object with the following
-	 *		<br>targets : An array or single Endorsing {@link Peer} objects as the targets of the request
+	 *      <br>`type` : required - int corresponding to the language of the chaincode. 1 for GO, 4 for Java
+     *		<br>targets : An array or single Endorsing {@link Peer} objects as the targets of the request
 	 *		<br>chaincodeId : The id of the chaincode to perform the query
 	 *		<br>`args` : an array of arguments specific to the chaincode 'innvoke'
 	 *             that represent a query invocation on that chaincode

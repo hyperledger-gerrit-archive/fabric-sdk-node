@@ -572,6 +572,7 @@ test('\n\n ** Member sendDeploymentProposal() tests **\n\n', function (t) {
 	var m = new Member('does not matter', _chain);
 
 	var p1 = m.sendDeploymentProposal({
+        type:1,
 		chaincodePath: 'blah',
 		chaincodeId: 'blah',
 		fcn: 'init'
