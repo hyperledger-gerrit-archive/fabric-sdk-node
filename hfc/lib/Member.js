@@ -387,7 +387,7 @@ var Member = class {
 					args.push(Buffer.from(request.args[i], 'utf8'));
 
 				let ccSpec = {
-					type: _ccProto.ChaincodeSpec.Type.GOLANG,
+					type: request.type,
 					chaincodeID: {
 						name: request.chaincodeId
 					},
@@ -409,7 +409,7 @@ var Member = class {
 
 							// TODO add ESCC/VSCC info here ??????
 							let lcccSpec = {
-								type: _ccProto.ChaincodeSpec.Type.GOLANG,
+								type: request.type,
 								chaincodeID: {
 									name: 'lccc'
 								},
@@ -484,7 +484,7 @@ var Member = class {
 		}
 
 		let invokeSpec = {
-			type: _ccProto.ChaincodeSpec.Type.GOLANG,
+			type: request.type,
 			chaincodeID: {
 				name: request.chaincodeId
 			},
