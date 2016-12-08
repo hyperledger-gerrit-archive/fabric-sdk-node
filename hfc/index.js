@@ -29,6 +29,16 @@ var utils = require('./lib/utils.js');
 
 var _chains = {};
 
+//Language used on chaincode @see proto ChaincodeSpec.Type for more details
+var LANGUAGE_TYPE = {
+	UNDEFINED : 0,
+	GOLANG : 1,
+	NODE : 2,
+	CAR : 3,
+	JAVA : 4
+};
+module.exports.LANGUAGE_TYPE = LANGUAGE_TYPE;
+
 /**
  * Create a new chain.  If it already exists, throws an Error.
  * @param name {string} Name of the chain.  It can be any name and has value only for the client.

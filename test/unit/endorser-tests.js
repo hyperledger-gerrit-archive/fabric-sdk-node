@@ -53,6 +53,7 @@ test('\n\n** TEST ** endorser test - missing targets', function(t) {
 
 			// send proposal to endorser
 			var request = {
+				type:hfc.LANGUAGE_TYPE.GOLANG,
 				chaincodeId: 'mycc',
 				chaincodePath: 'something',
 				fcn: 'invoke',
@@ -104,6 +105,7 @@ test('\n\n** TEST ** endorse transaction missing chaincodeId test', function(t) 
 
 			// send proposal to endorser
 			var request = {
+				type:hfc.LANGUAGE_TYPE.GOLANG,
 				targets: hfc.getPeer('grpc://localhost:7051'),
 				fcn: 'init',
 				args: ['a', '100', 'b', '200']
@@ -156,6 +158,7 @@ test('\n\n** TEST ** endorse chaincode deployment good test', function(t) {
 
 			// send proposal to endorser
 			var request = {
+				type:hfc.LANGUAGE_TYPE.GOLANG,
 				targets: [hfc.getPeer('grpc://localhost:7051')],
 				chaincodePath: testUtil.CHAINCODE_PATH,
 				chaincodeId : 'endorsertest',

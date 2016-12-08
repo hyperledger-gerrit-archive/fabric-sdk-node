@@ -60,6 +60,7 @@ test('End-to-end flow of chaincode deploy, transaction invocation, and query', f
 
 			// send proposal to endorser
 			var request = {
+				type:hfc.LANGUAGE_TYPE.GOLANG,
 				targets: [hfc.getPeer('grpc://localhost:7051'), hfc.getPeer('grpc://localhost:7056')],
 				chaincodePath: testUtil.CHAINCODE_MARBLES_PATH,
 				chaincodeId: chaincode_id,
@@ -109,6 +110,7 @@ test('End-to-end flow of chaincode deploy, transaction invocation, and query', f
 		function() {
 			// send proposal to endorser
 			var request = {
+				type:hfc.LANGUAGE_TYPE.GOLANG,
 				targets: [hfc.getPeer('grpc://localhost:7051'), hfc.getPeer('grpc://localhost:7056')],
 				chaincodeId : chaincode_id,
 				fcn: 'init_marble',
@@ -163,6 +165,7 @@ test('End-to-end flow of chaincode deploy, transaction invocation, and query', f
 		function() {
 			// send proposal to endorser
 			var request = {
+				type:hfc.LANGUAGE_TYPE.GOLANG,
 				targets: [hfc.getPeer('grpc://localhost:7051'), hfc.getPeer('grpc://localhost:7056')],
 				chaincodeId : chaincode_id,
 				fcn: 'set_owner',

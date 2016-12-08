@@ -336,7 +336,8 @@ var Member = class {
 	 * Sends a deployment proposal to one or more endorsing peers.
 	 *
 	 * @param {Object} request - An object containing the following fields:
-	 *		<br>`targets` : required - An array or single Endorsing {@link Peer} objects as the targets of the request
+	 *      <br>`type` : required - int corresponding to the language of the chaincode. 1 for GO, 4 for Java
+     *		<br>`targets` : required - An array or single Endorsing {@link Peer} objects as the targets of the request
 	 *		<br>`chaincodePath` : required - String of the path to location of the source code of the chaincode
 	 *		<br>`chaincodeId` : required - String of the name of the chaincode
 	 *		<br>`chainId` : required - String of the name of the chain
@@ -448,7 +449,8 @@ var Member = class {
 	 * Sends a transaction proposal to one or more endorsing peers.
 	 *
 	 * @param {Object} request
-	 *		<br>`targets` : An array or single Endorsing {@link Peer} objects as the targets of the request
+	 * 	    <br>`type` : required - int corresponding to the language of the chaincode. 1 for GO, 4 for Java
+     *		<br>`targets` : An array or single Endorsing {@link Peer} objects as the targets of the request
 	 *		<br>`chaincodeId` : The id of the chaincode to perform the transaction proposal
 	 *		<br>`chainId` : required - String of the name of the chain
 	 *		<br>`txId` : required - String of the transaction id
@@ -516,7 +518,8 @@ var Member = class {
 	 * these results
 	 *
 	 * @param {Object} request A JSON object with the following
-	 *		<br>targets : An array or single Endorsing {@link Peer} objects as the targets of the request
+	 *      <br>`type` : required - int corresponding to the language of the chaincode. 1 for GO, 4 for Java
+     *		<br>targets : An array or single Endorsing {@link Peer} objects as the targets of the request
 	 *		<br>chaincodeId : The id of the chaincode to perform the query
 	 *		<br>`args` : an array of arguments specific to the chaincode 'innvoke'
 	 *             that represent a query invocation on that chaincode
@@ -731,7 +734,9 @@ var Member = class {
 		var errorMsg = null;
 
 		if(request) {
-			if(!request.chaincodeId) {
+			if(!request.type) {
+				errorMsg = 'Missing "type" parameter in the proposal request';
+			} else if(!request.chaincodeId) {
 				errorMsg = 'Missing "chaincodeId" parameter in the proposal request';
 			} else if(!request.chainId) {
 				errorMsg = 'Missing "chainId" parameter in the proposal request';

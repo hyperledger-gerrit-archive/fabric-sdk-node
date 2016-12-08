@@ -572,6 +572,7 @@ test('\n\n ** Member sendDeploymentProposal() tests **\n\n', function (t) {
 	var m = new Member('does not matter', _chain);
 
 	var p1 = m.sendDeploymentProposal({
+		type:hfc.LANGUAGE_TYPE.GOLANG,
 		targets: [hfc.getPeer('grpc://localhost:7051')],
 		chaincodeId: 'blah',
 		fcn: 'init',
@@ -590,6 +591,7 @@ test('\n\n ** Member sendDeploymentProposal() tests **\n\n', function (t) {
 	});
 
 	var p2 = m.sendDeploymentProposal({
+		type:hfc.LANGUAGE_TYPE.GOLANG,
 		targets: [hfc.getPeer('grpc://localhost:7051')],
 		chaincodePath: 'blah',
 		chaincodeId: 'blah',
@@ -608,6 +610,7 @@ test('\n\n ** Member sendDeploymentProposal() tests **\n\n', function (t) {
 	});
 
 	var p3 = m.sendDeploymentProposal({
+		type:hfc.LANGUAGE_TYPE.GOLANG,
 		targets: [hfc.getPeer('grpc://localhost:7051')],
 		chaincodePath: 'blah',
 		chainId: 'blah',
@@ -706,6 +709,7 @@ test('\n\n ** Member sendTransactionProposal() tests **\n\n', function (t) {
 	var m = new Member('does not matter', _chain);
 
 	var p1 = m.sendTransactionProposal({
+		type:hfc.LANGUAGE_TYPE.GOLANG,
 		targets: [hfc.getPeer('grpc://localhost:7051')],
 		chaincodeId : 'blah',
 		fcn: 'invoke',
@@ -723,6 +727,7 @@ test('\n\n ** Member sendTransactionProposal() tests **\n\n', function (t) {
 	});
 
 	var p2 = m.sendTransactionProposal({
+		type:hfc.LANGUAGE_TYPE.GOLANG,
 		targets: [hfc.getPeer('grpc://localhost:7051')],
 		chaincodeId: 'blah',
 		fcn: 'init',
@@ -740,6 +745,7 @@ test('\n\n ** Member sendTransactionProposal() tests **\n\n', function (t) {
 	});
 
 	var p3 = m.sendTransactionProposal({
+		type:hfc.LANGUAGE_TYPE.GOLANG,
 		targets: [hfc.getPeer('grpc://localhost:7051')],
 		chainId: 'blah',
 		fcn: 'init',
@@ -757,6 +763,7 @@ test('\n\n ** Member sendTransactionProposal() tests **\n\n', function (t) {
 	});
 
 	var p4 = m.sendTransactionProposal({
+		type:hfc.LANGUAGE_TYPE.GOLANG,
 		chaincodeId: 'blah',
 		chainId: 'blah',
 		fcn: 'init',
@@ -774,6 +781,7 @@ test('\n\n ** Member sendTransactionProposal() tests **\n\n', function (t) {
 	});
 
 	var p5 = m.sendTransactionProposal({
+		type:hfc.LANGUAGE_TYPE.GOLANG,
 		targets: [hfc.getPeer('grpc://localhost:7051')],
 		chaincodeId: 'blah',
 		chainId: 'blah',
@@ -791,6 +799,7 @@ test('\n\n ** Member sendTransactionProposal() tests **\n\n', function (t) {
 	});
 
 	var p6 = m.sendTransactionProposal({
+		type:hfc.LANGUAGE_TYPE.GOLANG,
 		targets: [hfc.getPeer('grpc://localhost:7051')],
 		chaincodeId: 'blah',
 		chainId: 'blah',
@@ -834,6 +843,7 @@ test('\n\n ** Member queryByChaincode() tests **\n\n', function (t) {
 	var m = new Member('does not matter', _chain);
 
 	var p1 = m.queryByChaincode({
+		type:hfc.LANGUAGE_TYPE.GOLANG,
 		targets: [hfc.getPeer('grpc://localhost:7051')],
 		chaincodeId : 'blah',
 		fcn: 'invoke',
@@ -851,6 +861,7 @@ test('\n\n ** Member queryByChaincode() tests **\n\n', function (t) {
 	});
 
 	var p2 = m.queryByChaincode({
+		type:hfc.LANGUAGE_TYPE.GOLANG,
 		targets: [hfc.getPeer('grpc://localhost:7051')],
 		chaincodeId: 'blah',
 		fcn: 'init',
@@ -868,6 +879,7 @@ test('\n\n ** Member queryByChaincode() tests **\n\n', function (t) {
 	});
 
 	var p3 = m.queryByChaincode({
+		type:hfc.LANGUAGE_TYPE.GOLANG,
 		targets: [hfc.getPeer('grpc://localhost:7051')],
 		chainId: 'blah',
 		fcn: 'init',
@@ -885,6 +897,7 @@ test('\n\n ** Member queryByChaincode() tests **\n\n', function (t) {
 	});
 
 	var p4 = m.queryByChaincode({
+		type:hfc.LANGUAGE_TYPE.GOLANG,
 		chaincodeId: 'blah',
 		chainId: 'blah',
 		fcn: 'init',
@@ -902,6 +915,7 @@ test('\n\n ** Member queryByChaincode() tests **\n\n', function (t) {
 	});
 
 	var p5 = m.queryByChaincode({
+		type:hfc.LANGUAGE_TYPE.GOLANG,
 		targets: [hfc.getPeer('grpc://localhost:7051')],
 		chaincodeId: 'blah',
 		chainId: 'blah',
@@ -919,6 +933,7 @@ test('\n\n ** Member queryByChaincode() tests **\n\n', function (t) {
 	});
 
 	var p6 = m.queryByChaincode({
+		type:hfc.LANGUAGE_TYPE.GOLANG,
 		targets: [hfc.getPeer('grpc://localhost:7051')],
 		chaincodeId: 'blah',
 		chainId: 'blah',
@@ -973,9 +988,9 @@ test('\n\n ** Member sendTransaction() tests **\n\n', function (t) {
 		});
 
 	var p2 = m.sendTransaction({
-			proposal: 'blah',
-			header: 'blah'
-		})
+		proposal: 'blah',
+		header: 'blah'
+	})
 		.then(function () {
 			t.fail('Should not have been able to resolve the promise because of missing parameters');
 		}, function (err) {
@@ -987,9 +1002,9 @@ test('\n\n ** Member sendTransaction() tests **\n\n', function (t) {
 		});
 
 	var p3 = m.sendTransaction({
-			proposalResponses: 'blah',
-			header: 'blah'
-		})
+		proposalResponses: 'blah',
+		header: 'blah'
+	})
 		.then(function () {
 			t.fail('Should not have been able to resolve the promise because of missing parameters');
 		}, function (err) {
@@ -1001,9 +1016,9 @@ test('\n\n ** Member sendTransaction() tests **\n\n', function (t) {
 		});
 
 	var p4 = m.sendTransaction({
-			proposalResponses: 'blah',
-			proposal: 'blah'
-		})
+		proposalResponses: 'blah',
+		proposal: 'blah'
+	})
 		.then(function () {
 			t.fail('Should not have been able to resolve the promise because of missing parameters');
 		}, function (err) {
