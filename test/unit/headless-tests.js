@@ -51,21 +51,18 @@ var store2 = '';
 var Chain = require('hfc/lib/Chain.js');
 var _chain = null;
 var chainName = 'testChain';
-var chainKeyValStorePath = 'tmp/chainKeyValStorePath';
-var store3 = '';
 // End: Chain tests ////////
 
-// Member tests //////////
-var Member = require('hfc/lib/Member.js');
+// User tests //////////
+var User = require('hfc/lib/User.js');
 var memberName = 'Donald T. Duck';
 var enrollmentID = 123454321;
 var roles = ['admin', 'user'];
-var affiliation = 'Hyperledger Community';
 var memberCfg = {
 	'enrollmentID': enrollmentID,
-	'roles': roles,
-	'affiliation': affiliation
+	'roles': roles
 };
+// End: User tests //////
 
 // FabricCoPServices tests /////////
 var FabricCOPServices = require('hfc-cop/lib/FabricCOPImpl');
@@ -105,26 +102,97 @@ function resetDefaults() {
 // to the "unhandledRejection" event
 process.setMaxListeners(0);
 
-test('\n\n ** Index **\n\n', function (t) {
-	var chain = hfc.getChain('someChain', true);
+test('\n\n ** index.js **\n\n', function (t) {
+	t.equals(typeof hfc, 'function');
+
+	t.doesNotThrow(
+		function() {
+			var c = new hfc();
+		},
+		null,
+		'Should be able to instantiate a new instance of "hfc" require');
+
+	t.doesNotThrow(
+		function() {
+			var c = new hfc();
+			var chain = c.newChain('test');
+		},
+		null,
+		'Should be able to call "newChain" on the new instance of "hfc"');
+
+	t.end();
+});
+
+// Client tests ///////
+var Client = hfc;
+var _client = null;
+var chainKeyValStorePath = 'tmp/chainKeyValStorePath';
+var store3 = '';
+test('\n\n ** lib/Client.js **\n\n', function (t) {
+	var client = new Client();
+
+	var chain = client.newChain('someChain');
 	t.equals(chain.getName(), 'someChain', 'Checking chain names match');
 	t.throws(
 		function () {
-			hfc.newChain('someChain');
+			client.newChain('someChain');
 		},
 		/^Error: Chain someChain already exist/,
-		'Index tests: checking that chain already exists.'
-	);
-	var peer = hfc.getPeer('grpc://somehost.com:9000');
-	t.throws(
-		function () {
-			hfc.getPeer('http://somehost.com:9000');
+		'Client tests: checking that chain already exists.');
+
+	t.doesNotThrow(
+		function() {
+			client.getChain('someChain');
 		},
-		/^InvalidProtocol: Invalid protocol: http.  URLs must begin with grpc:\/\/ or grpcs:\/\//,
-		'Index tests: checking that getPeer will fail with bad address.'
+		null,
+		'Client tests: getChain()');
+
+	t.throws(
+		function() {
+			client.setStateStore({});
+		},
+		/The "keyValueStore" parameter must be an object that implements the following methods, which are missing:/,
+		'Client tests: checking state store parameter implementing required functions');
+
+	t.throws(
+		function() {
+			client.setCryptoSuite({});
+		},
+		/The "suite" parameter must be an object that implements the following methods, which are missing:/,
+		'Client tests: checking crypto suite parameter implementing required functions');
+
+	cleanupFileKeyValueStore(chainKeyValStorePath);
+
+	client.setStateStore(Client.newDefaultKeyValueStore({ path: getRelativePath(chainKeyValStorePath) }));
+
+	var exists = utils.existsSync(getAbsolutePath(chainKeyValStorePath));
+	if (exists)
+		t.pass('Client setKeyValueStore test:  Successfully created new directory');
+	else
+		t.fail('Client setKeyValueStore test:  Failed to create new directory: ' + chainKeyValStorePath);
+
+	store3 = client.getStateStore();
+	store3.setValue(testKey, testValue)
+	.then(
+		function (result) {
+			t.pass('Client getStateStore test:  Successfully set value, result: ' + result);
+
+			var exists = utils.existsSync(getAbsolutePath(chainKeyValStorePath), testKey);
+			if (exists)
+				t.pass('Client getStateStore test:  Verified the file for key ' + testKey + ' does exist');
+			else
+				t.fail('Client getStateStore test:  Failed to create file for key ' + testKey);
+
+			t.end();
+		}
+	).catch(
+		function (reason) {
+			t.fail('Client getStateStore test:  Failed to set value, reason: ' + reason);
+			t.end();
+		}
 	);
-	t.end();
 });
+
 
 /*
  * This test assumes that there is a ./config directory from the running location
@@ -373,14 +441,13 @@ test('\n\n** FileKeyValueStore error check tests **\n\n', function (t) {
 		});
 });
 
-
 // Chain tests /////////////
 test('\n\n ** Chain - constructor test **\n\n', function (t) {
 	_chain = new Chain(chainName);
 	if (_chain.getName() === chainName)
 		t.pass('Chain constructor test: getName successful');
 	else t.fail('Chain constructor test: getName not successful');
-
+/*  to do - remove or rewrite?
 	// trying to get member on a chain without keyvalue store, should fail
 	_chain.getMember('randomName')
 		.then(function (member) {
@@ -413,39 +480,10 @@ test('\n\n ** Chain - constructor test **\n\n', function (t) {
 			t.fail('Failed with unexpected error: ' + err.stack ? err.stack : err);
 			t.end();
 		});
+		*/
+	t.end();
 });
 
-test('\n\n ** Chain - setKeyValueStore getKeyValueStore test **\n\n', function (t) {
-	cleanupFileKeyValueStore(chainKeyValStorePath);
-
-	_chain.setKeyValueStore(hfc.newKeyValueStore({ path: getRelativePath(chainKeyValStorePath) }));
-
-	var exists = utils.existsSync(getAbsolutePath(chainKeyValStorePath));
-	if (exists)
-		t.pass('Chain setKeyValueStore test:  Successfully created new directory');
-	else
-		t.fail('Chain setKeyValueStore test:  Failed to create new directory: ' + chainKeyValStorePath);
-
-	store3 = _chain.getKeyValueStore();
-	store3.setValue(testKey, testValue)
-		.then(
-		function (result) {
-			t.pass('Chain getKeyValueStore test:  Successfully set value, result: ' + result);
-
-			var exists = utils.existsSync(getAbsolutePath(chainKeyValStorePath), testKey);
-			if (exists)
-				t.pass('Chain getKeyValueStore test:  Verified the file for key ' + testKey + ' does exist');
-			else
-				t.fail('Chain getKeyValueStore test:  Failed to create file for key ' + testKey);
-
-			t.end();
-		})
-		.catch(
-		function (reason) {
-			t.fail('Chain getKeyValueStore test:  Failed to set value, reason: ' + reason);
-			t.end();
-		});
-});
 
 test('\n\n ** Chain - method tests **\n\n', function (t) {
 	t.equal(_chain.isSecurityEnabled(), true, 'checking security setting');
@@ -467,14 +505,6 @@ test('\n\n ** Chain - method tests **\n\n', function (t) {
 	t.equal(_chain.isDevMode(), true, 'checking DevMode');
 	t.doesNotThrow(
 		function () {
-			_chain.setKeyValueStore('something');
-		},
-		null,
-		'checking the set of KeyValueStore'
-	);
-	t.equal(_chain.getKeyValueStore(), 'something', 'checking getKeyValueStore');
-	t.doesNotThrow(
-		function () {
 			_chain.setTCertBatchSize(123);
 		},
 		null,
@@ -483,40 +513,32 @@ test('\n\n ** Chain - method tests **\n\n', function (t) {
 	t.equal(_chain.getTCertBatchSize(), 123, 'checking getTCertBatchSize');
 	t.doesNotThrow(
 		function () {
-			_chain.setOrderer('grpc://somehost.com:1234');
+			var orderer = new Orderer('grpc://somehost.com:1234');
+			_chain.addOrderer(orderer);
 		},
 		null,
-		'checking the set of Orderer'
+		'checking the set of Orderers'
 	);
-	t.equal(_chain.getOrderer().toString(), ' Orderer : {url:grpc://somehost.com:1234}', 'checking getOrderer');
-	t.equal(_chain.toString(), '{"name":"testChain","orderer":"grpc://somehost.com:1234"}', 'checking chain toString');
+	t.equal(_chain.getOrderers()[0].toString(), ' Orderer : {url:grpc://somehost.com:1234}', 'checking getOrderers orderer');
+	t.equal(_chain.toString(), '{"name":"testChain","orderers":" Orderer : {url:grpc://somehost.com:1234}|"}', 'checking chain toString');
 	t.end();
 });
 
-// Member tests /////////
-test('\n\n ** Member - constructor set get tests **\n\n', function (t) {
-	var member1 = new Member(memberName, _chain);
+// User tests /////////
+test('\n\n ** User - constructor set get tests **\n\n', function (t) {
+	var member1 = new User(memberName, _chain);
 	if (member1.getName() === memberName)
-		t.pass('Member constructor set get tests 1: new Member getName was successful');
+		t.pass('User constructor set get tests 1: new User getName was successful');
 	else
-		t.fail('Member constructor set get tests 1: new Member getName was not successful');
+		t.fail('User constructor set get tests 1: new User getName was not successful');
 
 	member1.setRoles(roles);
 	if (member1.getRoles() &&
 		member1.getRoles().indexOf('admin') > -1 &&
 		member1.getRoles().indexOf('user') > -1)
-		t.pass('Member constructor set get tests 1: setRoles getRoles was successful');
-
-	if (member1.getChain().getName() === chainName)
-		t.pass('Member constructor get set tests 1: getChain getName was successful');
+		t.pass('User constructor set get tests 1: setRoles getRoles was successful');
 	else
-		t.fail('Member constructor get set tests 1: getChain getName was not successful');
-
-	member1.setAffiliation(affiliation);
-	if (member1.getAffiliation() === affiliation)
-		t.pass('Member constructor get set tests 1: setAffiliation getAffiliation was successful');
-	else
-		t.fail('Member constructor get set tests 1: setAffiliation getAffiliation was not successful');
+		t.fail('User constructor set get tests 1: setRoles getRoles was not successful');
 
 	t.throws(function() {
 		member1.setEnrollment( {privateKey: undefined} );
@@ -542,37 +564,28 @@ test('\n\n ** Member - constructor set get tests **\n\n', function (t) {
 	/Invalid enrollment object. Must have a valid certificate/,
 	'Test invalid enrollment with empty certificate');
 
-	var member2 = new Member(memberCfg, _chain);
+	var member2 = new User(memberCfg, _chain);
 	if (member2.getName() === enrollmentID)
-		t.pass('Member constructor test 2: new Member cfg getName was successful');
+		t.pass('User constructor test 2: new User cfg getName was successful');
 	else
-		t.fail('Member constructor test 2: new Member cfg getName was not successful');
+		t.fail('User constructor test 2: new User cfg getName was not successful');
 
 	if (member2.getRoles() &&
 		member2.getRoles().indexOf('admin') > -1 &&
 		member2.getRoles().indexOf('user') > -1)
-		t.pass('Member constructor test 2: new Member cfg getRoles was successful');
+		t.pass('User constructor test 2: new User cfg getRoles was successful');
 	else
-		t.fail('Member constructor test 2: new Member cfg getRoles was not successful');
-
-	if (member1.getAffiliation() === affiliation)
-		t.pass('Member constructor get set tests 1: new Member cfg getAffiliation was successful');
-	else
-		t.fail('Member constructor get set tests 1: new Member cfg getAffiliation was not successful');
-
-	if (member2.getChain().getName() === chainName)
-		t.pass('Member constructor get set tests 2: getChain new Member cfg getName was successful');
-	else
-		t.fail('Member constructor get set tests 2: getChain new Member cfg getName was not successful');
+		t.fail('User constructor test 2: new User cfg getRoles was not successful');
 
 	t.end();
 });
 
-test('\n\n ** Member sendDeploymentProposal() tests **\n\n', function (t) {
-	var m = new Member('does not matter', _chain);
 
-	var p1 = m.sendDeploymentProposal({
-		targets: [hfc.getPeer('grpc://localhost:7051')],
+test('\n\n ** Chain sendDeploymentProposal() tests **\n\n', function (t) {
+	var c = new Chain('does not matter');
+
+	var p1 = c.sendDeploymentProposal({
+		targets: [new Peer('grpc://localhost:7051')],
 		chaincodeId: 'blah',
 		fcn: 'init',
 		args: ['a', '100', 'b', '200'],
@@ -580,7 +593,7 @@ test('\n\n ** Member sendDeploymentProposal() tests **\n\n', function (t) {
 		txId: 'blah',
 		nonce: 'blah'
 	}).then(function () {
-		t.fail('Should not have been able to resolve the promise because of missing "peer" parameter');
+		t.fail('Should not have been able to resolve the promise because of missing "chaincodePath" parameter');
 	}).catch(function (err) {
 		if (err.message.indexOf('Missing chaincodePath parameter in Deployment proposal request') >= 0) {
 			t.pass('Successfully caught missing peer error');
@@ -589,8 +602,8 @@ test('\n\n ** Member sendDeploymentProposal() tests **\n\n', function (t) {
 		}
 	});
 
-	var p2 = m.sendDeploymentProposal({
-		targets: [hfc.getPeer('grpc://localhost:7051')],
+	var p2 = c.sendDeploymentProposal({
+		targets: [new Peer('grpc://localhost:7051')],
 		chaincodePath: 'blah',
 		chaincodeId: 'blah',
 		fcn: 'init',
@@ -607,8 +620,8 @@ test('\n\n ** Member sendDeploymentProposal() tests **\n\n', function (t) {
 		}
 	});
 
-	var p3 = m.sendDeploymentProposal({
-		targets: [hfc.getPeer('grpc://localhost:7051')],
+	var p3 = c.sendDeploymentProposal({
+		targets: [new Peer('grpc://localhost:7051')],
 		chaincodePath: 'blah',
 		chainId: 'blah',
 		fcn: 'init',
@@ -625,7 +638,7 @@ test('\n\n ** Member sendDeploymentProposal() tests **\n\n', function (t) {
 		}
 	});
 
-	var p4 = m.sendDeploymentProposal({
+	var p4 = c.sendDeploymentProposal({
 		chaincodePath: 'blah',
 		chaincodeId: 'blah',
 		chainId: 'blah',
@@ -643,8 +656,8 @@ test('\n\n ** Member sendDeploymentProposal() tests **\n\n', function (t) {
 		}
 	});
 
-	var p5 = m.sendDeploymentProposal({
-		targets: [hfc.getPeer('grpc://localhost:7051')],
+	var p5 = c.sendDeploymentProposal({
+		targets: [new Peer('grpc://localhost:7051')],
 		chaincodePath: 'blah',
 		chaincodeId: 'blah',
 		chainId: 'blah',
@@ -661,8 +674,8 @@ test('\n\n ** Member sendDeploymentProposal() tests **\n\n', function (t) {
 		}
 	});
 
-	var p6 = m.sendDeploymentProposal({
-		targets: [hfc.getPeer('grpc://localhost:7051')],
+	var p6 = c.sendDeploymentProposal({
+		targets: [new Peer('grpc://localhost:7051')],
 		chaincodePath: 'blah',
 		chaincodeId: 'blah',
 		chainId: 'blah',
@@ -679,7 +692,7 @@ test('\n\n ** Member sendDeploymentProposal() tests **\n\n', function (t) {
 		}
 	});
 
-	var p7 = m.sendDeploymentProposal().then(function () {
+	var p7 = c.sendDeploymentProposal().then(function () {
 		t.fail('Should not have been able to resolve the promise because of missing request parameter');
 	}).catch(function (err) {
 		if (err.message.indexOf('Missing input request object on the proposal request') >= 0) {
@@ -700,13 +713,15 @@ test('\n\n ** Member sendDeploymentProposal() tests **\n\n', function (t) {
 			t.end();
 		}
 		);
+
+	t.end();
 });
 
-test('\n\n ** Member sendTransactionProposal() tests **\n\n', function (t) {
-	var m = new Member('does not matter', _chain);
+test('\n\n ** Chain sendTransactionProposal() tests **\n\n', function (t) {
+	var c = new Chain('does not matter');
 
-	var p1 = m.sendTransactionProposal({
-		targets: [hfc.getPeer('grpc://localhost:7051')],
+	var p1 = c.sendTransactionProposal({
+		targets: [new Peer('grpc://localhost:7051')],
 		chaincodeId : 'blah',
 		fcn: 'invoke',
 		chainId: 'blah',
@@ -722,8 +737,8 @@ test('\n\n ** Member sendTransactionProposal() tests **\n\n', function (t) {
 		}
 	});
 
-	var p2 = m.sendTransactionProposal({
-		targets: [hfc.getPeer('grpc://localhost:7051')],
+	var p2 = c.sendTransactionProposal({
+		targets: [new Peer('grpc://localhost:7051')],
 		chaincodeId: 'blah',
 		fcn: 'init',
 		args: ['a', '100', 'b', '200'],
@@ -739,8 +754,8 @@ test('\n\n ** Member sendTransactionProposal() tests **\n\n', function (t) {
 		}
 	});
 
-	var p3 = m.sendTransactionProposal({
-		targets: [hfc.getPeer('grpc://localhost:7051')],
+	var p3 = c.sendTransactionProposal({
+		targets: [new Peer('grpc://localhost:7051')],
 		chainId: 'blah',
 		fcn: 'init',
 		args: ['a', '100', 'b', '200'],
@@ -756,7 +771,7 @@ test('\n\n ** Member sendTransactionProposal() tests **\n\n', function (t) {
 		}
 	});
 
-	var p4 = m.sendTransactionProposal({
+	var p4 = c.sendTransactionProposal({
 		chaincodeId: 'blah',
 		chainId: 'blah',
 		fcn: 'init',
@@ -773,8 +788,8 @@ test('\n\n ** Member sendTransactionProposal() tests **\n\n', function (t) {
 		}
 	});
 
-	var p5 = m.sendTransactionProposal({
-		targets: [hfc.getPeer('grpc://localhost:7051')],
+	var p5 = c.sendTransactionProposal({
+		targets: [new Peer('grpc://localhost:7051')],
 		chaincodeId: 'blah',
 		chainId: 'blah',
 		fcn: 'init',
@@ -790,8 +805,8 @@ test('\n\n ** Member sendTransactionProposal() tests **\n\n', function (t) {
 		}
 	});
 
-	var p6 = m.sendTransactionProposal({
-		targets: [hfc.getPeer('grpc://localhost:7051')],
+	var p6 = c.sendTransactionProposal({
+		targets: [new Peer('grpc://localhost:7051')],
 		chaincodeId: 'blah',
 		chainId: 'blah',
 		fcn: 'init',
@@ -807,7 +822,7 @@ test('\n\n ** Member sendTransactionProposal() tests **\n\n', function (t) {
 		}
 	});
 
-	var p7 = m.sendTransactionProposal().then(function () {
+	var p7 = c.sendTransactionProposal().then(function () {
 		t.fail('Should not have been able to resolve the promise because of missing request parameter');
 	}).catch(function (err) {
 		if (err.message.indexOf('Missing input request object on the proposal request') >= 0) {
@@ -828,13 +843,16 @@ test('\n\n ** Member sendTransactionProposal() tests **\n\n', function (t) {
 			t.end();
 		}
 		);
+
+	t.end();
 });
 
-test('\n\n ** Member queryByChaincode() tests **\n\n', function (t) {
-	var m = new Member('does not matter', _chain);
+test('\n\n ** Client queryByChaincode() tests **\n\n', function (t) {
+	var client = new Client('does not matter');
+	var c = client.newChain('any chain goes');
 
-	var p1 = m.queryByChaincode({
-		targets: [hfc.getPeer('grpc://localhost:7051')],
+	var p1 = c.queryByChaincode({
+		targets: [new Peer('grpc://localhost:7051')],
 		chaincodeId : 'blah',
 		fcn: 'invoke',
 		chainId: 'blah',
@@ -850,8 +868,8 @@ test('\n\n ** Member queryByChaincode() tests **\n\n', function (t) {
 		}
 	});
 
-	var p2 = m.queryByChaincode({
-		targets: [hfc.getPeer('grpc://localhost:7051')],
+	var p2 = c.queryByChaincode({
+		targets: [new Peer('grpc://localhost:7051')],
 		chaincodeId: 'blah',
 		fcn: 'init',
 		args: ['a', '100', 'b', '200'],
@@ -867,8 +885,8 @@ test('\n\n ** Member queryByChaincode() tests **\n\n', function (t) {
 		}
 	});
 
-	var p3 = m.queryByChaincode({
-		targets: [hfc.getPeer('grpc://localhost:7051')],
+	var p3 = c.queryByChaincode({
+		targets: [new Peer('grpc://localhost:7051')],
 		chainId: 'blah',
 		fcn: 'init',
 		args: ['a', '100', 'b', '200'],
@@ -884,7 +902,7 @@ test('\n\n ** Member queryByChaincode() tests **\n\n', function (t) {
 		}
 	});
 
-	var p4 = m.queryByChaincode({
+	var p4 = c.queryByChaincode({
 		chaincodeId: 'blah',
 		chainId: 'blah',
 		fcn: 'init',
@@ -901,8 +919,8 @@ test('\n\n ** Member queryByChaincode() tests **\n\n', function (t) {
 		}
 	});
 
-	var p5 = m.queryByChaincode({
-		targets: [hfc.getPeer('grpc://localhost:7051')],
+	var p5 = c.queryByChaincode({
+		targets: [new Peer('grpc://localhost:7051')],
 		chaincodeId: 'blah',
 		chainId: 'blah',
 		fcn: 'init',
@@ -918,8 +936,8 @@ test('\n\n ** Member queryByChaincode() tests **\n\n', function (t) {
 		}
 	});
 
-	var p6 = m.queryByChaincode({
-		targets: [hfc.getPeer('grpc://localhost:7051')],
+	var p6 = c.queryByChaincode({
+		targets: [new Peer('grpc://localhost:7051')],
 		chaincodeId: 'blah',
 		chainId: 'blah',
 		fcn: 'init',
@@ -935,7 +953,7 @@ test('\n\n ** Member queryByChaincode() tests **\n\n', function (t) {
 		}
 	});
 
-	var p7 = m.queryByChaincode().then(function () {
+	var p7 = c.queryByChaincode().then(function () {
 		t.fail('Should not have been able to resolve the promise because of missing request parameter');
 	}).catch(function (err) {
 		if (err.message.indexOf('Missing input request object on the proposal request') >= 0) {
@@ -956,12 +974,16 @@ test('\n\n ** Member queryByChaincode() tests **\n\n', function (t) {
 			t.end();
 		}
 		);
+
+	t.end();
 });
 
-test('\n\n ** Member sendTransaction() tests **\n\n', function (t) {
-	var m = new Member('does not matter', _chain);
-	_chain._orderer = undefined;
-	var p1 = m.sendTransaction()
+test('\n\n ** Chain sendTransaction() tests **\n\n', function (t) {
+	let o = _chain.getOrderers();
+	for (let i = 0; i < o.length; i++) {
+		_chain.removeOrderer(o[i]);
+	}
+	var p1 = _chain.sendTransaction()
 		.then(function () {
 			t.fail('Should not have been able to resolve the promise because of missing parameters');
 		}, function (err) {
@@ -972,7 +994,7 @@ test('\n\n ** Member sendTransaction() tests **\n\n', function (t) {
 			}
 		});
 
-	var p2 = m.sendTransaction({
+	var p2 = _chain.sendTransaction({
 		proposal: 'blah',
 		header: 'blah'
 	})
@@ -986,7 +1008,7 @@ test('\n\n ** Member sendTransaction() tests **\n\n', function (t) {
 		}
 	});
 
-	var p3 = m.sendTransaction({
+	var p3 = _chain.sendTransaction({
 		proposalResponses: 'blah',
 		header: 'blah'
 	})
@@ -1000,7 +1022,7 @@ test('\n\n ** Member sendTransaction() tests **\n\n', function (t) {
 		}
 	});
 
-	var p4 = m.sendTransaction({
+	var p4 = _chain.sendTransaction({
 		proposalResponses: 'blah',
 		proposal: 'blah'
 	})
@@ -1025,6 +1047,8 @@ test('\n\n ** Member sendTransaction() tests **\n\n', function (t) {
 			t.end();
 		}
 		);
+
+	t.end();
 });
 
 var TEST_MSG = 'this is a test message';
