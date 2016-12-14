@@ -1327,6 +1327,33 @@ test('\n\n ** ECDSA Key Impl tests **\n\n', function (t) {
 	t.equal(key1.getPublicKey().isPrivate(), false, 'Checking isPrivate() logic');
 	t.equal(key1.getPublicKey().toBytes().length, 182, 'Checking toBytes() output');
 
+	// test public keys
+	var key3 = new ecdsaKey(pair1.pubKeyObj, 256);
+	t.equal(key3.getSKI().length, 64, 'Checking generated SKI hash string for 256 curve public key');
+
+	t.doesNotThrow(
+		function() {
+			key3.toBytes();
+		},
+		null,
+		'Checking to dump a public ECDSAKey object to bytes'
+	);
+
+	var key4 = new ecdsaKey(pair2.pubKeyObj, 384);
+	t.equal(key4.getSKI().length, 96, 'Checking generated SKI hash string for 384 curve public key');
+
+	t.doesNotThrow(
+		function() {
+			key4.toBytes();
+		},
+		null,
+		'Checking to dump a public ECDSAKey object to bytes'
+	);
+
+	t.equal(!key3.isPrivate() && !key4.isPrivate(), true, 'Checking if both keys are public');
+	t.equal(key3.getPublicKey().isPrivate(), false, 'Checking getPublicKey() logic');
+	t.equal(key4.getPublicKey().toBytes().length, 220, 'Checking toBytes() output');
+
 	//test CSR generation
 	var pair3 = KEYUTIL.generateKeypair('EC', 'secp256r1');
 	var key3 = new ecdsaKey(pair3.prvKeyObj, 256);
