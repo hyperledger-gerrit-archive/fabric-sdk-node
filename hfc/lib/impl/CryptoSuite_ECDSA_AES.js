@@ -25,6 +25,7 @@ var EC = elliptic.ec;
 var sjcl = require('sjcl');
 var jsrsa = require('jsrsasign');
 var KEYUTIL = jsrsa.KEYUTIL;
+var X509Certificate = jsrsa.X509;
 var util = require('util');
 var hashPrimitives = require('../hash.js');
 var utils = require('../utils');
@@ -157,10 +158,26 @@ var CryptoSuite_ECDSA_AES = class extends api.CryptoSuite {
 
 	/**
 	 * This is an implementation of {@link module:api.CryptoSuite#importKey}
-	 * To be implemented
 	 */
 	importKey(raw, opts) {
-		throw new Error('Not implemented yet');
+		if (!opts)
+			throw new Error('Missing required parameter "opts"');
+
+		if (!opts.algorithm)
+			throw new Error('Parameter "opts" missing required field "algorithm"');
+
+		if (opts.algorithm === api.CryptoAlgorithms.X509Certificate) {
+			// importing public key from an x.509 certificate
+			var pemString = Buffer.from(raw).toString();
+			var publicKey = X509Certificate.getPublicKeyFromCertPEM(pemString);
+
+			if (publicKey.type === 'EC') {
+				return new ECDSAKey(publicKey, publicKey.ecparams.keylen);
+			} else {
+				// TODO PEM encoded private keys, DER encoded public certs and private keys, etc
+				throw new Error('Does not understand certificates other than ECDSA public keys');
+			}
+		}
 	}
 
 	/**

@@ -1032,12 +1032,16 @@ var TEST_KEY_PUBLIC = '04f46815aa00fe2ba2814b906aa4ef1755caf152658de8997a6a85808
 var TEST_MSG_SIGNATURE_SHA2_256 = '3046022100a6460b29373fa16ee96172bfe04666140405fdef78182280545d451f08547736022100d9022fe620ceadabbef1714b894b8d6be4b74c0f9c573bd774871764f4f789c9';
 var TEST_LONG_MSG_SIGNATURE_SHA2_256 = '3045022073266302d730b07499aabd0f88f12c8749a0f90144034dbc86a8cd742722ad29022100852346f93e50911008ab97afc452f83c5985a19fa3aa6d58f615c03bddaa90a1';
 
+var TEST_PUBLICKEY_PEM = '-----BEGIN CERTIFICATE-----MIICEDCCAbagAwIBAgIUCwsaUPELF9ME4aIbg3XgK0xtlF4wCgYIKoZIzj0EAwIwfzELMAkGA1UEBhMCVVMxEzARBgNVBAgTCkNhbGlmb3JuaWExFjAUBgNVBAcTDVNhbiBGcmFuY2lzY28xHzAdBgNVBAoTFkludGVybmV0IFdpZGdldHMsIEluYy4xDDAKBgNVBAsTA1dXVzEUMBIGA1UEAxMLZXhhbXBsZS5jb20wHhcNMTYxMjEzMDQxMTAwWhcNMTcxMjEzMDQxMTAwWjAQMQ4wDAYDVQQDEwVhZG1pbjBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABE5Re6kaoUDTsGRR+J6RhInnjh1UqWwPfoWLJkJRalhmViwgaDR5X8jBNYRTzYWXdvZ9SDdTIEaV2pPIFT76uAyjfzB9MA4GA1UdDwEB/wQEAwIFoDAdBgNVHSUEFjAUBggrBgEFBQcDAQYIKwYBBQUHAwIwDAYDVR0TAQH/BAIwADAdBgNVHQ4EFgQUMEgQoUnaBKROBCVbO+e8YOw0uMkwHwYDVR0jBBgwFoAUF2dCPaqegj/ExR2fW8OZ0bWcSBAwCgYIKoZIzj0EAwIDSAAwRQIgQghF+5yKs/OYMlFu1UeUstyTfkxDK0PKk0XNLZDrA1kCIQDOB7JAZAxaH4+RcWhvLo8V/o9exUbjeMP4QIySvAujlQ==-----END CERTIFICATE-----';
+var TEST_PRIVATEKEY_PEM = '-----BEGIN PRIVATE KEY-----MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgzXIgbq9dtAzwK1yknvFTyQmZKmoLkipQHZUjfE2ILb2hRANCAASaQgfH/7XGn9mQ261INTENal0rLGzZroTK7oKHp5IAPK1nDPu+WovQwiDuaL6CzinkufHxvoeZ3XEZOonRP3qP-----END PRIVATE KEY-----';
+
 var jsrsa = require('jsrsasign');
 var KEYUTIL = jsrsa.KEYUTIL;
 var ECDSA = jsrsa.ECDSA;
 var asn1 = jsrsa.asn1;
 
 var ecdsaKey = require('hfc/lib/impl/ecdsa/key.js');
+var api = require('hfc/lib/api.js');
 
 test('\n\n ** CryptoSuite_ECDSA_AES - function tests **\n\n', function (t) {
 	resetDefaults();
@@ -1263,6 +1267,11 @@ test('\n\n ** CryptoSuite_ECDSA_AES - function tests **\n\n', function (t) {
 			testVerify(TEST_MSG_SIGNATURE_SHA2_256, TEST_MSG);
 			testVerify(TEST_LONG_MSG_SIGNATURE_SHA2_256, TEST_LONG_MSG);
 
+			// test importKey()
+			var pubKey = cryptoUtils.importKey(TEST_PUBLICKEY_PEM, { algorithm: api.CryptoAlgorithms.X509Certificate });
+			t.equal(pubKey.isPrivate(), false, 'Test imported public key isPrivate()');
+			t.equal(pubKey.getSKI(), 'a500d0b1f7bc8d1e5410543c9bda532a8222e27843a9cfb2ac7bddb790f3ef54', 'Test imported public key SKI');
+
 			t.end();
 		})
 		.catch(function (err) {
@@ -1326,6 +1335,33 @@ test('\n\n ** ECDSA Key Impl tests **\n\n', function (t) {
 
 	t.equal(key1.getPublicKey().isPrivate(), false, 'Checking isPrivate() logic');
 	t.equal(key1.getPublicKey().toBytes().length, 182, 'Checking toBytes() output');
+
+	// test public keys
+	var key3 = new ecdsaKey(pair1.pubKeyObj, 256);
+	t.equal(key3.getSKI().length, 64, 'Checking generated SKI hash string for 256 curve public key');
+
+	t.doesNotThrow(
+		function() {
+			key3.toBytes();
+		},
+		null,
+		'Checking to dump a public ECDSAKey object to bytes'
+	);
+
+	var key4 = new ecdsaKey(pair2.pubKeyObj, 384);
+	t.equal(key4.getSKI().length, 96, 'Checking generated SKI hash string for 384 curve public key');
+
+	t.doesNotThrow(
+		function() {
+			key4.toBytes();
+		},
+		null,
+		'Checking to dump a public ECDSAKey object to bytes'
+	);
+
+	t.equal(!key3.isPrivate() && !key4.isPrivate(), true, 'Checking if both keys are public');
+	t.equal(key3.getPublicKey().isPrivate(), false, 'Checking getPublicKey() logic');
+	t.equal(key4.getPublicKey().toBytes().length, 220, 'Checking toBytes() output');
 
 	//test CSR generation
 	var pair3 = KEYUTIL.generateKeypair('EC', 'secp256r1');
@@ -1960,6 +1996,112 @@ test('FabricCOPServices: Test _parseURL() function', function (t) {
 		/InvalidURL: url must start with http or https./,
 		'Throw error for missing protocol'
 	);
+});
+
+var Identity = require('hfc/lib/msp/identity.js');
+var MSP = require('hfc/lib/msp/msp.js');
+
+test('\n\n ** Identity class tests **\n\n', function (t) {
+	t.throws(
+		function() {
+			new Identity();
+		},
+		/Missing required parameter "id"/,
+		'Checking required input parameters'
+	);
+
+	t.throws(
+		function() {
+			new Identity('id');
+		},
+		/Missing required parameter "certificate"/,
+		'Checking required input parameters'
+	);
+
+	t.throws(
+		function() {
+			new Identity('id', 'cert');
+		},
+		/Missing required parameter "publicKey"/,
+		'Checking required input parameters'
+	);
+
+	t.throws(
+		function() {
+			new Identity('id', 'cert', 'pubKey');
+		},
+		/Missing required parameter "msp"/,
+		'Checking required input parameters'
+	);
+
+	t.throws(
+		function() {
+			var mspImpl = new MSP();
+		},
+		/Missing required parameter "config"/,
+		'Checking required config parameter for MSP constructor'
+	);
+
+	t.throws(
+		function() {
+			var mspImpl = new MSP({signer: 'blah', admins: [], id: 'blah', cryptoSuite: 'blah'});
+		},
+		/Parameter "config" missing required field "trustedCerts"/,
+		'Checking required config parameter "trustedCerts" for MSP constructor'
+	);
+
+	t.throws(
+		function() {
+			var mspImpl = new MSP({trustedCerts: [], admins: [], id: 'blah', cryptoSuite: 'blah'});
+		},
+		/Parameter "config" missing required field "signer"/,
+		'Checking required config parameter "signer" for MSP constructor'
+	);
+
+	t.throws(
+		function() {
+			var mspImpl = new MSP({trustedCerts: [], signer: 'blah', id: 'blah', cryptoSuite: 'blah'});
+		},
+		/Parameter "config" missing required field "admins"/,
+		'Checking required config parameter "admins" for MSP constructor'
+	);
+
+	t.throws(
+		function() {
+			var mspImpl = new MSP({trustedCerts: [], signer: 'blah', admins: [], cryptoSuite: 'blah'});
+		},
+		/Parameter "config" missing required field "id"/,
+		'Checking required config parameter "id" for MSP constructor'
+	);
+
+	t.throws(
+		function() {
+			var mspImpl = new MSP({trustedCerts: [], signer: 'blah', admins: [], id: 'blah'});
+		},
+		/Parameter "config" missing required field "cryptoSuite"/,
+		'Checking required config parameter "cryptoSuite" for MSP constructor'
+	);
+
+	var mspImpl = new MSP({
+		trustedCerts: [],
+		signer: 'blah',
+		admins: [],
+		id: 'testMSP',
+		cryptoSuite: utils.getCryptoSuite()
+	});
+
+	var f = new ECDSA({ curve: 'secp256r1' });
+	f.setPrivateKeyHex(TEST_KEY_PRIVATE);
+	f.setPublicKeyHex(TEST_KEY_PUBLIC);
+	f.isPrivate = true;
+	f.isPublic = false;
+
+	var identity = new Identity('testIdentity', 'blah', new ecdsaKey(f, 256).getPublicKey(), mspImpl);
+
+	t.equal(identity.verify(TEST_MSG, TEST_MSG_SIGNATURE_SHA2_256), true,
+		'Identity class function tests: verify() method');
+
+	t.end();
 });
 
 function getUserHome() {
