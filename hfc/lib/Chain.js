@@ -156,14 +156,25 @@ var Chain = class {
 		this._tcertBatchSize = batchSize;
 	}
 
-	/**
-	 * Add peer endpoint to chain.
-	 * @param {Peer} peer An instance of the Peer class that has been initialized with URL,
-	 * TLC certificate, and enrollment certificate.
-	 */
-	addPeer(peer) {
-		this._peers.push(peer);
-	}
+        /**
+         * Add peer endpoint to chain.
+         * @param {Peer} peer An instance of the Peer class that has been initialized with URL,
+         * TLC certificate, and enrollment certificate.
+         * @throws {Error} if the peer with that url already exists.
+         */
+        addPeer(peer) {
+                var url = peer.getUrl();
+                for (let i = 0; i < this._peers.length; i++) {
+                        if (this._peers[i].getUrl() === url) {
+                                var error = new Error();
+                                error.name = "DuplicatePeer";
+                                error.message = "Peer with URL " + url + " already exists";
+                                logger.error(error.message);
+                                throw error;
+                        }
+                }
+                this._peers.push(peer);
+        }
 
 	/**
 	 * Remove peer endpoint from chain.

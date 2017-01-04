@@ -551,6 +551,45 @@ test('\n\n ** User - constructor set get tests **\n\n', function (t) {
 	t.end();
 });
 
+test('\n\n ** Chain addPeer() duplicate tests **\n\n', function (t) {
+        var chain_duplicate = new Chain('chain_duplicate', client);
+
+        var peers = [
+                "grpc://localhost:7051",
+                "grpc://localhost:7052",
+                "grpc://localhost:7053",
+                "grpc://localhost:7051"
+        ];
+
+        var expected = peers.length - 1;
+
+        peers.forEach(function (peer) {
+                try {
+                        var _peer = new Peer(peer);
+                        chain_duplicate.addPeer(_peer);
+                }
+                catch (err) {
+                        if (err.name != "DuplicatePeer"){
+                                t.fail("Unexpected error " + err.toString());
+                        }
+                        else {
+                                t.pass("Expected error message 'DuplicatePeer' thrown");
+                        }
+                }
+        })
+
+        //check to see we have the correct number of peers
+        if (chain_duplicate.getPeers().length == expected) {
+                t.pass("Duplicate peer not added to the chain(" + expected +
+                " expected | " + chain_duplicate.getPeers().length + " found)");
+
+        }
+        else {
+                t.fail("Failed to detect duplicate peer (" + expected +
+                " expected | " + chain_duplicate.getPeers().length + " found)");
+        }
+        t.end();
+});
 
 test('\n\n ** Chain sendDeploymentProposal() tests **\n\n', function (t) {
 	var c = new Chain('does not matter', client);
