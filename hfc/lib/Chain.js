@@ -35,6 +35,8 @@ var _transProto = grpc.load(__dirname + '/protos/peer/fabric_transaction.proto')
 var _proposalProto = grpc.load(__dirname + '/protos/peer/fabric_proposal.proto').protos;
 var _responseProto = grpc.load(__dirname + '/protos/peer/fabric_proposal_response.proto').protos;
 var _commonProto = grpc.load(__dirname + '/protos/common/common.proto').common;
+var _configurationProto = grpc.load(__dirname + '/protos/common/configuration.proto').common;
+var _ordererConfigurationProto = grpc.load(__dirname + '/protos/orderer/configuration.proto').orderer;
 
 /**
  * The class representing a chain with which the client SDK interacts.
@@ -162,6 +164,7 @@ var Chain = class {
 	 * TLC certificate, and enrollment certificate.
 	 */
 	addPeer(peer) {
+		//TODO check for duplicates
 		this._peers.push(peer);
 	}
 
@@ -186,6 +189,7 @@ var Chain = class {
 	 * @returns {Peer[]} The peer list on the chain.
 	 */
 	getPeers() {
+		logger.debug('getPeers - list size: %s.', this._peers.length);
 		return this._peers;
 	}
 
@@ -233,7 +237,123 @@ var Chain = class {
 	 * @returns {boolean} Whether the chain initialization process was successful.
 	 */
 	initializeChain() {
-		//to do
+		logger.debug('initializeChain - start');
+
+		// verify that we have an orderer configured
+		if(!this.getOrderers()[0]) {
+			logger.error('initializeChain - no primary orderer defined');
+			return Promise.reject(new Error('no primary orderer defined'));
+		}
+
+		// verify that we have a user configured
+		if(!this._clientContext._userContext) {
+			logger.error('initializeChain - no user defined');
+			return Promise.reject(new Error('no user defined'));
+		}
+
+		//TODO verify the name of the chain
+
+		let chain_id = this._name;
+		var epoch    = '0'; //TODO what should this be
+
+		var tx_id    = '1234'; //TODO where should we get this
+
+		logger.debug('initializeChain - building request');
+		// build fields to use when building the configuration items
+		var configItemChainHeader = buildChainHeader(_commonProto.HeaderType.CONFIGURATION_ITEM, 1, chain_id, tx_id, epoch);
+		logger.debug('initializeChain - header built');
+
+		var orderer_type = _configurationProto.ConfigurationItem.ConfigurationType.Orderer;
+		var policy_type = _configurationProto.ConfigurationItem.ConfigurationType.Policy;
+		var last_modified = '0';
+		var mod_policy = 'DefaultModificationPolicy';
+
+		var creation_items = [];
+
+		// build configuration items
+		var consensusType = new _ordererConfigurationProto.ConsensusType();
+		consensusType.setType('solo');
+		var consensusTypeItem = buildSignedConfigurationItem(configItemChainHeader, orderer_type, last_modified, mod_policy, 'ConsensusType', consensusType.toBuffer());
+		creation_items.push(consensusTypeItem.getConfigurationItem().toBuffer());
+		logger.debug('initializeChain - bytes for consesus item ::' + JSON.stringify(consensusTypeItem.getConfigurationItem()));
+
+		var batchSize = new _ordererConfigurationProto.BatchSize();
+		batchSize.setMaxMessageCount(10); //TODO what should this be
+		var batchSizeItem = buildSignedConfigurationItem(configItemChainHeader, orderer_type, last_modified, mod_policy, 'BatchSize', batchSize.toBuffer());
+		creation_items.push(batchSizeItem.getConfigurationItem().toBuffer());
+
+		// TODO should we also adding a batchTimeout
+
+		// TODO how do we deal with KafkaBrokers ?
+
+		var chainCreators = new _ordererConfigurationProto.ChainCreators();
+		var chainCreatorPolicyName = 'AcceptAllPolicy';
+		chainCreators.setPolicies([chainCreatorPolicyName]);
+		var chainCreatorsItem = buildSignedConfigurationItem(configItemChainHeader, orderer_type, last_modified, mod_policy, 'ChainCreators', chainCreators.toBuffer());
+		creation_items.push(chainCreatorsItem.getConfigurationItem().toBuffer());
+
+		var acceptAllPolicy = buildAcceptAllPolicy();
+		logger.debug('accept policy::'+JSON.stringify(acceptAllPolicy));
+		var acceptAllPolicyItem = buildSignedConfigurationItem(configItemChainHeader, policy_type, last_modified, mod_policy, chainCreatorPolicyName, acceptAllPolicy.toBuffer());
+		creation_items.push(acceptAllPolicyItem.getConfigurationItem().toBuffer());
+
+		var rejectAllPolicy = buildRejectAllPolicy();
+		logger.debug('reject policy::'+JSON.stringify(rejectAllPolicy));
+		var defaultModificationPolicyItem = buildSignedConfigurationItem(configItemChainHeader, policy_type, last_modified, mod_policy, 'DefaultModificationPolicy', rejectAllPolicy.toBuffer());
+		creation_items.push(defaultModificationPolicyItem.getConfigurationItem().toBuffer());
+
+		// hash all the bytes of all items
+		var itemBytes = Buffer.concat(creation_items);
+		logger.debug('initializeChain - itemBytes::'+itemBytes.toString('hex'));
+		//var creation_items_hash = this.cryptoPrimitives.hash(itemBytes);
+		var hashPrimitives = require('./hash.js');
+		var creation_items_hash = hashPrimitives.shake_256(itemBytes, 512);
+		logger.debug('initializeChain - creation_item_hash::'+creation_items_hash);
+
+		// final item to contain hash of all others
+		var creationPolicy = new _ordererConfigurationProto.CreationPolicy();
+		creationPolicy.setPolicy(chainCreatorPolicyName);
+		creationPolicy.setDigest(Buffer.from(creation_items_hash, 'hex'));
+		//creationPolicy.setDigest(creation_items_hash);
+		var createPolicyItem = buildSignedConfigurationItem(configItemChainHeader, orderer_type, last_modified, mod_policy, 'CreationPolicy', creationPolicy.toBuffer());
+
+		logger.debug('initializeChain - all items built');
+		//
+		var configurationEnvelope = new _configurationProto.ConfigurationEnvelope();
+		configurationEnvelope.setItems([createPolicyItem, consensusTypeItem, batchSizeItem, chainCreatorsItem, acceptAllPolicyItem, defaultModificationPolicyItem]);
+
+		var chainHeader = new _commonProto.ChainHeader();
+		chainHeader.setChainID(chain_id);
+		chainHeader.setType(_commonProto.HeaderType.CONFIGURATION_TRANSACTION);
+
+		var header = new _commonProto.Header();
+		header.setChainHeader(chainHeader);
+
+		var payload = new _commonProto.Payload();
+		payload.setHeader(header);
+		payload.setData(configurationEnvelope.toBuffer());
+		//logger.debug('initializeChain - built payload::'+JSON.stringify(payload));
+
+		var payload_bytes = payload.toBuffer();
+
+		logger.debug('initializeChain - about to call sendBroadcast');
+		var self = this;
+		return this._clientContext.getUserContext()
+		.then(
+			function(userContext) {
+				let sig = userContext.getSigningIdentity().sign(payload_bytes);
+				let signature = Buffer.from(sig);
+
+				// building manually or will get protobuf errors on send
+				var envelope = {
+					signature: signature,
+					payload : payload_bytes
+				};
+
+				var orderer = self.getOrderers()[0];
+				return orderer.sendBroadcast(envelope);
+			}
+		);
 	}
 
 	/**
@@ -574,7 +694,6 @@ var Chain = class {
 		payload.setData(transaction.toBuffer());
 
 		let payload_bytes = payload.toBuffer();
-		// sign the proposal
 
 		var self = this;
 		return this._clientContext.getUserContext()
@@ -840,5 +959,67 @@ function packageChaincode(chaincodePath, chaincodeId, dockerfileContents) {
 		});
 	});
 }
+
+//utility method to build a common chain header
+function buildChainHeader(type, version, chain_id, tx_id, epoch) {
+	var chainHeader = new _commonProto.ChainHeader();
+	chainHeader.setType(type); // int32
+	chainHeader.setVersion(version); // int32
+	//chainHeader.setTimeStamp(time_stamp); // google.protobuf.Timestamp
+	chainHeader.setChainID(chain_id); //string
+	chainHeader.setTxID(tx_id); //string
+	chainHeader.setEpoch(epoch); // uint64
+	//chainHeader.setExtension(extension); // bytes
+
+	return chainHeader;
+};
+
+//utility method to build a signed configuration item
+function buildSignedConfigurationItem(chain_header, type, last_modified, mod_policy, key, value, signatures) {
+	var configurationItem = new _configurationProto.ConfigurationItem();
+	configurationItem.setHeader(chain_header); // ChainHeader
+	configurationItem.setType(type); // ConfigurationType
+	configurationItem.setLastModified(last_modified); // uint64
+	configurationItem.setModificationPolicy(mod_policy); // ModificationPolicy
+	configurationItem.setKey(key); // string
+	configurationItem.setValue(value); // bytes
+
+	var signedConfigurationItem = new _configurationProto.SignedConfigurationItem();
+	signedConfigurationItem.setConfigurationItem(configurationItem.toBuffer());
+	if(signatures) {
+		signedConfigurationItem.setSignatures(signatures);
+	}
+
+	return signedConfigurationItem;
+};
+
+//utility method to build a accept all policy
+function buildAcceptAllPolicy() {
+	return buildPolicyEnvelope(1);
+}
+
+//utility method to build a reject all policy
+function buildRejectAllPolicy() {
+	return buildPolicyEnvelope(0);
+}
+
+//utility method to build a policy with a signature policy envelope
+function buildPolicyEnvelope(nOf) {
+	logger.debug('buildPolicyEnvelope - building policy with nOf::'+nOf);
+	var nOutOf = new _configurationProto.SignaturePolicy.NOutOf();
+	nOutOf.setN(nOf);
+	nOutOf.setPolicies([]);
+	var signaturePolicy = new _configurationProto.SignaturePolicy();
+	signaturePolicy.setFrom(nOutOf);
+	var signaturePolicyEnvelope = new _configurationProto.SignaturePolicyEnvelope();
+	signaturePolicyEnvelope.setVersion(0);
+	signaturePolicyEnvelope.setPolicy(signaturePolicy);
+	signaturePolicyEnvelope.setIdentities([]);
+
+	var policy = new _configurationProto.Policy();
+	policy.setType(_configurationProto.Policy.PolicyType.SIGNATURE);
+	policy.setPolicy(signaturePolicyEnvelope.toBuffer());
+	return policy;
+};
 
 module.exports = Chain;
