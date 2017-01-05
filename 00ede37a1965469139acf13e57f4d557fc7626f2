@@ -1,0 +1,8 @@
+Verified+1: Hyperledger Jobbuilder <jobbuilder@jenkins.hyperledger.org>
+Code-Review+2: Binh Nguyen <binhn@us.ibm.com>
+Code-Review+2: Gari Singh <gari.r.singh@gmail.com>
+Submitted-by: Gari Singh <gari.r.singh@gmail.com>
+Submitted-at: Thu, 05 Jan 2017 11:40:00 +0000
+Reviewed-on: http://gerrit.hyperledger.org/r/3659
+Project: fabric-sdk-node
+Branch: refs/heads/master
