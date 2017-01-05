@@ -90,12 +90,12 @@ var Orderer = class extends Remote {
 				clearTimeout(broadcast_timeout);
 				all_done = true;
 
-				if(response.Status) {
-					if (response.Status === 'SUCCESS') {
-						logger.debug('Orderer.sendBroadcast - resolve with %s', response.Status);
+				if(response.status) {
+					if (response.status === 'SUCCESS') {
+						logger.debug('Orderer.sendBroadcast - resolve with %s', response.status);
 						return resolve(response);
 					} else {
-						logger.error('Orderer.sendBroadcast - reject with %s', response.Status);
+						logger.error('Orderer.sendBroadcast - reject with %s', response.status);
 						return reject(new Error(response.Status));
 					}
 				}
