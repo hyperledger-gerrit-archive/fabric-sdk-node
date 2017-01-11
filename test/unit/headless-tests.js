@@ -955,18 +955,28 @@ test('\n\n ** Chain sendDeploymentProposal() tests **\n\n', function (t) {
 	});
 
 	Promise.all([p1, p2, p3, p4, p6, p7])
-		.then(
-		function (data) {
+		.then(function (data) {
+			// now test devmode
+			c.setDevMode(true);
+			return c.sendDeploymentProposal({
+				targets: [new Peer('grpc://localhost:7051')],
+				chaincodeId: 'blah',
+				chainId: 'blah',
+				fcn: 'init',
+				args: ['a', '100', 'b', '200'],
+				txId: 'blah'
+			}).then(function () {
+				t.pass('Successfully accepted devmode deployment');
+			}).catch(function (err) {
+				t.fail('Failed to allow devmode. Error: ' + err.stack ? err.stack : err);
+				throw err;
+			});
+		}).then(function () {
 			t.end();
-		}
-		).catch(
-		function (err) {
+		}).catch(function (err) {
 			t.fail('Chain sendDeploymentProposal() tests, Promise.all: '+err.stack ? err.stack : err);
-			t.end();
-		}
-		);
+		});
 
-	t.end();
 });
 
 test('\n\n ** Chain sendTransactionProposal() tests **\n\n', function (t) {
