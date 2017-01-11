@@ -309,113 +309,93 @@ var Chain = class {
 	 * @returns {Promise} A Promise for a `ProposalResponse`
 	 * @see /protos/peer/fabric_proposal_response.proto
 	 */
-	sendDeploymentProposal(request) {
-		var errorMsg = null;
+	 sendDeploymentProposal(request) {
+	     var errorMsg = null;
 
-		// Verify that a Peer has been added
-		if (this.getPeers().length < 1) {
-			errorMsg = 'Missing peer objects in Deployment proposal chain';
-			logger.error('Chain.sendDeploymentProposal error '+ errorMsg);
-			return Promise.reject(new Error(errorMsg));
-		}
+	     // Verify that a Peer has been added
+	     if (this.getPeers().length < 1) {
+	         errorMsg = 'Missing peer objects in Deployment proposal chain';
+	         logger.error('Chain.sendDeploymentProposal error ' + errorMsg);
+	         return Promise.reject(new Error(errorMsg));
+	     }
 
-		// Verify that chaincodePath is being passed
-		if (request && (!request.chaincodePath || request.chaincodePath === '')) {
-			errorMsg = 'Missing chaincodePath parameter in Deployment proposal request';
-		} else {
-			errorMsg = Chain._checkProposalRequest(request);
-		}
+	     errorMsg = Chain._checkProposalRequest(request);
+	     if (errorMsg) {
+	         logger.error('Chain.sendDeploymentProposal error ' + errorMsg);
+	         return Promise.reject(new Error(errorMsg));
+	     }
 
-		if(errorMsg) {
-			logger.error('Chain.sendDeploymentProposal error '+ errorMsg);
-			return Promise.reject(new Error(errorMsg));
-		}
+	     // args is optional because some chaincode may not need any input parameters during initialization
+	     if (!request.args) {
+	         request.args = [];
+	     }
+	     let self = this;
 
-		// args is optional because some chaincode may not need any input parameters during initialization
-		if (!request.args) {
-			request.args = [];
-		}
-		let self = this;
+	     // step 1: construct a ChaincodeSpec
+	     var args = [];
+	     args.push(Buffer.from(request.fcn ? request.fcn : 'init', 'utf8'));
 
-		return packageChaincode(request.chaincodePath, request.chaincodeId, request['dockerfile-contents'])
-		.then(
-			function(data) {
-				var targzFilePath = data;
+	     for (let i = 0; i < request.args.length; i++)
+	         args.push(Buffer.from(request.args[i], 'utf8'));
 
-				logger.debug('Chain.sendDeployment- Successfully generated chaincode deploy archive and name (%s)', request.chaincodeId);
+	     let ccSpec = {
+	         type: _ccProto.ChaincodeSpec.Type.GOLANG,
+	         chaincodeID: {
+	             name: request.chaincodeId
+	         },
+	         ctorMsg: {
+	             args: args
+	         }
+	     };
 
-				// at this point, the targzFile has been successfully generated
+	     // step 2: construct the ChaincodeDeploymentSpec
+	     let chaincodeDeploymentSpec = new _ccProto.ChaincodeDeploymentSpec();
+	     chaincodeDeploymentSpec.setChaincodeSpec(ccSpec);
 
-				// step 1: construct a ChaincodeSpec
-				var args = [];
-				args.push(Buffer.from(request.fcn ? request.fcn : 'init', 'utf8'));
+	     return self._packageChaincode(this.isDevMode(), request)
+	         .then(
+	             function(data) {
 
-				for (let i=0; i<request.args.length; i++)
-					args.push(Buffer.from(request.args[i], 'utf8'));
+	                 // DATA may or may not be present depending on devmode settings
+	                 if (data) {
+	                     chaincodeDeploymentSpec.setCodePackage(data);
+	                 }
 
-				let ccSpec = {
-					type: _ccProto.ChaincodeSpec.Type.GOLANG,
-					chaincodeID: {
-						name: request.chaincodeId
-					},
-					ctorMsg: {
-						args: args
-					}
-				};
+	                 // TODO add ESCC/VSCC info here ??????
+	                 let lcccSpec = {
+	                     type: _ccProto.ChaincodeSpec.Type.GOLANG,
+	                     chaincodeID: {
+	                         name: 'lccc'
+	                     },
+	                     ctorMsg: {
+	                         args: [Buffer.from('deploy', 'utf8'), Buffer.from('default', 'utf8'), chaincodeDeploymentSpec.toBuffer()]
+	                     }
+	                 };
 
-				// step 2: construct the ChaincodeDeploymentSpec
-				let chaincodeDeploymentSpec = new _ccProto.ChaincodeDeploymentSpec();
-				chaincodeDeploymentSpec.setChaincodeSpec(ccSpec);
+	                 var header, proposal;
+	                 return self._clientContext.getUserContext()
+	                     .then(
+	                         function(userContext) {
+	                             header = Chain._buildHeader(userContext.getIdentity(), request.chainId, 'lccc', request.txId, request.nonce);
+	                             proposal = self._buildProposal(lcccSpec, header);
+	                             let signed_proposal = self._signProposal(userContext.getSigningIdentity(), proposal);
 
-				return new Promise(function(resolve, reject) {
-					fs.readFile(targzFilePath, function(err, data) {
-						if(err) {
-							reject(new Error(util.format('Error reading deployment archive [%s]: %s', targzFilePath, err)));
-						} else {
-							chaincodeDeploymentSpec.setCodePackage(data);
-
-							// TODO add ESCC/VSCC info here ??????
-							let lcccSpec = {
-								type: _ccProto.ChaincodeSpec.Type.GOLANG,
-								chaincodeID: {
-									name: 'lccc'
-								},
-								ctorMsg: {
-									args: [Buffer.from('deploy', 'utf8'), Buffer.from('default', 'utf8'), chaincodeDeploymentSpec.toBuffer()]
-								}
-							};
-
-							var header, proposal;
-							return self._clientContext.getUserContext()
-							.then(
-								function(userContext) {
-									header = Chain._buildHeader(userContext.getIdentity(), request.chainId, 'lccc', request.txId, request.nonce);
-									proposal = self._buildProposal(lcccSpec, header);
-									let signed_proposal = self._signProposal(userContext.getSigningIdentity(), proposal);
-
-									return Chain._sendPeersProposal(self.getPeers(), signed_proposal);
-								}
-							).then(
-								function(responses) {
-									resolve([responses, proposal, header]);
-								}
-							).catch(
-								function(err) {
-									logger.error('Sending the deployment proposal failed. Error: %s', err.stack ? err.stack : err);
-									reject(err);
-								}
-							);
-						}
-					});
-				});
-			}
-		).catch(
-			function(err) {
-				logger.error('Building the deployment proposal failed. Error: %s', err.stack ? err.stack : err);
-				return Promise.reject(err);
-			}
-		);
-	}
+	                             return Chain._sendPeersProposal(self.getPeers(), signed_proposal);
+	                         }
+	                     ).then(
+	                         function(responses) {
+	                             return [responses, proposal, header];
+	                         }
+	                     );
+	             }
+	         )
+	         .catch(
+	             function(err) {
+	                 logger.error('Building the deployment proposal failed. Error: %s', err.stack ? err.stack : err);
+	                 return Promise.reject(err);
+	             }
+	         );
+	 }
 
 	/**
 	 * Sends a transaction proposal to one or more endorsing peers.
@@ -678,6 +658,36 @@ var Chain = class {
 
 		return header;
 	}
+
+    // internal utility method to package chaincode
+    /**
+     * @private
+     */
+    _packageChaincode(devmode, request) {
+    	return new Promise(function(resolve, reject) {
+             if (devmode) {
+                 resolve();
+             } else if (request && (!request.chaincodePath || request.chaincodePath === '')) {
+                 // Verify that chaincodePath is being passed
+                 reject(new Error('Missing chaincodePath parameter in Deployment proposal request'));
+             } else {
+                 return packageChaincode(request.chaincodePath, request.chaincodeId, request['dockerfile-contents'])
+                     .then(
+                         function(path) {
+                             logger.debug('Chain.sendDeployment- Successfully generated chaincode deploy archive and name (%s)', request.chaincodeId);
+
+                             // at this point, the targzFile has been successfully generated
+                             fs.readFile(path, function(err, data) {
+                                 if (err) {
+                                     reject(err);
+                                 } else {
+                                     resolve(data);
+                                 }
+                             });
+                         });
+             }
+         });
+     }
 
 	// internal utility method to build the proposal
 	/**
