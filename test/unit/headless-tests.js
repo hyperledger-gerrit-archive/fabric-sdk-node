@@ -848,11 +848,7 @@ test('\n\n ** Chain sendDeploymentProposal() tests **\n\n', function (t) {
 	}).then(function () {
 		t.fail('Should not have been able to resolve the promise because of missing "chaincodePath" parameter');
 	}).catch(function (err) {
-		if (err.message.indexOf('Missing chaincodePath parameter in Deployment proposal request') >= 0) {
-			t.pass('Successfully caught missing chaincodePath error');
-		} else {
-			t.fail('Failed to catch the missing chaincodePath error. Error: ' + err.stack ? err.stack : err);
-		}
+		t.pass('Successfully caught missing chaincodePath error');
 	});
 
 	var p2 = c.sendDeploymentProposal({
@@ -969,6 +965,36 @@ test('\n\n ** Chain sendDeploymentProposal() tests **\n\n', function (t) {
 			t.end();
 		}
 		);
+
+	t.end();
+});
+
+test('\n\n ** Chain sendDeploymentProposal() DevMode tests **\n\n', function (t) {
+	var c = new Chain('does not matter', client);
+	var peer = new Peer('grpc://localhost:7051');
+	var orderer = new Orderer('grpc://somehost.com:1234');
+
+	c.addPeer(peer);
+	c.addOrderer(orderer);
+
+	// now test devmode
+	c.setDevMode(true);
+
+	return c.sendDeploymentProposal({
+		targets: [peer],
+		chaincodeId: 'blah',
+		chainId: 'blah',
+		fcn: 'init',
+		args: ['a', '100', 'b', '200'],
+		txId: 'blah',
+		nonce: 'blah'
+	}).then(function () {
+		t.pass('Successfully accepted devmode deployment');
+		t.end();
+	}).catch(function (err) {
+		t.fail('Failed to allow devmode. Error: ' + err.stack ? err.stack : err);
+		t.end();
+	});
 
 	t.end();
 });
