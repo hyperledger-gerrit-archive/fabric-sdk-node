@@ -973,6 +973,32 @@ test('\n\n ** Chain sendDeploymentProposal() tests **\n\n', function (t) {
 	t.end();
 });
 
+test('\n\n ** Chain sendDeploymentProposal() DevMode tests **\n\n', function (t) {
+	var c = new Chain('does not matter', client);
+	var peer = new Peer('grpc://localhost:7051');
+	c.addPeer(peer);
+
+	// now test devmode
+	c.setDevMode(true);
+
+	return c.sendDeploymentProposal({
+		targets: [peer],
+		chaincodeId: 'blah',
+		chainId: 'blah',
+		fcn: 'init',
+		args: ['a', '100', 'b', '200'],
+		txId: 'blah'
+	}).then(function () {
+		t.pass('Successfully accepted devmode deployment');
+		t.end();
+	}).catch(function (err) {
+		t.fail('Failed to allow devmode. Error: ' + err.stack ? err.stack : err);
+		t.end();
+	});
+
+	t.end();
+});
+
 test('\n\n ** Chain sendTransactionProposal() tests **\n\n', function (t) {
 	var c = new Chain('does not matter', client);
 	var peer = new Peer('grpc://localhost:7051');
