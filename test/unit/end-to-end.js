@@ -141,12 +141,13 @@ test('End-to-end flow of chaincode deploy, transaction invocation, and query', f
 				// in sequence, will need to sleep for 30sec here
 				promise = promise.then(
 					function(response) {
-						if (response.status === 'SUCCESS') {
+						if (response && response.status === 'SUCCESS') {
 							t.pass('Successfully ordered deployment endorsement.');
 							console.log('  ** need to wait now for the committer to catch up after the deployment');
 							return sleep(30000);
 						} else {
-							t.fail('Failed to order the deployment endorsement. Error code: ' + response.status);
+							t.fail('Failed to order the deployment endorsement. Error code: ' 
+								+ (response ? response.status : 'Response is null'));
 							t.end();
 						}
 
