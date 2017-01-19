@@ -40,17 +40,17 @@ var CouchDBKeyValueStore = class extends api.KeyValueStore {
 	 * The 'name' parameter is optional.
 	 */
 	constructor(options) {
-		logger.debug('constructor, options: ' + JSON.stringify(options));
+		logger.debug('constructor, options: ' + options);
 
 		if (!options || !options.path) {
-			throw new Error('Must provide the path to the CouchDB database instance to store membership data.');
+			throw new Error('Must provide the CouchDB database client instance to store membership data.');
 		}
 
 		// Create the keyValStore instance
 		super();
 
 		var self = this;
-		// path pointer to the database
+		// path is the database client instance
 		this._path = options.path;
 		// Name of the database, optional
 		if (!options.name) {
@@ -64,7 +64,7 @@ var CouchDBKeyValueStore = class extends api.KeyValueStore {
 
 		return new Promise(function(resolve, reject) {
 			// Initialize the CouchDB database client
-			var dbClient = nano(options.path);
+			var dbClient = self._path;
 			// Check if the database already exists. If not, create it.
 			dbClient.db.get(self._name, function(err, body) {
 				// Check for error
