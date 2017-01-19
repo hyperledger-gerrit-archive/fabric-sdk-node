@@ -141,12 +141,13 @@ test('End-to-end flow of chaincode deploy, transaction invocation, and query', f
 				// in sequence, will need to sleep for 30sec here
 				promise = promise.then(
 					function(response) {
-						if (response.status === 'SUCCESS') {
+						if (response && response.status === 'SUCCESS') {
 							t.pass('Successfully ordered deployment endorsement.');
 							console.log('  ** need to wait now for the committer to catch up after the deployment');
 							return sleep(30000);
 						} else {
-							t.fail('Failed to order the deployment endorsement. Error code: ' + response.status);
+							t.fail('Failed to order the deployment endorsement. Error code: '
+								+ (response ? response.status : 'Response is null'));
 							t.end();
 						}
 
@@ -200,20 +201,23 @@ test('End-to-end flow of chaincode deploy, transaction invocation, and query', f
 				}
 			).then(
 				function(results) {
-					var proposalResponses = results[0];
-					var proposal = results[1];
-					var header   = results[2];
+					var all_good = false;
+					if (results) {
+						var proposalResponses = results[0];
+						var proposal = results[1];
+						var header   = results[2];
 
-					var all_good = true;
-					for(var i in proposalResponses) {
-						let one_good = false;
-						if (proposalResponses && proposalResponses[i].response && proposalResponses[i].response.status === 200) {
-							one_good = true;
-							logger.info('move proposal was good');
-						} else {
-							logger.error('move proposal was bad');
+						var all_good = true;
+						for(var i in proposalResponses) {
+							let one_good = false;
+							if (proposalResponses && proposalResponses[i].response && proposalResponses[i].response.status === 200) {
+								one_good = true;
+								logger.info('move proposal was good');
+							} else {
+								logger.error('move proposal was bad');
+							}
+							all_good = all_good & one_good;
 						}
-						all_good = all_good & one_good;
 					}
 					if (all_good) {
 						t.pass('Successfully obtained transaction endorsements.'); // + JSON.stringify(proposalResponses));
@@ -224,7 +228,8 @@ test('End-to-end flow of chaincode deploy, transaction invocation, and query', f
 						};
 						return chain.sendTransaction(request);
 					} else {
-						t.fail('Failed to obtain transaction endorsements. Error code: ' + results);
+						t.fail('Failed to obtain transaction endorsements. Error code: '
+							+ (results ? results : 'Results are null'));
 						t.end();
 					}
 				},
@@ -239,10 +244,11 @@ test('End-to-end flow of chaincode deploy, transaction invocation, and query', f
 				// in sequence, will need to sleep for 30sec here
 				promise = promise.then(
 					function(response) {
-						if (response.status === 'SUCCESS') {
+						if (response && response.status === 'SUCCESS') {
 							t.pass('Successfully ordered endorsement transaction.');
 						} else {
-							t.fail('Failed to order the endorsement of the transaction. Error code: ' + response.status);
+							t.fail('Failed to order the endorsement of the transaction. Error code: '
+								+ (response ? response.status : 'Response is null'));
 						}
 						// always sleep and check with query
 						console.log('  ** need to wait now for the committer to catch up after the **** MOVE ****');
