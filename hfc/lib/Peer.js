@@ -174,7 +174,7 @@ var Peer = class extends Remote {
 	 * Send an endorsement proposal to an endorser.
 	 *
 	 * @param {Proposal} proposal A proposal of type Proposal
-	 * @see /protos/peer/fabric_proposal.proto
+	 * @see /protos/peer/proposal.proto
 	 * @returns Promise for a ProposalResponse
 	 */
 	sendProposal(proposal) {

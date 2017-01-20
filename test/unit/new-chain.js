@@ -32,8 +32,6 @@ var peer0 = new Peer('grpc://localhost:7051'),
 
 var keyValStorePath = testUtil.KVS;
 //
-//Orderer via member send chain create
-//
 //Attempt to send a request to the orderer with the sendCreateChain method - fail
 //  missing order or invalid order
 //
@@ -84,9 +82,56 @@ test('\n\n** TEST ** new chain using chain.initializeChain() method with bad ord
 		t.end();
 	});
 });
-
 //
-//Orderer via member send chain create
+//Attempt to send a request to the orderer with the sendCreateChain method - fail
+//missing transaction id
+//
+test('\n\n** TEST ** new chain using chain.initializeChain() method with missing transaction ID', function(t) {
+	//
+	// Create and configure the test chain
+	//
+	var client = new hfc();
+	var chain = client.newChain('testChain2');
+	chain.addOrderer(new Orderer('grpc://localhost:9999'));
+
+	hfc.newDefaultKeyValueStore({path: testUtil.KVS}
+	)
+	.then(
+		function (store) {
+			client.setStateStore(store);
+			return testUtil.getSubmitter(client, t);
+		}
+	)
+	.then(
+		function(admin) {
+			t.pass('Successfully enrolled user \'admin\'');
+			// send to orderer
+			return chain.initializeChain();
+		},
+		function(err) {
+			t.fail('Failed to enroll user \'admin\'. ' + err);
+			t.end();
+		}
+	)
+	.then(
+		function(response) {
+			if (response) {
+				t.fail('Successfully created chain.');
+			} else {
+				t.fail('Failed to order the chain create. Error code: ' + response.status);
+			}
+			t.end();
+		},
+		function(err) {
+			t.pass('Failed to send transaction create due to error: ' + err.stack ? err.stack : err);
+			t.end();
+		}
+	)
+	.catch(function(err) {
+		t.pass('Failed request. ' + err);
+		t.end();
+	});
+});
 //
 //Attempt to send a request to the orderer with the sendCreateChain method - good
 //
@@ -151,8 +196,76 @@ test('\n\n** TEST ** new chain - chain.initializeChain() success', function(t) {
 });
 
 //
-//Orderer via member send chain create
+//Attempt to send a request to the orderer with the sendCreateChain method
+// using the optional object for the settings - good
 //
+test('\n\n** TEST ** new chain - chain.initializeChain() success', function(t) {
+	//
+	// Create and configure the test chain
+	//
+	var client = new hfc();
+	var chain = client.newChain('testChain3');
+	chain.addOrderer(new Orderer('grpc://localhost:7050'));
+	chain.addPeer(peer0);
+	chain.addPeer(peer1);
+
+	hfc.newDefaultKeyValueStore({path: testUtil.KVS}
+	)
+	.then(
+		function (store) {
+			client.setStateStore(store);
+			return testUtil.getSubmitter(client, t);
+		}
+	)
+	.then(
+		function(admin) {
+			t.pass('Successfully enrolled user \'admin\'');
+			var options = {
+				consensus_type : 'solo',
+				epoch : 0,
+				max_message_count : 5,
+				absolute_max_bytes : 10 * 1024,
+				preferred_max_bytes : 2048,
+				transaction_id : '567890'
+			};
+			// send to orderer
+			return chain.initializeChain(options);
+		},
+		function(err) {
+			t.fail('Failed to enroll user \'admin\'. ' + err);
+			t.end();
+		}
+	)
+	.then(
+		function(response) {
+			if (response.status === 'SUCCESS') {
+				t.pass('Successfully created chain.');
+				return chain.sendJoinChannelProposal();
+			} else {
+				t.fail('Failed to order the chain create. Error code: ' + response.status);
+				t.end();
+			}
+		},
+		function(err) {
+			t.fail('Failed to get the genesis block back due to error: ' + err.stack ? err.stack : err);
+			t.end();
+		}
+	)
+	.then(
+		function(response) {
+			t.pass('Successfully joined channel.');
+			t.end();
+		},
+		function(err) {
+			t.fail('Failed to join channel due to error: ' + err.stack ? err.stack : err);
+			t.end();
+		}
+	)	.catch(function(err) {
+		t.fail('Failed request. ' + err);
+		t.end();
+	});
+});
+
 //Attempt to send a request to the orderer with the sendCreateChain method - fail
 // fail due to chain already exist
 //

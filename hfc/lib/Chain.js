@@ -406,13 +406,30 @@ var Chain = class {
 	 * This is a long-running process. Only one of the application instances needs
 	 * to call this method. Once the chain is successfully created, other application
 	 * instances only need to call getChain() to obtain the information about this chain.
-	 * @returns {boolean} Whether the chain initialization process was successful.
+	 *
+	 * @param {Object} options - An optional object containing the following fields:
+	 *      <br>`consensus_type` : optional - String of the name of the consensus type
+	 *                             default: solo
+	 *      <br>`epoch` : optional - integer value of the epoch
+	 *                             default: 0
+	 *      <br>`max_message_count`: optional - integer value of the maximum message count
+	 *                             default: 10
+	 *      <br>`absolute_max_bytes` : optional - integer value of the absolute maximum bytes
+	 *                             default: 10meg
+	 *      <br>`preferred_max_bytes` : optional - integer value of the preferred max bytes
+	 *                             default: 10meg
+	 *      <br>`transaction_id` : optional - string value of the transaction to use for this initialization
+	 *                             default: none, must be defined by either this object or the use
+	 *                                      of the chain method setInitialTransactionId()
+	 *
+	 * @returns {Promise} A Promise for a `ProposalResponse`
 	 */
-	initializeChain() {
+	initializeChain(options) {
 		logger.debug('initializeChain - start');
 
 		// verify that we have an orderer configured
-		if(!this.getOrderers()[0]) {
+		var target_orderer = this.getOrderers()[0];
+		if(!target_orderer) {
 			logger.error('initializeChain - no primary orderer defined');
 			return Promise.reject(new Error('no primary orderer defined'));
 		}
@@ -428,6 +445,31 @@ var Chain = class {
 			logger.error('initializeChain - no chain id defined');
 			return Promise.reject(new Error('Chain name is not defined'));
 		}
+		if(options) {
+			if(options.consensus_type) {
+				this.setConsensusType(options.consensus_type);
+			}
+
+			if(options.epoch) {
+				this.setInitialEpoch(options.epoch);
+			}
+
+			if(options.max_message_count) {
+				this.setInitialMaxMessageCount(options.max_message_count);
+			}
+
+			if(options.absolute_max_bytes) {
+				this.setInitialAbsoluteMaxBytes(options.absolute_max_bytes);
+			}
+
+			if(options.preferred_max_bytes) {
+				this.setInitialPrefferedMaxBytes(options.preferred_max_bytes);
+			}
+
+			if(options.transaction_id) {
+				this.setInitialTransactionId(options.transaction_id);
+			}
+		}
 
 		// verify that we have a transactionid configured
 		if(!this._initial_transaction_id) {
@@ -437,7 +479,6 @@ var Chain = class {
 
 		var self = this;
 		var chain_id = this._name;
-		var orderer = self.getOrderers()[0];
 		var userContext = null;
 
 		return this._clientContext.getUserContext()
@@ -646,7 +687,7 @@ var Chain = class {
 					payload : payload_bytes
 				};
 
-				return orderer.sendBroadcast(envelope);
+				return target_orderer.sendBroadcast(envelope);
 			}
 		)
 		.then(
@@ -858,7 +899,7 @@ var Chain = class {
 	 *                   the chaincode being deployed
 	 *		<br>`dockerfile-contents` : optional - String defining the
 	 * @returns {Promise} A Promise for a `ProposalResponse`
-	 * @see /protos/peer/fabric_proposal_response.proto
+	 * @see /protos/peer/proposal_response.proto
 	 */
 	sendDeploymentProposal(request) {
 		var errorMsg = null;
@@ -1066,13 +1107,13 @@ var Chain = class {
 	 *
 	 * @param {Array} proposalResponses - An array or single {ProposalResponse} objects containing
 	 *        the response from the endorsement
-	 * @see fabric_proposal_response.proto
+	 * @see ./proto/peer/proposal_response.proto
 	 * @param {Proposal} chaincodeProposal - A Proposal object containing the original
 	 *        request for endorsement(s)
-	 * @see fabric_proposal.proto
+	 * @see ./proto/peer/proposal.proto
 	 * @returns {Promise} A Promise for a `BroadcastResponse`.
 	 *         This will be an acknowledgement from the orderer of successfully submitted transaction.
-	 * @see the ./proto/atomicbroadcast/ab.proto
+	 * @see the ./proto/orderer/ab.proto
 	 */
 	sendTransaction(request) {
 		logger.debug('Chain.sendTransaction - start :: chain '+this._chain);
