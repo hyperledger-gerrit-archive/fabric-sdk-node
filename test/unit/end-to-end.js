@@ -146,7 +146,7 @@ test('End-to-end flow of chaincode deploy, transaction invocation, and query', f
 							console.log('  ** need to wait now for the committer to catch up after the deployment');
 							return sleep(30000);
 						} else {
-							t.fail('Failed to order the deployment endorsement. Error code: ' 
+							t.fail('Failed to order the deployment endorsement. Error code: '
 								+ (response ? response.status : 'Response is null'));
 							t.end();
 						}
@@ -201,7 +201,7 @@ test('End-to-end flow of chaincode deploy, transaction invocation, and query', f
 				}
 			).then(
 				function(results) {
-					var all_good = false; 
+					var all_good = false;
 					if (results) {
 						var proposalResponses = results[0];
 						var proposal = results[1];
@@ -209,7 +209,7 @@ test('End-to-end flow of chaincode deploy, transaction invocation, and query', f
 						all_good = true;
 						for(var i in proposalResponses) {
 							let one_good = false;
-							if (proposalResponses && proposalResponses[i].response && 
+							if (proposalResponses && proposalResponses[i].response &&
 								proposalResponses[i].response.status === 200) {
 								one_good = true;
 								logger.info('move proposal was good');
@@ -228,7 +228,7 @@ test('End-to-end flow of chaincode deploy, transaction invocation, and query', f
 						};
 						return chain.sendTransaction(request);
 					} else {
-						t.fail('Failed to obtain transaction endorsements. Error code: ' 
+						t.fail('Failed to obtain transaction endorsements. Error code: '
 							+ (results ? results : 'Results are null'));
 						t.end();
 					}
