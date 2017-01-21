@@ -1,0 +1,8 @@
+Verified+1: Hyperledger Jobbuilder <jobbuilder@jenkins.hyperledger.org>
+Code-Review+2: Yacov Manevich <yacovm@il.ibm.com>
+Code-Review+2: Srinivasan Muralidharan <muralisr@us.ibm.com>
+Submitted-by: Srinivasan Muralidharan <muralisr@us.ibm.com>
+Submitted-at: Sat, 21 Jan 2017 19:41:45 +0000
+Reviewed-on: http://gerrit.hyperledger.org/r/4653
+Project: fabric-sdk-node
+Branch: refs/heads/master
