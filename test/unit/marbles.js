@@ -37,7 +37,7 @@ var utils = require('hfc/lib/utils.js');
 var chain = hfc.newChain('testChain-e2e');
 var webUser;
 var chaincode_id = 'marblescc';
-var chain_id = '**TEST_CHAINID**';
+var chain_id = 'test_chainid';
 var tx_id = null;
 var nonce = null;
 

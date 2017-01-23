@@ -42,7 +42,7 @@ var chain = client.newChain('testChain-e2e');
 
 var webUser = null;
 var chaincode_id = 'mycc';
-var chain_id = '**TEST_CHAINID**';
+var chain_id = 'test_chainid';
 var tx_id = null;
 var nonce = null;
 var peer0 = new Peer('grpc://localhost:7051'),
