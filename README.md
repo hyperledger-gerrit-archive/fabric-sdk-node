@@ -43,7 +43,7 @@ If you are using a Mac and would like to build the docker images and run them na
 * `cd fabric/devenv`
 * Open the file `Vagrantfile` and insert the following statement below the existing `config.vm.network` statements:
   * `  config.vm.network :forwarded_port, guest: 7056, host: 7056 # Openchain gRPC services`
-  * `  config.vm.network :forwarded_port, guest: 8888, host: 8888 # COP services`
+  * `  config.vm.network :forwarded_port, guest: 7054, host: 7054 # COP services`
 
 * run `vagrant up` to launch the vagrant VM
 * Once inside vagrant, follow these steps to start the COP server and the Peers network with orderer
