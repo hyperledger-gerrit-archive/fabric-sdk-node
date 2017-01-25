@@ -27,6 +27,7 @@
     "gulp-jsdoc3": "^0.3.0",
     "gulp-tape": "0.0.9",
     "gulp-watch": "^4.3.11",
+    "hashtable": "^2.0.2",
     "hfc": "file:./hfc",
     "hfc-cop": "file:./hfc-cop",
     "intercept-stdout": "^0.1.2",
