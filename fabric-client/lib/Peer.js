@@ -1,5 +1,5 @@
 /*
- Copyright 2016 IBM All Rights Reserved.
+ Copyright 2016, 2017 IBM All Rights Reserved.
 
  Licensed under the Apache License, Version 2.0 (the "License");
  you may not use this file except in compliance with the License.
@@ -56,60 +56,7 @@ var Peer = class extends Remote {
 		this._endorserClient = new _serviceProto.Endorser(this._endpoint.addr, this._endpoint.creds, this._options);
 		this._name = null;
 		this._roles = [];
-	}
-
-	/**
-	 * Since practically all Peers are event producers, when constructing a Peer instance,
-	 * an application can designate it as the event source for the application. Typically
-	 * only one of the Peers on a Chain needs to be the event source, because all Peers on
-	 * the Chain produce the same events. This method tells the SDK which Peer(s) to use as
-	 * the event source for the client application. It is the responsibility of the SDK to
-	 * manage the connection lifecycle to the Peer’s EventHub. It is the responsibility of
-	 * the Client Application to understand and inform the selected Peer as to which event
-	 * types it wants to receive and the call back functions to use.
-	 * @returns {Promise} This gives the app a handle to attach “success” and “error” listeners
-	 */
-	connectEventSource() {
-		//to do
-	}
-
-	/**
-	 * A network call that discovers if at least one listener has been connected to the target
-	 * Peer for a given event. This helps application instance to decide whether it needs to
-	 * connect to the event source in a crash recovery or multiple instance deployment.
-	 * @param {string} eventName required
-	 * @param {Chain} chain optional
-	 * @result {boolean} Whether the said event has been listened on by some application instance on that chain.
-	 */
-	isEventListened(event, chain) {
-		//to do
-	}
-
-	/**
-	 * For a Peer that is connected to eventSource, the addListener registers an EventCallBack for a
-	 * set of event types. addListener can be invoked multiple times to support differing EventCallBack
-	 * functions receiving different types of events.
-	 *
-	 * Note that the parameters below are optional in certain languages, like Java, that constructs an
-	 * instance of a listener interface, and pass in that instance as the parameter.
-	 * @param {string} eventType : ie. Block, Chaincode, Transaction
-	 * @param  {object} eventTypeData : Object Specific for event type as necessary, currently needed
-	 * for “Chaincode” event type, specifying a matching pattern to the event name set in the chaincode(s)
-	 * being executed on the target Peer, and for “Transaction” event type, specifying the transaction ID
-	 * @param {class} eventCallback Client Application class registering for the callback.
-	 * @returns {string} An ID reference to the event listener.
-	 */
-	addListener(eventType, eventTypeData, eventCallback) {
-		//to do
-	}
-
-	/**
-	 * Unregisters a listener.
-	 * @param {string} eventListenerRef Reference returned by SDK for event listener.
-	 * @return {boolean} Success / Failure status
-	 */
-	removeListener() {
-		//to do
+		this._event_source_url = null;
 	}
 
 	/**
@@ -171,10 +118,36 @@ var Peer = class extends Remote {
 	}
 
 	/**
+	 * Set the Peer's event source url
+	 * @param {string} url
+	 */
+	setEventSourceURL(url) {
+		this._event_source_url = url;
+	}
+
+	/**
+	 * Get the Peer's event source url
+	 * return {string} url
+	 */
+	getEventSourceURL() {
+		return this._event_source_url;
+	}
+
+
+	/**
+	 * Indicates if this Peer is an event source
+	 * @returns true : if this peer is an event source
+	 *          false : if this peer is not an event source
+	 */
+	isEventSource() {
+		return (this._event_source_url) ? true : false;
+	}
+
+	/**
 	 * Send an endorsement proposal to an endorser.
 	 *
 	 * @param {Proposal} proposal A proposal of type Proposal
-	 * @see /protos/peer/fabric_proposal.proto
+	 * @see /protos/peer/proposal.proto
 	 * @returns Promise for a ProposalResponse
 	 */
 	sendProposal(proposal) {
@@ -207,7 +180,8 @@ var Peer = class extends Remote {
 	*/
 	toString() {
 		return ' Peer : {' +
-			'url:' + this._url +
+		'url:' + this._url +
+		',event source url:' + this._event_source_url +
 		'}';
 	}
 
