@@ -22,6 +22,7 @@ var urlParser = require('url');
 var net = require('net');
 var util = require('util');
 var fs = require('fs');
+var EventHub = require('./EventHub.js');
 var Peer = require('./Peer.js');
 var Orderer = require('./Orderer.js');
 var settle = require('promise-settle');
@@ -96,6 +97,7 @@ var Chain = class {
 
 		this._peers = [];
 		this._orderers = [];
+		this._event_hubs = [];
 
 		this._clientContext = clientContext;
 
@@ -858,7 +860,7 @@ var Chain = class {
 	 *                   the chaincode being deployed
 	 *		<br>`dockerfile-contents` : optional - String defining the
 	 * @returns {Promise} A Promise for a `ProposalResponse`
-	 * @see /protos/peer/fabric_proposal_response.proto
+	 * @see /protos/peer/proposal_response.proto
 	 */
 	sendDeploymentProposal(request) {
 		var errorMsg = null;
@@ -1066,13 +1068,13 @@ var Chain = class {
 	 *
 	 * @param {Array} proposalResponses - An array or single {ProposalResponse} objects containing
 	 *        the response from the endorsement
-	 * @see fabric_proposal_response.proto
+	 * @see ./proto/peer/proposal_response.proto
 	 * @param {Proposal} chaincodeProposal - A Proposal object containing the original
 	 *        request for endorsement(s)
-	 * @see fabric_proposal.proto
+	 * @see ./proto/peer/proposal.proto
 	 * @returns {Promise} A Promise for a `BroadcastResponse`.
 	 *         This will be an acknowledgement from the orderer of successfully submitted transaction.
-	 * @see the ./proto/atomicbroadcast/ab.proto
+	 * @see the ./proto/orderer/ab.proto
 	 */
 	sendTransaction(request) {
 		logger.debug('Chain.sendTransaction - start :: chain '+this._chain);
@@ -1200,6 +1202,7 @@ var Chain = class {
 							results.push(responses[i].response.payload);
 						}
 					}
+					logger.info('Chain-queryByChaincode - results %j', results);
 					return Promise.resolve(results);
 				}
 				return Promise.reject(new Error('Payload results are missing from the chaincode query'));
@@ -1210,6 +1213,128 @@ var Chain = class {
 				return Promise.reject(err);
 			}
 		);
+	}
+
+	/**
+	 * Since practically all Peers are event producers, when constructing
+	 * a Peer instance, an application can designate it as the event source
+	 * for the application. Typically only one of the Peers on a Chain needs
+	 * to be the event source, because all Peers on the Chain produce the
+	 * same events. This method tells the SDK which Peer(s) to use as the
+	 * event source for the client application. This allows all EventHubs
+	 * to be managed by this chain.
+	 *
+	 * This method when used without a Peer object parameter will search all
+	 * peers for the first one designated as an event source. It will then
+	 * create and connect an EventHub.
+	 *
+	 * @param {Peer} peer -  Optional: The peer that will be the event source
+	 *        This peer must have been configured with the event source URL 
+	 *        for it to be an event source.
+	 * @returns {EventHub} - The EventHub connected to the event source.
+	 */
+	connectEventSource(peer) {
+		logger.debug('connectEventSource - start');
+		// if we have a peer then it must be an event source
+		if(peer) {
+			if(!peer.isEventSource()) {
+				logger.error('Peer is not and event source %s',peer);
+				throw new Error('Peer is not an event source');
+			}
+		} 
+		// no peer passed in, need to find one
+		else {
+			logger.debug('connectEventSource - looking for a peer that is an event source');
+			for (var i in this._peers) {
+				logger.debug('connectEventSource - looking at %s',this._peers[i]);
+				if(this._peers[i].isEventSource()) {
+					peer = this._peers[i];
+					logger.debug('connectEventSource - found a peer that is an event source');
+					break;
+				}
+			}
+		}
+
+		if(!peer) {
+			throw new Error('No Peer found to be an event source');
+		}
+		logger.debug('connectEventSource - start');
+		// now build the new event hub from the peer's settings
+		var event_hub = new EventHub(peer.getEventSourceURL(), peer._options);
+		this._event_hubs.push(event_hub);
+		event_hub.connect();
+		return event_hub;
+		logger.debug('connectEventSource - end');
+	}
+
+	/**
+	 * Disconnect from all event source peers so no further events will be
+	 * received. This method must be called if the application wants to
+	 * gracefully exit. If not called then the underlying GRPC stream
+	 * connections to the event sources will keep the node.js program
+	 * from exiting.
+	 */
+	disconnectEventSource() {
+		logger.debug('disconnectEventSource - start');
+
+		var event_hub = null;
+		for (var i in this._event_hubs) {
+			try {
+				event_hub = this._event_hubs[i];
+				logger.debug('disconnectEventSource - about to disconnect event source %s',event_hub);
+				event_hub.disconnect();
+			} catch (error) {
+				if(event_hub) {
+					logger.error('Error disconnecting event source at %s - %s', event_hub._url,error );
+				} else {
+					logger.error('Error disconnecting event source - %s',error);
+				}
+			}
+		}
+		//clean out the list
+		this._event_hubs = [];
+
+		logger.debug('disconnectEventSource - end');
+		return event_hub;
+	}
+
+	/**
+	 * This registers a transaction listener callback for all transactions
+	 * that are submitted from this chain instance.
+	 *
+	 * @param {class} eventCallback Client Application class registering
+	 *        for the callback.
+	 */
+	setTransactionEventListener(eventCallback) {
+		logger.debug('transactionEventListener - start');
+
+		var event_hub = null;
+		// first check the hub list getting the first one
+		event_hub = this._event_hubs[0];
+
+		// if none on the list then find first peer that has been
+		// designated as an event source
+		if(!event_hub) {
+			event_hub = this.connectEventSource();
+		}
+
+		// register the event
+		event_hub.registerCreator(this._clientContext._userContext.getIdentity(), eventCallback);
+		event_hub.connect();
+		logger.debug('setTransactionEventListener - successfully registered');
+
+		logger.debug('transactionEventListener - end');
+	}
+
+	/**
+	 * Unregisters the transaction listener.
+	 */
+	removeTransactionEventListener() {
+		logger.debug('removeTransactionEventListener - start');
+		for (var i in this._event_hubs) {
+			this._event_hubs[i].unRegisterCreator();
+		}
+		logger.debug('removeTransactionEventListener - end');
 	}
 
 	// internal utility method to build the proposal
