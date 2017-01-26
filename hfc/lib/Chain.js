@@ -24,6 +24,7 @@ var util = require('util');
 var fs = require('fs');
 var Peer = require('./Peer.js');
 var Orderer = require('./Orderer.js');
+var EventHub = require('./EventHub.js');
 var settle = require('promise-settle');
 var grpc = require('grpc');
 var logger = utils.getLogger('Chain.js');
@@ -96,6 +97,7 @@ var Chain = class {
 
 		this._peers = [];
 		this._orderers = [];
+		this._eventHub = null;
 
 		this._clientContext = clientContext;
 
@@ -110,6 +112,7 @@ var Chain = class {
 		// user must set this value before the initializeChain() method
 		// is called
 		this._initial_transaction_id = null;
+		this._eventHub = new EventHub();
 
 		//to do update logger
 		logger.info('Constructed Chain instance: name - %s, ' +
@@ -267,6 +270,29 @@ var Chain = class {
 	getOrderers() {
 		return this._orderers;
 	}
+	/**
+	* Get the eventHub service associated this chain.
+	* @returns {eventHub} Return the current eventHub service, or undefined if not set.
+	*/
+	getEventHub(){
+		return this._eventHub;
+	};
+
+	/**
+	* Set and connect to the peer to be used as the event source.
+	*/
+	eventHubConnect(peerUrl, opts){
+		this._eventHub.setPeerAddr(peerUrl, opts);
+		this._eventHub.connect();
+	};
+
+	/**
+	* Set and connect to the peer to be used as the event source.
+	*/
+	eventHubDisconnect(){
+		this._eventHub.disconnect();
+	};
+
 
 	/**
 	 * Get the consensus type that will be used when this
