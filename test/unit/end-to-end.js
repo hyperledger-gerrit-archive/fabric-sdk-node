@@ -21,7 +21,7 @@
 var tape = require('tape');
 var _test = require('tape-promise');
 var test = _test(tape);
-
+process.env.HFC_LOGGING = '{"debug": "console"}';
 var log4js = require('log4js');
 var logger = log4js.getLogger('E2E');
 logger.setLevel('DEBUG');
@@ -48,6 +48,7 @@ var tx_id = null;
 var nonce = null;
 var peer0 = new Peer('grpc://localhost:7051'),
 	peer1 = new Peer('grpc://localhost:7056');
+peer0.setEventSourceURL('grpc://localhost:7053');
 
 var steps = [];
 if (process.argv.length > 2) {
@@ -63,6 +64,25 @@ chain.addOrderer(new Orderer('grpc://localhost:7050'));
 chain.addPeer(peer0);
 chain.addPeer(peer1);
 
+var transaction_callback_count = 0;
+var transaction_list = [];
+function transaction_callback(event) {
+	console.log(' **************** E V E N T  C A L L B A C K processing transaction =%s',event.txID);
+	transaction_callback_count++;
+	var found = false;
+	for(var i in transaction_list) {
+		var transaction = transaction_list[i];
+		if(transaction.txID == event.txID && transaction.peerURL == event.peerURL) {
+			transaction.status = 'complete';
+			console.log(' changed txID:'+ transaction.txID + ' from:'+ transaction.peerURL);
+			found = true;
+		}
+	}
+	if(!found) {
+		console.log('transaction txID:'+event.txID+ ' from:'+ event.peerURL + ' was not found');
+	}
+}
+
 test('End-to-end flow of chaincode deploy, transaction invocation, and query', function(t) {
 	hfc.newDefaultKeyValueStore({
 		path: testUtil.KVS
@@ -71,9 +91,7 @@ test('End-to-end flow of chaincode deploy, transaction invocation, and query', f
 		var promise = testUtil.getSubmitter(client, t);
 
 		// setup event hub to get notified when transactions are committed
-		var eh = new EventHub();
-		eh.setPeerAddr('grpc://localhost:7053');
-		eh.connect();
+		var eh = peer0.getEventSource();
 
 		// override t.end function so it'll always disconnect the event hub
 		t.end = (function(context, eventhub, f) {
@@ -93,7 +111,11 @@ test('End-to-end flow of chaincode deploy, transaction invocation, and query', f
 				function(admin) {
 					t.pass('Successfully enrolled user \'admin\'');
 					webUser = admin;
-					tx_id = utils.buildTransactionID({length:12});
+
+					chain.setTransactionEventListener(transaction_callback);
+					t.pass('Successfully added a listner to the event hubs');
+
+					tx_id = '1234'; //utils.buildTransactionID({length:12});
 					nonce = utils.getNonce();
 
 					// send proposal to endorser
@@ -111,7 +133,15 @@ test('End-to-end flow of chaincode deploy, transaction invocation, and query', f
 						'WORKDIR $GOPATH\n\n' +
 						'RUN go install build-chaincode && mv $GOPATH/bin/build-chaincode $GOPATH/bin/%s'
 					};
-
+					// store this for later
+					for (let i = 0; i < chain._event_hubs.length; i++) {
+						var event_source = chain._event_hubs[i];
+						transaction_list.push({
+							txID : tx_id,
+							peerURL : event_source._peer._url,
+							status : 'pending'
+						});
+					}
 					return chain.sendDeploymentProposal(request);
 				},
 				function(err) {
@@ -200,6 +230,13 @@ test('End-to-end flow of chaincode deploy, transaction invocation, and query', f
 					// to this step then "data" will be the webUser
 					if (typeof data !== 'undefined' && data !== null) {
 						webUser = data;
+					} else{
+						if( transaction_callback_count == 1) {
+							t.pass('Successfully received all callbacks for deployment');
+						}
+						else {
+							t.fail('Expected Callbacks were not received');
+						}
 					}
 
 					return;
@@ -210,7 +247,7 @@ test('End-to-end flow of chaincode deploy, transaction invocation, and query', f
 				}
 			).then(
 				function() {
-					tx_id = utils.buildTransactionID({length:12});
+					tx_id = '5678'; //utils.buildTransactionID({length:12});
 					nonce = utils.getNonce();
 					// send proposal to endorser
 					var request = {
@@ -221,6 +258,15 @@ test('End-to-end flow of chaincode deploy, transaction invocation, and query', f
 						txId: tx_id,
 						nonce: nonce
 					};
+					// store this for later
+					for (let i = 0; i < chain._event_hubs.length; i++) {
+						var event_source = chain._event_hubs[i];
+						transaction_list.push({
+							txID : tx_id,
+							peerURL : event_source._peer._url,
+							status : 'pending'
+						});
+					}
 					return chain.sendTransactionProposal(request);
 				},
 				function(err) {
@@ -305,6 +351,13 @@ test('End-to-end flow of chaincode deploy, transaction invocation, and query', f
 					// to this step then "data" will be the webUser
 					if (typeof data !== 'undefined' && data !== null) {
 						webUser = data;
+					} else{
+						if( transaction_callback_count == 2) {
+							t.pass('Successfully received all callbacks for move');
+						}
+						else {
+							t.fail('Expected Callbacks were not received');
+						}
 					}
 
 					return;
@@ -336,6 +389,21 @@ test('End-to-end flow of chaincode deploy, transaction invocation, and query', f
 					for(let i = 0; i < response_payloads.length; i++) {
 						t.equal(response_payloads[i].toString('utf8'),'300','checking query results are correct that user b has 300 now after the move');
 					}
+					// check all transactions to see if in the correct state
+					for(var i in transaction_list) {
+						var transaction = transaction_list[i];
+						logger.debug(' transaction %j', transaction );
+
+						if(transaction.status == 'complete') {
+							t.pass(' Transaction callback status is correct');
+						}
+						else {
+							t.fail(' Transaction callback status is not correct');
+						}
+					}
+					// remove and disconnect
+					chain.removeTransactionEventListener(true);
+					t.pass('Successfully shutdown event listener');
 					t.end();
 				},
 				function(err) {

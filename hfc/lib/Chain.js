@@ -22,6 +22,7 @@ var urlParser = require('url');
 var net = require('net');
 var util = require('util');
 var fs = require('fs');
+var EventHub = require('./EventHub.js');
 var Peer = require('./Peer.js');
 var Orderer = require('./Orderer.js');
 var settle = require('promise-settle');
@@ -96,6 +97,7 @@ var Chain = class {
 
 		this._peers = [];
 		this._orderers = [];
+		this._event_hubs = [];
 
 		this._clientContext = clientContext;
 
@@ -858,7 +860,7 @@ var Chain = class {
 	 *                   the chaincode being deployed
 	 *		<br>`dockerfile-contents` : optional - String defining the
 	 * @returns {Promise} A Promise for a `ProposalResponse`
-	 * @see /protos/peer/fabric_proposal_response.proto
+	 * @see /protos/peer/proposal_response.proto
 	 */
 	sendDeploymentProposal(request) {
 		var errorMsg = null;
@@ -1066,13 +1068,13 @@ var Chain = class {
 	 *
 	 * @param {Array} proposalResponses - An array or single {ProposalResponse} objects containing
 	 *        the response from the endorsement
-	 * @see fabric_proposal_response.proto
+	 * @see ./proto/peer/proposal_response.proto
 	 * @param {Proposal} chaincodeProposal - A Proposal object containing the original
 	 *        request for endorsement(s)
-	 * @see fabric_proposal.proto
+	 * @see ./proto/peer/proposal.proto
 	 * @returns {Promise} A Promise for a `BroadcastResponse`.
 	 *         This will be an acknowledgement from the orderer of successfully submitted transaction.
-	 * @see the ./proto/atomicbroadcast/ab.proto
+	 * @see the ./proto/orderer/ab.proto
 	 */
 	sendTransaction(request) {
 		logger.debug('Chain.sendTransaction - start :: chain '+this._chain);
@@ -1192,7 +1194,7 @@ var Chain = class {
 			function(results) {
 				var responses = results[0];
 				var proposal = results[1];
-				logger.debug('Chain-queryByChaincode - response %j', responses);
+				logger.debug('Chain-queryByChaincode - got responses');
 				if(responses && Array.isArray(responses)) {
 					var results = [];
 					for(let i = 0; i < responses.length; i++) {
@@ -1210,6 +1212,71 @@ var Chain = class {
 				return Promise.reject(err);
 			}
 		);
+	}
+
+	/**
+	 * Will disconnect the event hub that is connected to the URL
+	 * This will destroy the current event registrations of the
+	 * event source.
+	 */
+	disconnectEventSource() {
+		logger.debug('disconnectEventSource - start');
+
+		var event_hub = this._event_hubs[0];
+		if(event_hub) {
+			logger.debug('disconnectEventSource - about to disconnect event source');
+			event_hub.disconnect();
+			this.event_hubs.splice(index, 1);
+		}
+		else {
+			logger.debug('disconnectEventSource - no event source to disconnect');
+		}
+		logger.debug('disconnectEventSource - end');
+		return event_hub;
+	}
+
+	/**
+	 * This will register the callback for transaction events for the
+	 * user assigned to this chain.
+	 * @param {class} eventCallback Client Application class registering
+	 *        for the callback.
+	 */
+	setTransactionEventListener(eventCallback) {
+		logger.debug('transactionEventListener - start');
+		// just in case, clean up from any previous
+		this.disconnectEventSource();
+		//try to find a peer that is an event source
+		for (var i in this._peers) {
+			if(this._peers[i].isEventSource()) {
+				this._event_hubs.push(this._peers[i].getEventSource());
+				break;
+			}
+		}
+		// register the event
+		var registered = false;
+		for (var i in this._event_hubs) {
+			this._event_hubs[i].registerCreator(this._clientContext._userContext.getIdentity(), eventCallback);
+			this._event_hubs[i].connect();
+			registered = true;
+		}
+		if(registered) {
+			logger.debug('setTransactionEventListener - successfully registered');
+		}
+		else {
+			throw new Error('No event source found to register the transaction event listener.');
+		}
+		logger.debug('transactionEventListener - end');
+	}
+
+	/**
+	 * Unregisters the transaction listener.
+	 */
+	removeTransactionEventListener() {
+		logger.debug('removeTransactionEventListener - start');
+		for (var i in this._event_hubs) {
+			this._event_hubs[i].unRegisterCreator();
+		}
+		logger.debug('removeTransactionEventListener - end');
 	}
 
 	// internal utility method to build the proposal

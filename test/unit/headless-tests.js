@@ -2557,19 +2557,10 @@ test('\n\n ** Identity class tests **\n\n', function (t) {
 var EventHub = require('hfc/lib/EventHub.js');
 
 test('\n\n** EventHub tests\n\n', (t) => {
-	var eh = new EventHub();
-
+	var peer = new Peer('grpc://localhost:7050');
 	t.throws(
 		() => {
-			eh.connect();
-		},
-		/Must set peer address before connecting/,
-		'Must not allow connect() when peer address has not been set'
-	);
-
-	t.throws(
-		() => {
-			eh.setPeerAddr('badUrl');
+			peer.setEventSourceURL('badUrl');
 		},
 		/InvalidProtocol: Invalid protocol: undefined/,
 		'Must not allow a bad url without protocol to be set'
@@ -2577,7 +2568,7 @@ test('\n\n** EventHub tests\n\n', (t) => {
 
 	t.throws(
 		() => {
-			eh.setPeerAddr('http://badUrl');
+			peer.setEventSourceURL('http://badUrl');
 		},
 		/InvalidProtocol: Invalid protocol: http/,
 		'Must not allow an http url to be set'
@@ -2585,7 +2576,7 @@ test('\n\n** EventHub tests\n\n', (t) => {
 
 	t.throws(
 		() => {
-			eh.setPeerAddr('https://badUrl');
+			peer.setEventSourceURL('https://badUrl');
 		},
 		/InvalidProtocol: Invalid protocol: https/,
 		'Must not allow an https url to be set'
@@ -2593,10 +2584,21 @@ test('\n\n** EventHub tests\n\n', (t) => {
 
 	t.doesNotThrow(
 		() => {
-			eh.setPeerAddr('grpc://localhost:7053');
+			var eh = new EventHub('grpc://localhost:7053');
+			eh.setPeer(new Peer('grpc://localhost:7050'));
 		},
 		null,
-		'Test valid url connect and disconnect'
+		'Test constructor'
+	);
+
+	var eh = null;
+	t.doesNotThrow(
+		() => {
+			peer.setEventSourceURL('grpc://localhost:7053');
+			eh = peer.getEventSource();
+		},
+		null,
+		'Test getting event hub from peer'
 	);
 
 	eh.registerTxEvent('dummyId', () => {
@@ -2604,6 +2606,22 @@ test('\n\n** EventHub tests\n\n', (t) => {
 	});
 
 	t.equal(eh.txRegistrants.size(), 1, 'txRegistrants size should be 1 after registering a transaction event listener');
+	t.equal(eh.blockRegistrants.size, 1, 'blockRegistrants size should be 1 after registering a transaction event listener');
+
+	eh.unregisterTxEvent('dummyId');
+
+	t.equal(eh.txRegistrants.size(), 0, 'txRegistrants size should be  after un-registering a transaction event listener');
+	t.equal(eh.blockRegistrants.size, 1, 'blockRegistrants size should be 1 after un-registering a transaction event listener');
+
+	eh.registerCreator('dummyId', () => {
+		// dummy function
+	});
+
+	t.equal(eh.txRegistrants.size(), 0, 'txRegistrants size should be 0 after registering a creator event listener');
+	t.equal(eh.blockRegistrants.size, 2, 'blockRegistrants size should be 2 after registering a creator event listener');
+
+	eh.unRegisterCreator();
+	t.equal(eh.blockRegistrants.size, 1, 'blockRegistrants size should be 1 after un-registering a creator event listener');
 
 	t.end();
 });
