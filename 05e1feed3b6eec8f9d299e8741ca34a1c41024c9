@@ -1,0 +1,9 @@
+Code-Review+1: Angelo De Caro <adc@zurich.ibm.com>
+Verified+1: Hyperledger Jobbuilder <jobbuilder@jenkins.hyperledger.org>
+Code-Review+1: Volodymyr Paprotski <vpaprots@ca.ibm.com>
+Code-Review+2: Gari Singh <gari.r.singh@gmail.com>
+Submitted-by: Gari Singh <gari.r.singh@gmail.com>
+Submitted-at: Thu, 26 Jan 2017 10:02:26 +0000
+Reviewed-on: http://gerrit.hyperledger.org/r/4787
+Project: fabric-sdk-node
+Branch: refs/heads/master
