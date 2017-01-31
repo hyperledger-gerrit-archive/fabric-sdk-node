@@ -856,6 +856,8 @@ var Chain = class {
 	 *                  the chaincode once deployed (default 'init')
 	 *		<br>`args` : optional - String Array arguments specific to
 	 *                   the chaincode being deployed
+	 *      <br>`type` : optional - type of chaincode ['golang', 'car', 'java']
+	 *                   (default 'golang')
 	 * @returns {Promise} A Promise for a `ProposalResponse`
 	 * @see /protos/peer/fabric_proposal_response.proto
 	 */
@@ -889,7 +891,7 @@ var Chain = class {
 			args.push(Buffer.from(request.args[i], 'utf8'));
 
 		let ccSpec = {
-			type: _ccProto.ChaincodeSpec.Type.GOLANG,
+			type: translateCCType(request.type),
 			chaincodeID: {
 				name: request.chaincodeId
 			},
@@ -910,6 +912,8 @@ var Chain = class {
 					if (data) {
 						chaincodeDeploymentSpec.setCodePackage(data);
 					}
+
+					logger.debug('sending deployment spec' + chaincodeDeploymentSpec);
 
 					// TODO add ESCC/VSCC info here ??????
 					let lcccSpec = {
@@ -1346,25 +1350,51 @@ function packageChaincode(devmode, request) {
 		// Verify that chaincodePath is being passed
 		return Promise.reject(new Error('Missing chaincodePath parameter in Deployment proposal request'));
 	} else {
-		var chaincodePath = request.chaincodePath;
-		var chaincodeId = request.chaincodeId;
+		var type = request.type;
+		var handler;
 
-		// Determine the user's $GOPATH
-		let goPath =  process.env['GOPATH'];
+		switch (request.type) {
+		case null:
+		case 'golang':
+			handler = packageGolangChaincode;
+			break;
+		case 'car':
+			handler = packageCarChaincode;
+			break;
+		default:
+			return Promise.reject(new Error('Could not find packager for type'+ request.type));
+		}
 
-		// Compose the path to the chaincode project directory
-		let projDir = goPath + '/src/' + chaincodePath;
-
-		// Create the .tar.gz file of the chaincode package
-		// FIXME: this should use a mktmp to avoid collisions
-		let targzFilePath = '/tmp/deployment-package.tar.gz';
-
-		return utils.generateTarGz(projDir, targzFilePath)
-			.then(function() {
-				logger.debug('Chain.sendDeployment- Successfully generated chaincode deploy archive and name (%s)', chaincodeId);
-				return readFile(targzFilePath);
-			});
+		return handler(request);
 	}
+}
+
+function packageGolangChaincode(request) {
+	logger.info('packaging GOLANG from %s', request.chaincodePath);
+
+	var chaincodePath = request.chaincodePath;
+	var chaincodeId = request.chaincodeId;
+
+	// Determine the user's $GOPATH
+	let goPath =  process.env['GOPATH'];
+
+	// Compose the path to the chaincode project directory
+	let projDir = goPath + '/src/' + chaincodePath;
+
+	// Create the .tar.gz file of the chaincode package
+	// FIXME: this should use a mktmp to avoid collisions
+	let targzFilePath = '/tmp/deployment-package.tar.gz';
+
+	return utils.generateTarGz(projDir, targzFilePath)
+		.then(function() {
+			logger.debug('Chain.sendDeployment- Successfully generated chaincode deploy archive and name (%s)', chaincodeId);
+			return readFile(targzFilePath);
+		});
+}
+
+function packageCarChaincode(request) {
+	logger.info('packaging CAR file from %s', request.chaincodePath);
+	return readFile(request.chaincodePath);
 }
 
 //utility method to build a common chain header
@@ -1462,5 +1492,18 @@ function buildPolicyEnvelope(nOf) {
 	policy.setPolicy(signaturePolicyEnvelope.toBuffer());
 	return policy;
 };
+
+function translateCCType(type) {
+	switch (type) {
+	case 'golang':
+	default:
+		return _ccProto.ChaincodeSpec.Type.GOLANG;
+	case 'car':
+		return _ccProto.ChaincodeSpec.Type.CAR;
+	case 'java':
+		return _ccProto.ChaincodeSpec.Type.JAVA;
+	}
+
+}
 
 module.exports = Chain;
