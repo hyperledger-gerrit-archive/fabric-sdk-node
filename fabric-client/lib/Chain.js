@@ -852,6 +852,8 @@ var Chain = class {
 	 *                  the chaincode once deployed (default 'init')
 	 *		<br>`args` : optional - String Array arguments specific to
 	 *                   the chaincode being deployed
+	 *      <br>`type` : optional - type of chaincode ['golang', 'car', 'java']
+	 *                   (default 'golang')
 	 * @returns {Promise} A Promise for a `ProposalResponse`
 	 * @see /protos/peer/fabric_proposal_response.proto
 	 */
@@ -885,7 +887,7 @@ var Chain = class {
 			args.push(Buffer.from(request.args[i], 'utf8'));
 
 		let ccSpec = {
-			type: _ccProto.ChaincodeSpec.Type.GOLANG,
+			type: translateCCType(request.type),
 			chaincodeID: {
 				name: request.chaincodeId,
 				path: request.chaincodePath
@@ -907,6 +909,8 @@ var Chain = class {
 					if (data) {
 						chaincodeDeploymentSpec.setCodePackage(data);
 					}
+
+					logger.debug('sending deployment spec' + chaincodeDeploymentSpec);
 
 					// TODO add ESCC/VSCC info here ??????
 					let lcccSpec = {
@@ -1336,16 +1340,37 @@ function writeFile(path, contents) {
 }
 
 function packageChaincode(devmode, request) {
-	return new Promise(function(resolve, reject) {
-		if (devmode) {
-			logger.debug('Skipping chaincode packaging due to devmode configuration');
-			return resolve(null);
-		}
+	if (devmode) {
+		logger.debug('Skipping chaincode packaging due to devmode configuration');
+		return Promise.resolve(null);
+	}
 
-		if (!request.chaincodePath || request.chaincodePath === '') {
-			// Verify that chaincodePath is being passed
-			return reject(new Error('Missing chaincodePath parameter in Deployment proposal request'));
-		}
+	if (!request.chaincodePath || request.chaincodePath === '') {
+		// Verify that chaincodePath is being passed
+		return Promise.reject(new Error('Missing chaincodePath parameter in Deployment proposal request'));
+	}
+
+	var type = request.type;
+	var handler;
+
+	switch (type) {
+	case null:
+	case 'golang':
+		handler = packageGolangChaincode;
+		break;
+	case 'car':
+		handler = packageCarChaincode;
+		break;
+	default:
+		return Promise.reject(new Error('Could not find packager for type '+ type));
+	}
+
+	return handler(request);
+}
+
+function packageGolangChaincode(request) {
+	return new Promise(function(resolve, reject) {
+		logger.info('packaging GOLANG from %s', request.chaincodePath);
 
 		var chaincodePath = request.chaincodePath;
 		var chaincodeId = request.chaincodeId;
@@ -1372,13 +1397,18 @@ function packageChaincode(devmode, request) {
 					.then(function() {
 						logger.debug('Chain.sendDeployment- Successfully generated chaincode deploy archive %s and name (%s)', targzFilePath, chaincodeId);
 						return readFile(targzFilePath)
-						.then((data) => {
-							return resolve(data);
-						});
+							.then((data) => {
+								return resolve(data);
+							});
 					});
 			});
 		});
 	});
+}
+
+function packageCarChaincode(request) {
+	logger.info('packaging CAR file from %s', request.chaincodePath);
+	return readFile(request.chaincodePath);
 }
 
 //utility method to build a common chain header
@@ -1474,5 +1504,18 @@ function buildPolicyEnvelope(nOf) {
 	policy.setPolicy(signaturePolicyEnvelope.toBuffer());
 	return policy;
 };
+
+function translateCCType(type) {
+	switch (type) {
+	case 'golang':
+	default:
+		return _ccProto.ChaincodeSpec.Type.GOLANG;
+	case 'car':
+		return _ccProto.ChaincodeSpec.Type.CAR;
+	case 'java':
+		return _ccProto.ChaincodeSpec.Type.JAVA;
+	}
+
+}
 
 module.exports = Chain;
