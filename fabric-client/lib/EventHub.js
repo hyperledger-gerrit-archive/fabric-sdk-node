@@ -287,6 +287,8 @@ var EventHub = class {
 	txCallback(block) {
 		logger.debug('txCallback block=%j', block);
 		var eh = this;
+		invalidTxs = block.Metadata.Metadata[_common.BlockMetadataIndex.TRANSACTIONS_FILTER];
+        console.log("invalidTxs=", invalidTxs);
 		block.Data.Data.forEach(function(transaction) {
 			try {
 				var env = _common.Envelope.decode(transaction);
