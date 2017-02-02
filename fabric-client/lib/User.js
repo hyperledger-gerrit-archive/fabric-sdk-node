@@ -157,7 +157,7 @@ var User = class {
 		.then((pubKey) => {
 			var identity = new Identity('testIdentity', certificate, pubKey, this.mspImpl);
 			this._identity = identity;
-			this._signingIdentity = new SigningIdentity('testSigningIdentity', certificate, pubKey, this.mspImpl, new Signer(this.mspImpl.cryptoSuite, privateKey));
+			return this._signingIdentity = new SigningIdentity('testSigningIdentity', certificate, pubKey, this.mspImpl, new Signer(this.mspImpl.cryptoSuite, privateKey));
 		});
 	}
 
