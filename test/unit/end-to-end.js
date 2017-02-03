@@ -141,23 +141,11 @@ test('End-to-end flow of chaincode deploy, transaction invocation, and query', (
 						proposal: proposal,
 						header: header
 					};
-					return chain.sendTransaction(request);
-				} else {
-					t.fail('Failed to send Proposal or receive valid response. Response null or status is not 200. exiting...');
-					t.end();
-				}
-			},
-			(err) => {
-				t.fail('Failed to send deployment proposal due to error: ' + err.stack ? err.stack : err);
-				t.end();
-			}).then((response) => {
-				if (response.status === 'SUCCESS') {
-					t.pass('Successfully sent deployment transaction to the orderer.');
 
 					// set the transaction listener and set a timeout of 30sec
 					// if the transaction did not get committed within the timeout period,
 					// fail the test
-					return new Promise((resolve, reject) => {
+					var txPromise = new Promise((resolve, reject) => {
 						var handle = setTimeout(reject, 30000);
 
 						eh.registerTxEvent(tx_id.toString(), (tx) => {
@@ -172,6 +160,26 @@ test('End-to-end flow of chaincode deploy, transaction invocation, and query', (
 							}
 						});
 					});
+
+					var sendPromise = chain.sendTransaction(request);
+					return Promise.all([sendPromise, txPromise]).then((results) => {
+						return results[0]; // the first returned value is from the 'sendPromise' which is from the 'sendTransaction()' call
+					}).catch((err) => {
+						t.fail('Failed to send deploy transaction and get notifications within the timeout period. ' + err.stack ? err.stack : err);
+						t.end();
+					});
+				} else {
+					t.fail('Failed to send Proposal or receive valid response. Response null or status is not 200. exiting...');
+					t.end();
+				}
+			},
+			(err) => {
+				t.fail('Failed to send deployment proposal due to error: ' + err.stack ? err.stack : err);
+				t.end();
+			}).then((response) => {
+				if (response.status === 'SUCCESS') {
+					t.pass('Successfully sent deployment transaction to the orderer.');
+
 				} else {
 					t.fail('Failed to order the deployment endorsement. Error code: ' + response.status);
 					t.end();
@@ -200,10 +208,6 @@ test('End-to-end flow of chaincode deploy, transaction invocation, and query', (
 					nonce: nonce
 				};
 				return chain.sendTransactionProposal(request);
-			},
-			(err) => {
-				t.fail('Failed to get transaction notification within the timeout period');
-				t.end();
 			}).then((results) => {
 				var all_good = false;
 				if (results) {
@@ -230,20 +234,8 @@ test('End-to-end flow of chaincode deploy, transaction invocation, and query', (
 						proposal: proposal,
 						header: header
 					};
-					return chain.sendTransaction(request);
-				} else {
-					t.fail('Failed to obtain transaction endorsements. Error code: '
-						+ (results ? results : 'Results are null'));
-					t.end();
-				}
-			},
-			(err) => {
-				t.fail('Failed to send transaction proposal due to error: ' + err.stack ? err.stack : err);
-				t.end();
-			}).then((response) => {
-				if (response.status === 'SUCCESS') {
-					t.pass('Successfully ordered endorsement transaction.');
-					return new Promise((resolve, reject) => {
+
+					var txPromise = new Promise((resolve, reject) => {
 						var handle = setTimeout(reject, 30000);
 
 						eh.registerTxEvent(tx_id.toString(), (tx) => {
@@ -258,6 +250,28 @@ test('End-to-end flow of chaincode deploy, transaction invocation, and query', (
 							}
 						});
 					});
+
+					var sendPromise = chain.sendTransaction(request);
+
+					return Promise.all([sendPromise, txPromise]).then((results) => {
+						return results[0];
+					}).catch((err) => {
+						t.fail('Failed to send invoke transaction and get notifications within the timeout period. ' + err.stack ? err.stack : err);
+						t.end();
+					});
+				} else {
+					t.fail('Failed to obtain transaction endorsements. Error code: '
+						+ (results ? results : 'Results are null'));
+					t.end();
+				}
+			},
+			(err) => {
+				t.fail('Failed to send transaction proposal due to error: ' + err.stack ? err.stack : err);
+				t.end();
+			}).then((response) => {
+				if (response.status === 'SUCCESS') {
+					t.pass('Successfully ordered endorsement transaction.');
+
 				} else {
 					t.fail('Failed to order the endorsement of the transaction. Error code: ' + response.status);
 					t.end();
@@ -298,10 +312,9 @@ test('End-to-end flow of chaincode deploy, transaction invocation, and query', (
 				t.fail('Failed to send query due to error: ' + err.stack ? err.stack : err);
 				t.end();
 			}).catch((err) => {
-					t.fail('Failed to end to end test with error:' + err.stack ? err.stack : err);
-					t.end();
-				}
-			);
+				t.fail('Failed to end to end test with error:' + err.stack ? err.stack : err);
+				t.end();
+			});
 		}
 	});
 });
