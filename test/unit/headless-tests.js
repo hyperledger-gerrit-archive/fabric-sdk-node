@@ -1846,7 +1846,7 @@ test('\n\n ** Remote node tests **\n\n', function (t) {
 	opts = { pem: aPem, 'ssl-target-name-override': aHostnameOverride };
 	peer = new Peer(url, opts);
 	t.equal(aHostname, peer._endpoint.addr, 'GRPC Options tests: new Peer grpcs with opts created');
-	t.equal(peer.toString(), ' Peer : {url:grpcs://' + aHostname + ':aport}', 'Checking that peer.toString() reports correctly');
+	t.equal(peer.toString(), ' Peer : {url:grpcs://' + aHostname + ':aport,event source url:null}', 'Checking that peer.toString() reports correctly');
 	//Peer: insecure grpc, opts.pem optional
 	url = 'grpc://' + aHostname + ':aport';
 	opts = null;
@@ -2557,46 +2557,38 @@ test('\n\n ** Identity class tests **\n\n', function (t) {
 var EventHub = require('fabric-client/lib/EventHub.js');
 
 test('\n\n** EventHub tests\n\n', (t) => {
-	var eh = new EventHub();
-
+	var peer = new Peer('grpc://localhost:7050');
+	_chain.addPeer(peer);
+	var eh = null;
 	t.throws(
 		() => {
-			eh.connect();
+			_chain.connectEventSource(peer);
 		},
-		/Must set peer address before connecting/,
-		'Must not allow connect() when peer address has not been set'
+		/Peer is not an event source/,
+		'Must tell user peer does not have event source defined'
+	);
+	t.doesNotThrow(
+		() => {
+			peer.setEventSourceURL('badUrl');
+		},
+		null,
+		'Must not allow a bad url without protocol to be set, will be checked later'
 	);
 
 	t.throws(
 		() => {
-			eh.setPeerAddr('badUrl');
+			_chain.connectEventSource();
 		},
 		/InvalidProtocol: Invalid protocol: undefined/,
-		'Must not allow a bad url without protocol to be set'
-	);
-
-	t.throws(
-		() => {
-			eh.setPeerAddr('http://badUrl');
-		},
-		/InvalidProtocol: Invalid protocol: http/,
 		'Must not allow an http url to be set'
-	);
-
-	t.throws(
-		() => {
-			eh.setPeerAddr('https://badUrl');
-		},
-		/InvalidProtocol: Invalid protocol: https/,
-		'Must not allow an https url to be set'
 	);
 
 	t.doesNotThrow(
 		() => {
-			eh.setPeerAddr('grpc://localhost:7053');
+			eh = new EventHub('grpc://localhost:7053');
 		},
 		null,
-		'Test valid url connect and disconnect'
+		'Test constructor'
 	);
 
 	eh.registerTxEvent('dummyId', () => {
@@ -2604,6 +2596,31 @@ test('\n\n** EventHub tests\n\n', (t) => {
 	});
 
 	t.equal(eh.txRegistrants.size(), 1, 'txRegistrants size should be 1 after registering a transaction event listener');
+	t.equal(eh.blockRegistrants.size, 1, 'blockRegistrants size should be 1 after registering a transaction event listener');
+
+	eh.unregisterTxEvent('dummyId');
+
+	t.equal(eh.txRegistrants.size(), 0, 'txRegistrants size should be  after un-registering a transaction event listener');
+	t.equal(eh.blockRegistrants.size, 1, 'blockRegistrants size should be 1 after un-registering a transaction event listener');
+
+	eh.registerCreator('dummyId', () => {
+		// dummy function
+	});
+
+	t.equal(eh.txRegistrants.size(), 0, 'txRegistrants size should be 0 after registering a creator event listener');
+	t.equal(eh.blockRegistrants.size, 2, 'blockRegistrants size should be 2 after registering a creator event listener');
+
+	eh.unRegisterCreator();
+	t.equal(eh.blockRegistrants.size, 1, 'blockRegistrants size should be 1 after un-registering a creator event listener');
+
+	t.doesNotThrow(
+		() => {
+			_chain.disconnectEventSource();
+		},
+		null,
+		'Test shutting down event hubs'
+	);
+	t.equal(eh.toString(), ' EventHub : {url:grpc://localhost:7053}', 'Checking that eventhub.toString() reports correctly');
 
 	t.end();
 });
