@@ -46,10 +46,12 @@ var chaincode_id = 'end2end';
 var chain_id = 'testchainid';
 var tx_id = null;
 var nonce = null;
-var peer0 = new Peer('grpc://localhost:7051'),
-	peer1 = new Peer('grpc://localhost:7056');
-peer0.setEventSourceURL('grpc://localhost:7053');
+var peer0 = new Peer('grpc://localhost:7051');
+var peer1 = new Peer('grpc://localhost:7056');
+//var peer2 = new Peer('grpc://localhost:7060');
+//peer0.setEventSourceURL('grpc://localhost:7053');
 //peer1.setEventSourceURL('grpc://localhost:7058');
+//peer2.setEventSourceURL('grpc://localhost:7062');
 
 var steps = [];
 if (process.argv.length > 2) {
@@ -68,6 +70,7 @@ testUtil.setupChaincodeDeploy();
 chain.addOrderer(new Orderer('grpc://localhost:7050'));
 chain.addPeer(peer0);
 chain.addPeer(peer1);
+//chain.addPeer(peer2);
 
 var eh = null;
 
@@ -92,7 +95,7 @@ function transaction_callback(event) {
 	}
 }
 
-test('End-to-end flow of chaincode deploy, transaction invocation, and query', function(t) {
+test(' \n\n **** EventHub testing, must be run after end-to-end so that chaincode is deployed\n', function(t) {
 	hfc.newDefaultKeyValueStore({
 		path: testUtil.KVS
 	}).then( function (store) {
@@ -117,112 +120,54 @@ test('End-to-end flow of chaincode deploy, transaction invocation, and query', f
 					webUser = admin;
 
 					// setup event hub to get notified when transactions are committed
-					eh = chain.connectEventSource();
-					t.pass('Successfully connected to event hub');
-
-					chain.setTransactionEventListener(transaction_callback);
-					t.pass('Successfully added a listner to the event hubs');
-
-					tx_id = '1234'; //utils.buildTransactionID({length:12});
-					nonce = utils.getNonce();
-
-					// send proposal to endorser
-					var request = {
-						chaincodePath: testUtil.CHAINCODE_PATH,
-						chaincodeId: chaincode_id,
-						fcn: 'init',
-						args: ['a', '100', 'b', '200'],
-						chainId: chain_id,
-						txId: tx_id,
-						nonce: nonce,
-						'dockerfile-contents' :
-						'from hyperledger/fabric-ccenv\n' +
-						'COPY . $GOPATH/src/build-chaincode/\n' +
-						'WORKDIR $GOPATH\n\n' +
-						'RUN go install build-chaincode && mv $GOPATH/bin/build-chaincode $GOPATH/bin/%s'
-					};
-					// store this for later
-					transaction_list.push({txID : tx_id, status : 'pending'});
-					return chain.sendDeploymentProposal(request);
-				},
-				function(err) {
-					t.fail('Failed to enroll user \'admin\'. ' + err);
-					t.end();
-				}
-			).then(
-				function(results) {
-					var proposalResponses = results[0];
-					//logger.debug('deploy proposalResponses:'+JSON.stringify(proposalResponses));
-					var proposal = results[1];
-					var header   = results[2];
-					var all_good = true;
-					for(var i in proposalResponses) {
-						let one_good = false;
-						if (proposalResponses && proposalResponses[0].response && proposalResponses[0].response.status === 200) {
-							one_good = true;
-							logger.info('deploy proposal was good');
-						} else {
-							logger.error('deploy proposal was bad');
-						}
-						all_good = all_good & one_good;
+					try {
+						var dummy = chain.connectEventSource();
+						t.fail('The connect event source should have failed');
 					}
-					if (all_good) {
-						t.pass(util.format('Successfully sent Proposal and received ProposalResponse: Status - %s, message - "%s", metadata - "%s", endorsement signature: %s', proposalResponses[0].response.status, proposalResponses[0].response.message, proposalResponses[0].response.payload, proposalResponses[0].endorsement.signature));
-						var request = {
-							proposalResponses: proposalResponses,
-							proposal: proposal,
-							header: header
-						};
-						return chain.sendTransaction(request);
-					} else {
-						t.fail('Failed to send Proposal or receive valid response. Response null or status is not 200. exiting...');
+					catch(error) {
+						console.log('Chain-connectEventSource failed - %s',error.stack ? error.stack : error);
+						t.pass('This is supposed to fail');
+					}
+
+					try {
+						peer0.setEventSourceURL('grpc://localhost:7053');
+						var eh3 = chain.connectEventSource();
+
+						var eh2 = chain.connectEventSource();
+						t.equal(eh3._url,eh2._url,'Should be the same event hub');
+						peer1.setEventSourceURL('grpc://localhost:7058');
+						eh = chain.connectEventSource();
+						t.notEqual(eh._url,eh2._url,'Should not be the same event hub');
+						chain.setTransactionEventListener(transaction_callback);
+						t.pass('Successfully added a listner to the event hubs');
+						t.equal(chain._event_hubs.length,2,'Should only be two hubs now')
+					}
+					catch(error) {
+						console.log('Chain-connectEventSource failed - %s',error.stack ? error.stack : error);
+						t.fail('Test hit exception');
 						t.end();
-					}
-				},
-				function(err) {
-					t.fail('Failed to send deployment proposal due to error: ' + err.stack ? err.stack : err);
-					t.end();
-				}
-			).then(
-				function(response) {
-					if (response.status === 'SUCCESS') {
-						t.pass('Successfully sent deployment transaction to the orderer.');
 
-						// set the transaction listener and set a timeout of 30sec
-						// if the transaction did not get committed within the timeout period,
-						// fail the test
-						return new Promise((resolve, reject) => {
-							var handle = setTimeout(reject, 30000);
-
-							eh.registerTxEvent(tx_id.toString(), (tx) => {
-								if(tx.unregisterTxCallback) {
-									t.pass('The chaincode deploy transaction has been successfully cancelled for tx '+ tx.txID);
-								}
-								else {
-									t.pass('The chaincode deploy transaction has been successfully committed for ' + tx);
-								}
-								clearTimeout(handle);
-
-								if (!useSteps) {
-									resolve();
-								} else if (steps.length === 1 && steps[0] === 'step1') {
-									t.end();
-									resolve();
-								}
-							});
-						});
-					} else {
-						t.fail('Failed to order the deployment endorsement. Error code: ' + response.status);
-						t.end();
 					}
 
-				},
-				function(err) {
-					t.fail('Failed to send deployment e due to error: ' + err.stack ? err.stack : err);
-					t.end();
+//					try {
+//						peer2.setEventSourceURL('grpc://localhost:7062');
+//						var eh4 = chain.connectEventSource();
+//						eh4.registerCreator('fakecert', transaction_callback);
+//						t.fail(' the connected should fail');
+//					}
+//					catch(error) {
+//						console.log('event hub failed - %s',error.stack ? error.stack : error);
+//						t.fail('Test hit exception');
+//						t.end();
+//
+//					}
+
+					return;
 				}
 			);
 		}
+
+
 
 		if (!useSteps || steps.indexOf('step2') >= 0) {
 			promise = promise.then(
@@ -244,7 +189,7 @@ test('End-to-end flow of chaincode deploy, transaction invocation, and query', f
 				}
 			).then(
 				function() {
-					tx_id = '5678'; //utils.buildTransactionID({length:12});
+					tx_id = '2345'; //utils.buildTransactionID({length:12});
 					nonce = utils.getNonce();
 					// send proposal to endorser
 					var request = {
@@ -375,7 +320,7 @@ test('End-to-end flow of chaincode deploy, transaction invocation, and query', f
 			).then(
 				function(response_payloads) {
 					for(let i = 0; i < response_payloads.length; i++) {
-						t.equal(response_payloads[i].toString('utf8'),'300','checking query results are correct that user b has 300 now after the move');
+						t.equal(response_payloads[i].toString('utf8'),'400','checking query results are correct that user b has 400 now after the move');
 					}
 					// check all transactions to see if in the correct state
 					for(var i in transaction_list) {
