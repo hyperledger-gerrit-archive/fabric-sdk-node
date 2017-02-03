@@ -22,6 +22,7 @@ var urlParser = require('url');
 var net = require('net');
 var util = require('util');
 var fs = require('fs');
+var EventHub = require('./EventHub.js');
 var Peer = require('./Peer.js');
 var Orderer = require('./Orderer.js');
 var settle = require('promise-settle');
@@ -96,6 +97,7 @@ var Chain = class {
 
 		this._peers = [];
 		this._orderers = [];
+		this._event_hubs = [];
 
 		this._clientContext = clientContext;
 
@@ -858,7 +860,7 @@ var Chain = class {
 	 *                   the chaincode being deployed
 	 *		<br>`dockerfile-contents` : optional - String defining the
 	 * @returns {Promise} A Promise for a `ProposalResponse`
-	 * @see /protos/peer/fabric_proposal_response.proto
+	 * @see /protos/peer/proposal_response.proto
 	 */
 	sendDeploymentProposal(request) {
 		var errorMsg = null;
@@ -948,6 +950,7 @@ var Chain = class {
 				}
 			);
 	}
+
 	/**
 	 * Sends a transaction proposal to one or more endorsing peers.
 	 *
@@ -1039,13 +1042,13 @@ var Chain = class {
 	 *
 	 * @param {Array} proposalResponses - An array or single {ProposalResponse} objects containing
 	 *        the response from the endorsement
-	 * @see fabric_proposal_response.proto
+	 * @see ./proto/peer/proposal_response.proto
 	 * @param {Proposal} chaincodeProposal - A Proposal object containing the original
 	 *        request for endorsement(s)
-	 * @see fabric_proposal.proto
+	 * @see ./proto/peer/proposal.proto
 	 * @returns {Promise} A Promise for a `BroadcastResponse`.
 	 *         This will be an acknowledgement from the orderer of successfully submitted transaction.
-	 * @see the ./proto/atomicbroadcast/ab.proto
+	 * @see the ./proto/orderer/ab.proto
 	 */
 	sendTransaction(request) {
 		logger.debug('Chain.sendTransaction - start :: chain '+this._chain);
@@ -1165,7 +1168,7 @@ var Chain = class {
 			function(results) {
 				var responses = results[0];
 				var proposal = results[1];
-				logger.debug('Chain-queryByChaincode - response %j', responses);
+				logger.debug('Chain-queryByChaincode - got responses');
 				if(responses && Array.isArray(responses)) {
 					var results = [];
 					for(let i = 0; i < responses.length; i++) {
@@ -1173,6 +1176,7 @@ var Chain = class {
 							results.push(responses[i].response.payload);
 						}
 					}
+					logger.info('Chain-queryByChaincode - results %j', results);
 					return Promise.resolve(results);
 				}
 				return Promise.reject(new Error('Payload results are missing from the chaincode query'));
@@ -1183,6 +1187,187 @@ var Chain = class {
 				return Promise.reject(err);
 			}
 		);
+	}
+
+	/**
+	 * Since practically all Peers are event producers, when constructing
+	 * a Peer instance, an application can designate it as the event source
+	 * for the application. Typically only one of the Peers on a Chain needs
+	 * to be the event source, because all Peers on the Chain produce the
+	 * same events. This method tells the SDK which Peer(s) to use as the
+	 * event source for the client application. This allows all EventHubs
+	 * to be managed by this chain.
+	 *
+	 * This method when used without a Peer object parameter will search all
+	 * peers for the first one designated as an event source and not being used
+	 * as an event_hub. It will then create and connect an EventHub.
+	 * If no free peer is found the existing event hubs will
+	 * checked to see which one has the least number of registrations
+	 *
+	 * @param {Peer} peer -  Optional: The peer that will be the event source
+	 *        This peer must have been configured with the event source URL
+	 *        for it to be an event source.
+	 * @returns {EventHub} - The EventHub connected to the event source.
+	 */
+	connectEventSource(peer) {
+		logger.debug('connectEventSource - start');
+		var event_hub = null;
+		// if we have a peer then it must be an event source
+		if(peer) {
+			if(!peer.isEventSource()) {
+				logger.error('Peer is not an event source %s',peer);
+				throw new Error('Peer is not an event source');
+			}
+		}
+		// no peer passed in, need to find one or an available event hub
+		else {
+			logger.debug('connectEventSource - searching for a peer that is an event source');
+			looking: for (var i in this._peers) {
+				logger.debug('connectEventSource - looking at %s', this._peers[i]);
+				if(this._peers[i].isEventSource()) {
+					var p_temp = this._peers[i];
+					logger.debug('connectEventSource - found a peer that is an event source');
+					// lets see if it is already on the list
+					if(!this.isPeerEventHub(p_temp)) {
+						// not on the list, so let's use this one
+						var peer = p_temp;
+						logger.debug('connectEventSource - found a peer that is an event source not being used');
+						break looking;
+					}
+				}
+			}
+			// lets see if we have a peer by now, if not than we will have to reuse an existing event hub
+			if(!peer) {
+				event_hub = this.findLeastBusyEventHub();
+			}
+		}
+
+		if(!event_hub && peer) {
+			logger.debug('connectEventSource - save event hub to list');
+			event_hub = new EventHub(peer.getEventSourceURL(), peer._options);
+			this._event_hubs.push(event_hub);
+			event_hub.connect();
+		}
+		else if(!event_hub) {
+			throw new Error('No Event sources defined');
+		}
+
+		logger.debug('connectEventSource - end  #hubs:'+this._event_hubs.length);
+		return event_hub;
+	}
+
+	/*
+	 * Utility method to determine the event hub with the least number of event
+	 * registrations
+	 */
+	findLeastBusyEventHub() {
+		logger.debug('findLeastBusyEventHub - start');
+		var result = null;
+		var first = true;
+		for(var i in this._event_hubs) {
+			var event_hub = this._event_hubs[i];
+			logger.debug('findLeastBusyEventHub - looking at existing hub %s with regs %d',event_hub._url, event_hub.getNumberOfRegistrations());
+			if(first) {
+				result = event_hub;
+				first = false;
+			}
+			else {
+				if(event_hub.getNumberOfRegistrations() < result.getNumberOfRegistrations()) {
+					result = event_hub;
+					logger.debug('findLeastBusyEventHub - this is new least used hub %s with regs %d',event_hub._url, event_hub.getNumberOfRegistrations());
+				}
+			}
+
+		}
+		logger.debug('findLeastBusyEventHub - end');
+		return result;
+	}
+
+	/*
+	 * Utility method to determine if this peer has an active event_hub
+	 */
+	isPeerEventHub(peer) {
+		logger.debug('isPeerEventHub - start #hubs:'+this._event_hubs.length);
+		var result = false;
+		var peer_event_source_address = peer.getEventSourceURL();
+		for(var i in this._event_hubs) {
+			var event_hub_address = this._event_hubs[i]._url;
+			if(!peer_event_source_address || !event_hub_address) {
+				//something is really wrong
+				throw new Error('EventHub list is corrupt');
+			}
+			logger.debug('isPeerEventHub - comparing these two addresses peer\'s event source %s with existing hubs %s',
+					peer_event_source_address, event_hub_address);
+			if(peer_event_source_address == event_hub_address) {
+				result = true;
+			}
+		}
+		logger.debug('isPeerEventHub - returning %s', result);
+
+		return result;
+	}
+
+	/**
+	 * Disconnect from all event source peers so no further events will be
+	 * received. This method must be called if the application wants to
+	 * gracefully exit. If not called then the underlying GRPC stream
+	 * connections to the event sources will keep the node.js program
+	 * from exiting.
+	 */
+	disconnectEventSource() {
+		logger.debug('disconnectEventSource - start');
+
+		var event_hub = null;
+		for (var i in this._event_hubs) {
+			try {
+				event_hub = this._event_hubs[i];
+				logger.debug('disconnectEventSource - about to disconnect event source %s',event_hub);
+				event_hub.disconnect();
+			} catch (error) {
+				if(event_hub) {
+					logger.error('Error disconnecting event source at %s - %s', event_hub._url,error );
+				} else {
+					logger.error('Error disconnecting event source - %s',error);
+				}
+			}
+		}
+		//clean out the list
+		this._event_hubs = [];
+
+		logger.debug('disconnectEventSource - end');
+		return event_hub;
+	}
+
+	/**
+	 * This registers a transaction listener callback for all transactions
+	 * that are submitted from this chain instance based on this user's
+	 * credentials.
+	 *
+	 * @param {class} eventCallback Client Application class registering
+	 *        for the callback.
+	 */
+	setTransactionEventListener(eventCallback) {
+		logger.debug('transactionEventListener - start');
+
+		//get next available event hub
+		var event_hub = this.connectEventSource();
+
+		// register the event
+		event_hub.registerCreator(this._clientContext._userContext.getIdentity(), eventCallback);
+		logger.debug('setTransactionEventListener - successfully registered');
+
+		logger.debug('transactionEventListener - end');
+	}
+
+	/**
+	 * Unregisters the transaction listener.
+	 */
+	removeTransactionEventListener() {
+		logger.debug('removeTransactionEventListener - start');
+		for (var i in this._event_hubs) {
+			this._event_hubs[i].unRegisterCreator();
+		}
+		logger.debug('removeTransactionEventListener - end');
 	}
 
 	// internal utility method to build the proposal
@@ -1208,10 +1393,9 @@ var Chain = class {
 		return proposal;
 	}
 
-	 // internal utility method to return one Promise when sending a proposal to many peers
-	/**
-	 * @private
-	 */
+	 /*
+	  * utility method to return one Promise when sending a proposal to many peers
+	  */
 	 static _sendPeersProposal(peers, proposal) {
 		if(!Array.isArray(peers)) {
 			peers = [peers];
@@ -1251,9 +1435,8 @@ var Chain = class {
 		});
 	}
 
-	//internal method to sign a proposal
-	/**
-	 * @private
+	/*
+	 * utility method to sign a proposal
 	 */
 	_signProposal(signingIdentity, proposal) {
 		let proposal_bytes = proposal.toBuffer();
