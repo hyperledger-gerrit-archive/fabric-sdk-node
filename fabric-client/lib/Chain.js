@@ -891,7 +891,8 @@ var Chain = class {
 		let ccSpec = {
 			type: _ccProto.ChaincodeSpec.Type.GOLANG,
 			chaincodeID: {
-				name: request.chaincodeId
+				name: request.chaincodeId,
+				path: request.chaincodePath
 			},
 			input: {
 				args: args
