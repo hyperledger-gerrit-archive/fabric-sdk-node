@@ -41,3 +41,14 @@ gulp.task('test-headless', ['pre-test'], function() {
 		}))
 		.pipe(istanbul.writeReports());
 });
+
+gulp.task('events', ['pre-test'], function() {
+	return gulp.src([
+		'test/unit/end-to-end.js',
+		'test/unit/events.js'
+	])
+	.pipe(tape({
+		reporter: tapColorize()
+	}))
+	.pipe(istanbul.writeReports());
+});

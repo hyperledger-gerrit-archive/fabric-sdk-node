@@ -21,7 +21,7 @@
 var tape = require('tape');
 var _test = require('tape-promise');
 var test = _test(tape);
-
+process.env.HFC_LOGGING = '{"debug": "console"}';
 var log4js = require('log4js');
 var logger = log4js.getLogger('E2E');
 logger.setLevel('DEBUG');
@@ -47,6 +47,8 @@ var tx_id = null;
 var nonce = null;
 var peer0 = new Peer('grpc://localhost:7051'),
 	peer1 = new Peer('grpc://localhost:7056');
+peer0.setEventSourceURL('grpc://localhost:7053');
+//peer1.setEventSourceURL('grpc://localhost:7058');
 
 var steps = [];
 if (process.argv.length > 2) {
@@ -65,6 +67,28 @@ testUtil.setupChaincodeDeploy();
 chain.addOrderer(new Orderer('grpc://localhost:7050'));
 chain.addPeer(peer0);
 chain.addPeer(peer1);
+var eh = null; //event hub for transaction based events
+
+var transaction_list = [];
+function transaction_callback(event) {
+	if(event.cancel) {
+		console.log(' **************** E V E N T  C A L L B A C K cancelling');
+		return;
+	}
+	console.log(' **************** E V E N T  C A L L B A C K processing transaction =%s',event.txID);
+	var found = false;
+	for(var i in transaction_list) {
+		var transaction = transaction_list[i];
+		if(transaction.txID == event.txID && transaction.peerURL == event.peerURL) {
+			transaction.status = 'complete';
+			console.log(' changed txID:'+ transaction.txID + ' from:'+ transaction.peerURL);
+			found = true;
+		}
+	}
+	if(!found) {
+		console.log('transaction txID:'+event.txID+ ' from:'+ event.peerURL + ' was not found');
+	}
+}
 
 test('End-to-end flow of chaincode deploy, transaction invocation, and query', (t) => {
 	hfc.newDefaultKeyValueStore({
@@ -73,28 +97,29 @@ test('End-to-end flow of chaincode deploy, transaction invocation, and query', (
 		client.setStateStore(store);
 		var promise = testUtil.getSubmitter(client, t);
 
-		// setup event hub to get notified when transactions are committed
-		var eh = new EventHub();
-		eh.setPeerAddr('grpc://localhost:7053');
-		eh.connect();
-
 		// override t.end function so it'll always disconnect the event hub
-		t.end = ((context, eventhub, f) => {
+		t.end = (function(context, chain, f) {
 			return function() {
-				if (eventhub && eventhub.isconnected()) {
-					logger.info('Disconnecting the event hub');
-					eventhub.disconnect();
-				}
+				logger.info('Disconnecting the event hub');
+				chain.disconnectEventSource();
 
 				f.apply(context, arguments);
 			};
-		})(t, eh, t.end);
+		})(t, chain, t.end);
 
 		if (!useSteps || steps.indexOf('step1') >= 0) {
 			logger.info('Executing step1');
 			promise = promise.then((admin) => {
 				t.pass('Successfully enrolled user \'admin\'');
-				tx_id = utils.buildTransactionID({length:12});
+
+				// setup event hub to get notified when transactions are committed
+				eh = chain.connectEventSource();
+				t.pass('Successfully connected to event hub');
+
+				chain.setTransactionEventListener(transaction_callback);
+				t.pass('Successfully added a listner to the event hubs');
+
+				tx_id = '1234'; //utils.buildTransactionID({length:12});
 				nonce = utils.getNonce();
 
 				// send proposal to endorser
@@ -107,7 +132,8 @@ test('End-to-end flow of chaincode deploy, transaction invocation, and query', (
 					txId: tx_id,
 					nonce: nonce
 				};
-
+				// store this for later
+				transaction_list.push({txID : tx_id, status : 'pending'});
 				return chain.sendDeploymentProposal(request);
 			},
 			(err) => {
@@ -202,6 +228,8 @@ test('End-to-end flow of chaincode deploy, transaction invocation, and query', (
 					txId: tx_id,
 					nonce: nonce
 				};
+				// store this for later
+				transaction_list.push({txID : tx_id, status : 'pending'});
 				return chain.sendTransactionProposal(request);
 			}).then((results) => {
 				var all_good = false;
@@ -301,6 +329,18 @@ test('End-to-end flow of chaincode deploy, transaction invocation, and query', (
 			}).then((response_payloads) => {
 				for(let i = 0; i < response_payloads.length; i++) {
 					t.equal(response_payloads[i].toString('utf8'),'300','checking query results are correct that user b has 300 now after the move');
+				}
+				// check all transactions to see if in the correct state
+				for(var i in transaction_list) {
+					var transaction = transaction_list[i];
+					logger.debug(' transaction %j', transaction );
+
+					if(transaction.status == 'complete') {
+						t.pass(' Transaction callback status is correct');
+					}
+					else {
+						t.fail(' Transaction callback status is not correct');
+					}
 				}
 				t.end();
 			},
