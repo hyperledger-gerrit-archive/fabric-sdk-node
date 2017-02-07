@@ -24,7 +24,7 @@ var path = require('path');
 var util = require('util');
 var testUtil = require('./util.js');
 var hfc = require('fabric-client');
-var fs = require('fs');
+var fs = require('fs-extra');
 var execSync = require('child_process').execSync;
 var utils = require('fabric-client/lib/utils.js');
 var cryptoSuiteReq = require('fabric-client/lib/impl/CryptoSuite_ECDSA_AES.js');
@@ -1403,6 +1403,20 @@ var TEST_KEY_PRIVATE_CERT_PEM = '-----BEGIN CERTIFICATE-----' +
 'BAHpeA==' +
 '-----END CERTIFICATE-----';
 
+var TEST_USER_ENROLLMENT = {
+	"name": "admin2",
+	"roles":null,
+	"affiliation":"",
+	"enrollmentSecret":"",
+	"enrollment": {
+		"signingIdentity": "0e67f7fa577fd76e487ea3b660e1a3ff15320dbc95e396d8b0ff616c87f8c81a",
+		"identity": {
+			"id": "testIdentity",
+			"certificate": TEST_KEY_PRIVATE_CERT_PEM
+		}
+	}
+};
+
 var jsrsa = require('jsrsasign');
 var KEYUTIL = jsrsa.KEYUTIL;
 var ECDSA = jsrsa.ECDSA;
@@ -1643,6 +1657,19 @@ test('\n\n ** CryptoSuite_ECDSA_AES - function tests **\n\n', function (t) {
 					cryptoUtils.verify(privKey.getPublicKey(), testSig, TEST_MSG),
 					true,
 					'Check that the imported private key can properly sign messages');
+
+				// manufacture an error condition where the private key does not exist for the SKI, and only the public key does
+				return cryptoUtils.importKey(TEST_KEY_PRIVATE_CERT_PEM);
+			}).then((pubKey) => {
+				fs.removeSync(path.join(CryptoSuite_ECDSA_AES.getKeyStorePath(), '0e67f7fa577fd76e487ea3b660e1a3ff15320dbc95e396d8b0ff616c87f8c81a-priv'));
+
+				var poorUser = new User('admin2', _client);
+				poorUser.fromString(JSON.stringify(TEST_USER_ENROLLMENT))
+				.then(() => {
+					t.fail('Failed to catch missing private key expected from a user enrollment object');
+				}).catch((err) => {
+					t.pass('Successfully caught missing private key expected from a user enrollment object');
+				});
 			});
 
 			t.end();
