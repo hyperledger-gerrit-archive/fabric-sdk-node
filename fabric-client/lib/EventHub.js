@@ -135,12 +135,12 @@ var EventHub = class {
 							.decode(chaincodeActionPayload.action.proposalResponsePayload);
 							var caPayload = _ccProposalProto.ChaincodeAction.decode(propRespPayload.extension);
 							var ccEvent = _ccEventProto.ChaincodeEvent.decode(caPayload.events);
-							var cbtable = eh.chaincodeRegistrants.get(ccEvent.chaincodeID);
+							var cbtable = eh.chaincodeRegistrants.get(ccEvent.chaincode_id);
 							if (!cbtable) {
 								return;
 							}
 							cbtable.forEach(function(cbe) {
-								if (cbe.eventNameFilter.test(ccEvent.eventName)) {
+								if (cbe.eventNameFilter.test(ccEvent.event_name)) {
 									cbe.cb(ccEvent);
 								}
 							});
