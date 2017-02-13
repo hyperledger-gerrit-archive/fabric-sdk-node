@@ -1,4 +1,6 @@
 version: '2.0'
+networks:
+   bridge:
 
 services:
 
@@ -18,28 +20,35 @@ services:
       - ORDERER_GENERAL_MAXMESSAGECOUNT=10
       - ORDERER_GENERAL_MAXWINDOWSIZE=1000
       - ORDERER_GENERAL_LISTENADDRESS=0.0.0.0
+      - ORDERER_GENERAL_LISTENPORT=7050
       - ORDERER_RAMLEDGER_HISTORY_SIZE=100
       - ORDERER_GENERAL_ORDERERTYPE=solo
     working_dir: /opt/gopath/src/github.com/hyperledger/fabric/orderer
     command: orderer
     ports:
       - 7050:7050
+    networks:
+      - bridge
 
   vp0:
+    container_name: vp0
     image: hyperledger/fabric-peer
     environment:
       - CORE_PEER_ADDRESSAUTODETECT=true
       - CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock
       - CORE_LOGGING_LEVEL=DEBUG
-      - CORE_PEER_NETWORKID=${CORE_PEER_NETWORKID}
+      - CORE_PEER_NETWORKID=vp0
       - CORE_NEXT=true
       - CORE_PEER_ENDORSER_ENABLED=true
       - CORE_PEER_ID=vp0
       - CORE_PEER_PROFILE_ENABLED=true
       - CORE_PEER_COMMITTER_LEDGER_ORDERER=orderer:7050
+      - CORE_PEER_GOSSIP_ORGLEADER=true
+      - CORE_PEER_MSPCONFIGPATH=/etc/hyperledger/fabric/msp/sampleconfig
     volumes:
         - /var/run/:/host/var/run/
-    command: peer node start
+        - ~/code/src/github.com/hyperledger/fabric/examples/:/opt/gopath/src/github.com/hyperledger/fabric/examples/
+    command: peer node start --peer-defaultchain=false
     links:
       - orderer
     ports:
@@ -47,27 +56,39 @@ services:
       - 7053:7053
     depends_on:
       - orderer
+    networks:
+      - bridge
 
   vp1:
+    container_name: vp1
     image: hyperledger/fabric-peer
+    tty: true
     environment:
+      - GOPATH=/opt/gopath
       - CORE_PEER_ADDRESSAUTODETECT=true
       - CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock
       - CORE_LOGGING_LEVEL=DEBUG
-      - CORE_PEER_NETWORKID=${CORE_PEER_NETWORKID}
+      - CORE_PEER_NETWORKID=vp1
       - CORE_NEXT=true
       - CORE_PEER_ENDORSER_ENABLED=true
       - CORE_PEER_ID=vp1
       - CORE_PEER_PROFILE_ENABLED=true
       - CORE_PEER_COMMITTER_LEDGER_ORDERER=orderer:7050
+      - CORE_PEER_ADDRESS=vp0:7051
       - CORE_PEER_DISCOVERY_ROOTNODE=vp0:7051
+      - CORE_PEER_MSPCONFIGPATH=/etc/hyperledger/fabric/msp/sampleconfig
+    working_dir: /opt/gopath/src/github.com/hyperledger/fabric/peer
     volumes:
       - /var/run/:/host/var/run/
+      - ~/code/src/github.com/github.com/hyperledger/fabric/examples/:/opt/gopath/src/github.com/hyperledger/fabric/examples/
     command: peer node start
     links:
       - orderer
-      - vp0
+      - vp0:vp0
     ports:
       - 7056:7051
     depends_on:
       - orderer
+      - vp0
+    networks:
+      - bridge
