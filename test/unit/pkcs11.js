@@ -42,13 +42,10 @@ default:
 	libpath = '/usr/lib/libacsp-pkcs11.so'; //LinuxOne
 }
 
-// use this specific way to test application overriding the default with a config file
-utils.addConfigFile(path.join(__dirname, '../fixtures/config/overrides.json'));
-
 var cryptoUtils;
 
 test('\n\n**PKCS11 - generate an ephemeral key\n\n', (t) => {
-	t.equal(utils.getConfigSetting('crypto-hsm'), true, 'Verify that the HSM based key management module has been enabled');
+	utils.setConfigSetting('crypto-hsm', true);
 
 	cryptoUtils = utils.getCryptoSuite({
 		lib: libpath,
