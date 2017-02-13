@@ -35,9 +35,13 @@ gulp.task('test', ['pre-test'], function() {
 });
 
 gulp.task('test-headless', ['pre-test'], function() {
+	// this is needed to avoid a problem in tape-promise with adding too many listeners
+	// to the "unhandledRejection" event
+	process.setMaxListeners(0);
+
 	return gulp.src([
-		'test/unit/headless-tests.js',
-		'test/unit/msp-tests.js'
+		'test/unit/**/*.js',
+		'!test/unit/util.js'
 	])
 	.pipe(tape({
 		reporter: tapColorize()
