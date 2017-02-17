@@ -1,0 +1,8 @@
+Verified+1: Hyperledger Jobbuilder <jobbuilder@jenkins.hyperledger.org>
+Code-Review+2: Srinivasan Muralidharan <muralisr@us.ibm.com>
+Code-Review+2: Binh Nguyen <binhn@us.ibm.com>
+Submitted-by: Binh Nguyen <binhn@us.ibm.com>
+Submitted-at: Fri, 17 Feb 2017 23:54:32 +0000
+Reviewed-on: http://gerrit.hyperledger.org/r/5977
+Project: fabric-sdk-node
+Branch: refs/heads/master
