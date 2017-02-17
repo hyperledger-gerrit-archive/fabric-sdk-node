@@ -32,7 +32,7 @@ var hfc = require('fabric-client');
 hfc.setLogger(logger);
 
 var util = require('util');
-var testUtil = require('./util.js');
+var testUtil = require('../unit/util.js');
 var utils = require('fabric-client/lib/utils.js');
 var Peer = require('fabric-client/lib/Peer.js');
 var Orderer = require('fabric-client/lib/Orderer.js');
@@ -144,16 +144,20 @@ test('End-to-end flow of chaincode deploy, transaction invocation, and query', (
 					var txPromise = new Promise((resolve, reject) => {
 						var handle = setTimeout(reject, 30000);
 
-						eh.registerTxEvent(deployId, (tx) => {
+						eh.registerTxEvent(deployId, (tx, invalid) => {
 							t.pass('The chaincode deploy transaction has been successfully committed');
 							clearTimeout(handle);
 							eh.unregisterTxEvent(deployId);
 
-							if (!useSteps) {
-								resolve();
-							} else if (steps.length === 1 && steps[0] === 'step1') {
-								t.end();
-								resolve();
+							if (invalid) {
+								reject();
+							} else {
+								if (!useSteps) {
+									resolve();
+								} else if (steps.length === 1 && steps[0] === 'step1') {
+									t.end();
+									resolve();
+								}
 							}
 						});
 					});
@@ -234,16 +238,20 @@ test('End-to-end flow of chaincode deploy, transaction invocation, and query', (
 					var txPromise = new Promise((resolve, reject) => {
 						var handle = setTimeout(reject, 30000);
 
-						eh.registerTxEvent(txId.toString(), (tx) => {
+						eh.registerTxEvent(txId.toString(), (tx, invalid) => {
 							t.pass('The chaincode deploy transaction has been successfully committed');
 							clearTimeout(handle);
 							eh.unregisterTxEvent(txId);
 
-							if (!useSteps) {
-								resolve();
-							} else if (steps.length === 1 && steps[0] === 'step2') {
-								t.end();
-								resolve();
+							if (invalid) {
+								reject();
+							} else {
+								if (!useSteps) {
+									resolve();
+								} else if (steps.length === 1 && steps[0] === 'step2') {
+									t.end();
+									resolve();
+								}
 							}
 						});
 					});
