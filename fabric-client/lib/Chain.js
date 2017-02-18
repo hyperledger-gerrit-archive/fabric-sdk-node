@@ -1190,10 +1190,11 @@ var Chain = class {
 					return self._clientContext.getUserContext()
 						.then(
 							function(userContext) {
+								var txId = self.buildTransactionID(request.nonce, userContext);
 								var channelHeader = buildChannelHeader(
 									_commonProto.HeaderType.ENDORSER_TRANSACTION,
 									'', //install does not target a channel
-									request.txId,
+									txId,
 									null,
 									'lccc'
 								);
@@ -1706,6 +1707,23 @@ var Chain = class {
 			errorMsg = 'Missing input request object on the proposal request';
 		}
 		return errorMsg;
+	}
+
+	/**
+	* Utility method to build an unique transaction id
+	* based on a nonce and this chain's user.
+	* @param {int} nonce - a one time use number
+	* @returns {string} An unique string
+	*/
+	buildTransactionID(nonce, userContext) {
+		logger.debug('buildTransactionID - start');
+		var creator_bytes = userContext.getIdentity().serialize();//same as signatureHeader.Creator
+		var nonce_bytes = nonce;//nonce is already in bytes
+		var trans_bytes = Buffer.concat([nonce_bytes, creator_bytes]);
+		var trans_hash = this.cryptoPrimitives.hash(trans_bytes);
+		var transaction_id = Buffer.from(trans_hash).toString('base64');
+		logger.debug('buildTransactionID - transaction_id %s',transaction_id);
+		return transaction_id;
 	}
 
 	/**
