@@ -26,6 +26,10 @@ var fs = require('fs-extra');
 var path = require('path');
 var jsrsa = require('jsrsasign');
 var KEYUTIL = jsrsa.KEYUTIL;
+var nano = require('nano');
+var CouchdbMock = require('mock-couch');
+
+var couchdbUtil = require('../integration/couchdb-util.js');
 
 testutil.resetDefaults();
 
@@ -52,7 +56,12 @@ var TEST_KEY_PRIVATE_CERT_PEM = '-----BEGIN CERTIFICATE-----' +
 'BAHpeA==' +
 '-----END CERTIFICATE-----';
 
-test('\n\n** CryptoKeyStore tests **\n\n', function(t) {
+var f1 = KEYUTIL.getKey(TEST_KEY_PRIVATE_PEM);
+var testPrivKey = new ecdsaKey(f1);
+var f2 = KEYUTIL.getKey(TEST_KEY_PRIVATE_CERT_PEM);
+var testPubKey = new ecdsaKey(f2);
+
+test('\n\n** CryptoKeyStore tests - default file based store tests **\n\n', function(t) {
 	t.throws(
 		() => {
 			CKS();
@@ -68,11 +77,6 @@ test('\n\n** CryptoKeyStore tests **\n\n', function(t) {
 		/Must provide the path to the directory to hold files for the store/,
 		'Test invalid constructor calls: missing "path" property in the "options" parameter'
 	);
-
-	var f1 = KEYUTIL.getKey(TEST_KEY_PRIVATE_PEM);
-	var testPrivKey = new ecdsaKey(f1);
-	var f2 = KEYUTIL.getKey(TEST_KEY_PRIVATE_CERT_PEM);
-	var testPubKey = new ecdsaKey(f2);
 
 	var store;
 	CKS({path: '/tmp/hfc-cks'})
@@ -106,9 +110,97 @@ test('\n\n** CryptoKeyStore tests **\n\n', function(t) {
 	}).then((recoveredKey) => {
 		t.notEqual(recoveredKey, null, 'Successfully read public key from store using SKI');
 		t.equal(recoveredKey.isPrivate(), false, 'Test if the recovered key is a public key');
+		t.end();
 	}).catch((err) => {
 		t.fail(err.stack ? err.stack : err);
+		t.end();
 	});
-
-	t.end();
 });
+
+test('\n\n** CryptoKeyStore tests - couchdb based store tests **\n\n', function(t) {
+	utils.setConfigSetting('key-value-store', 'fabric-client/lib/impl/CouchDBKeyValueStore.js');
+	var store, docRev;
+
+	var dbname = 'key_store_db';
+	var dbclient = nano('http://localhost:5985');
+	var couchdb = CouchdbMock.createServer();
+	couchdb.listen(5985);
+
+	// override t.end function so it'll always disconnect the event hub
+	t.end = ((context, mockdb, f) => {
+		return function() {
+			if (mockdb) {
+				console.log('Disconnecting the mock couchdb server');
+				mockdb.close();
+			}
+
+			f.apply(context, arguments);
+		};
+	})(t, couchdb, t.end);
+
+	CKS({name: dbname, url: 'http://localhost:5985'})
+	.then((st) => {
+		store = st;
+
+		return store.putKey(testPrivKey);
+	}).then((keyPEM) => {
+		t.pass('Successfully saved private key in store based on couchdb');
+
+		return new Promise((resolve, reject) => {
+			dbclient.use(dbname).get(testPrivKey.getSKI() + '-priv', function(err, body) {
+				if (!err) {
+					t.pass('Successfully verified private key persisted in couchdb');
+					docRev = body._rev;
+					return resolve(store.getKey(testPrivKey.getSKI()));
+				} else {
+					t.fail('Failed to persist private key in couchdb. ' + err.stack ? err.stack : err);
+					t.end();
+					reject(err);
+				}
+			});
+		});
+	}).then((recoveredKey) => {
+		t.notEqual(recoveredKey, null, 'Successfully read private key from store using SKI');
+		t.equal(recoveredKey.isPrivate(), true, 'Test if the recovered key is a private key');
+
+		return store.putKey(testPubKey);
+	}).then((keyPEM) => {
+		return new Promise((resolve, reject) => {
+			dbclient.use(dbname).get(testPrivKey.getSKI() + '-pub', function(err, body) {
+				if (!err) {
+					t.pass('Successfully verified public key persisted in couchdb');
+					return resolve(store.getKey(testPubKey.getSKI()));
+				} else {
+					t.fail('Failed to persist public key in couchdb. ' + err.stack ? err.stack : err);
+					t.end();
+					reject(err);
+				}
+			});
+		});
+	}).then((recoveredKey) => {
+		t.notEqual(recoveredKey, null, 'Successfully read public key from store using SKI');
+		t.equal(recoveredKey.isPrivate(), true, 'Test if the recovered key is a private key');
+
+		// delete the private key entry and test if getKey() would return the public key
+		return new Promise((resolve, reject) => {
+			dbclient.use(dbname).destroy(testPrivKey.getSKI() + '-priv', docRev, function(err, body) {
+				if (!err) {
+					t.comment('Successfully deleted entry for private key');
+					return resolve(store.getKey(testPubKey.getSKI()));
+				} else {
+					t.fail('Failed to delete private key in couchdb. ' + err.stack ? err.stack : err);
+					t.end();
+					reject(err);
+				}
+			});
+		});
+	}).then((recoveredKey) => {
+		t.notEqual(recoveredKey, null, 'Successfully read public key from store using SKI');
+		t.equal(recoveredKey.isPrivate(), false, 'Test if the recovered key is a public key');
+		t.end();
+	}).catch((err) => {
+		t.fail(err.stack ? err.stack : err);
+		t.end();
+	});
+});
+
