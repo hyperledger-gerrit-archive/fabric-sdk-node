@@ -19,22 +19,33 @@ var tape = require('tape');
 var _test = require('tape-promise');
 var test = _test(tape);
 
+var log4js = require('log4js');
+var logger = log4js.getLogger('E2E');
+logger.setLevel('DEBUG');
+
 var Client = require('fabric-client');
+Client.setLogger(logger);
 var Peer = require('fabric-client/lib/Peer');
 var copService = require('fabric-ca-client');
 var util = require('util');
 var fs = require('fs');
-var testUtil = require('./util.js');
+var testUtil = require('../unit/util.js');
 var utils = require('fabric-client/lib/utils.js');
 
 var keyValStorePath = testUtil.KVS;
+var chaincode_id = 'end2end';
+var chaincode_version = 'endorser-v0';
+var chain_id = 'testchainid';
+var tx_id = null;
+var nonce = null;
+var the_user = null;
 
 testUtil.setupChaincodeDeploy();
 
 //
 // Run the endorser good tests
 //
-test('\n\n** TEST ** endorse chaincode deployment good test', function(t) {
+test('\n\n** TEST ** endorse chaincode instantiate good test', function(t) {
 	//
 	// Create and configure the test chain
 	//
@@ -61,25 +72,80 @@ test('\n\n** TEST ** endorse chaincode deployment good test', function(t) {
 
 				chain.addPeer(new Peer('grpc://localhost:7051'));
 				chain.addPeer(new Peer('grpc://localhost:7056'));
+
+				the_user = admin;
+				nonce = utils.getNonce();
+				tx_id = chain.buildTransactionID(nonce, the_user);
+
 				// send proposal to endorser
 				var request = {
 					chaincodePath: testUtil.CHAINCODE_PATH,
-					chaincodeId: 'endorser_test',
-					fcn: 'init',
-					args: ['a', '100', 'b', '200'],
-					chainId: 'testchainid',
-					txId: 'blah',
-					nonce: utils.getNonce()
+					chaincodeId: chaincode_id,
+					chaincodeVersion: chaincode_version,
+					txId: tx_id,
+					nonce: nonce
 				};
 
-				return chain.sendDeploymentProposal(request);
+				return chain.sendInstallProposal(request);
+
+			},
+			(err) => {
+				t.fail('Failed to enroll user \'admin\'. ' + err);
+				t.end();
+			}).then((results) => {
+				var proposalResponses = results[0];
+
+				var proposal = results[1];
+				var header   = results[2];
+				var all_good = true;
+				for(var i in proposalResponses) {
+					let one_good = false;
+					if (proposalResponses && proposalResponses[0].response && proposalResponses[0].response.status === 200) {
+						one_good = true;
+						logger.info('install proposal was good');
+					} else {
+						logger.error('install proposal was bad');
+					}
+					all_good = all_good & one_good;
+				}
+				if (all_good) {
+					t.pass(util.format('Successfully sent install Proposal and received ProposalResponse: Status - %s', proposalResponses[0].response.status));
+					return Promise.resolve(all_good);
+					if (useSteps) {
+						t.end();
+					}
+				} else {
+					t.fail('Failed to send install Proposal or receive valid response. Response null or status is not 200. exiting...');
+					t.end();
+				}
+			},
+			(err) => {
+				t.fail('Failed to send install proposal due to error: ' + err.stack ? err.stack : err);
+				t.end();
+			})
+			.then(function(all_good) {
+				// send proposal to endorser
+				nonce = utils.getNonce();
+				tx_id = chain.buildTransactionID(nonce, the_user);
+
+				var request = {
+					chaincodePath: testUtil.CHAINCODE_PATH,
+					chaincodeId: chaincode_id,
+					chaincodeVersion: chaincode_version,
+					fcn: 'init',
+					args: ['a', '100', 'b', '200'],
+					chainId: chain_id,
+					txId: tx_id,
+					nonce: nonce
+				};
+
+				return chain.sendInstantiateProposal(request);
 			},
 			function(err) {
 				t.fail('Failed to enroll user \'admin\'. ' + err);
 				t.end();
-			}
-		).then(
-			function(data) {
+			})
+			.then(function(data) {
 				if (Array.isArray(data) && data.length === 3) {
 					let response = data[0];
 
@@ -95,7 +161,7 @@ test('\n\n** TEST ** endorse chaincode deployment good test', function(t) {
 				t.end();
 			},
 			function(err) {
-				t.fail('Failed to send deployment proposal due to error: ' + err.stack ? err.stack : err);
+				t.fail('Failed to send instantiate proposal due to error: ' + err.stack ? err.stack : err);
 				t.end();
 			}
 		).catch(
@@ -106,7 +172,7 @@ test('\n\n** TEST ** endorse chaincode deployment good test', function(t) {
 		);
 	}).catch(
 		function(err) {
-			t.fail('Failed to send deployment proposal. ' + err.stack ? err.stack : err);
+			t.fail('Failed to send instantiate proposal. ' + err.stack ? err.stack : err);
 			t.end();
 		}
 	);
