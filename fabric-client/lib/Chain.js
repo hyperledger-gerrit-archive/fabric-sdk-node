@@ -470,23 +470,27 @@ var Chain = class {
 	 */
 	initializeChannel(request) {
 		logger.debug('initializeChannel - start');
+		var errorMsg = null;
 
 		// verify that we have an orderer configured
 		if(!this.getOrderers()[0]) {
-			logger.error('initializeChannel - no primary orderer defined');
-			return Promise.reject(new Error('no primary orderer defined'));
+			errorMsg = 'Missing orderer object for the initialize channel';
 		}
 
-		// verify that we have a name configured
-		if(!this._name) {
-			logger.error('initializeChannel - no chain id defined');
-			return Promise.reject(new Error('Chain name is not defined'));
+		// verify that we have targets (Peers) to join this channel
+		// defined by the caller
+		else if(!request) {
+			errorMsg = 'Missing all required input request parameters for initialize channel';
 		}
 
-		// verify that we have an envelope to send
-		if(!request || !request.envelope) {
-			logger.error('initializeChannel - no envelope defined');
-			return Promise.reject(new Error('The required envelope containing the configuration is not defined'));
+		// Verify that a Peer has been added
+		else if (!request.envelope) {
+			errorMsg = 'Missing envelope input parameter containing the configuration of the new channel';
+		}
+
+		if(errorMsg) {
+			logger.error('initializeChannel error '+ errorMsg);
+			return Promise.reject(new Error(errorMsg));
 		}
 
 		var self = this;
@@ -527,8 +531,13 @@ var Chain = class {
 
 	/**
 	 * Sends a join channel proposal to one or more endorsing peers.
-	 *
+	 * @param {Object} request - An object containing the following fields:
+	 *		<br>`targets` : required - An array of `Peer` objects that will join
+	 *                      this channel
+	 *		<br>`txId` : required - String of the transaction id
+	 *		<br>`nonce` : required - Integer of the once time number
 	 * @returns {Promise} A Promise for a `ProposalResponse`
+	 * @see /protos/peer/fabric_proposal_response.proto
 	 */
 	sendJoinChannelProposal(request) {
 		logger.debug('sendJoinChannelProposal - start');
@@ -539,9 +548,25 @@ var Chain = class {
 			errorMsg = 'Missing orderer object for the join channel proposal';
 		}
 
+		// verify that we have targets (Peers) to join this channel
+		// defined by the caller
+		else if(!request) {
+			errorMsg = 'Missing all required input request parameters';
+		}
+
 		// Verify that a Peer has been added
-		if (this.getPeers().length < 1) {
-			errorMsg = 'Missing peer objects for the join channel proposal';
+		else if (!request.targets) {
+			errorMsg = 'Missing targets input parameter with the peer objects for the join channel proposal';
+		}
+
+		// verify that we have transaction id
+		else if(!request.txId) {
+			errorMsg = 'Missing txId input parameter with the required transaction identifier';
+		}
+
+		// verify that we have the nonce
+		else if(!request.nonce) {
+			errorMsg = 'Missing nonce input parameter with the required single use number';
 		}
 
 		if(errorMsg) {
@@ -643,7 +668,7 @@ var Chain = class {
 				var proposal = self._buildProposal(chaincodeSpec, header);
 				var signed_proposal = self._signProposal(userContext.getSigningIdentity(), proposal);
 
-				return Chain._sendPeersProposal(self.getPeers(), signed_proposal);
+				return Chain._sendPeersProposal(request.targets, signed_proposal);
 			}
 		).then(
 			function(responses) {
