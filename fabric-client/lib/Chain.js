@@ -1016,9 +1016,6 @@ var Chain = class {
 				path: request.chaincodePath,
 				version: request.chaincodeVersion
 			},
-			input: {
-				args: args
-			}
 		};
 
 		// step 2: construct the ChaincodeDeploymentSpec
