@@ -19,10 +19,7 @@
 var tape = require('tape');
 var _test = require('tape-promise');
 var test = _test(tape);
-var rewire = require('rewire');
 
-// use rewire to load the module to get access to the private functions to test
-var ChainModule = rewire('../../fabric-client/lib/Chain.js');
 var tar = require('tar-fs');
 var gunzip = require('gunzip-maybe');
 var fs = require('fs-extra');
@@ -540,13 +537,10 @@ test('\n\n ** Chain joinChannel() tests **\n\n', function (t) {
 });
 
 test('\n\n** Chain packageChaincode tests **\n\n', function(t) {
-	var packageChaincode = ChainModule.__get__('packageChaincode');
-	t.equal(typeof packageChaincode, 'function', 'The rewired module should return the private function here');
-
-	packageChaincode(true, 'blah')
+	Chain.packageChaincode(true, 'blah')
 	.then((data) => {
 		t.equal(data, null, 'Chain.packageChaincode() should return null for dev mode');
-		return packageChaincode(false, {});
+		return Chain.packageChaincode(false, {});
 	}).then(() => {
 		t.fail('Chain.packageChaincode() should have rejected a call that does not have the valid request argument');
 	}).catch((err) => {
@@ -554,7 +548,7 @@ test('\n\n** Chain packageChaincode tests **\n\n', function(t) {
 
 		testutil.setupChaincodeDeploy();
 
-		return packageChaincode(false, {
+		return Chain.packageChaincode(false, {
 			chaincodePath: testutil.CHAINCODE_PATH,
 			chaincodeId: 'testChaincodeId'
 		});
@@ -570,6 +564,17 @@ test('\n\n** Chain packageChaincode tests **\n\n', function(t) {
 			t.equal(fs.existsSync(checkPath), true, 'The tar.gz file produced by Chain.packageChaincode() has the "src/github.com/example_cc" folder');
 		});
 
+		return Chain.packageChaincode(false, {
+			chaincodePath: testutil.CHAINCODE_PATH+'_doesNotExist',
+			chaincodeId: 'testChaincodeId2',
+			chaincodePackage: data
+		});
+	}).then((data) => {
+		if (!!data) {
+			t.pass('Chain.packageChaincode returned chaincodePackage as bytes parameter');
+		} else {
+			t.fail('Chain.packageChaincode failed to return chaincodePackage as bytes parameter');
+		}
 		t.end();
 	}).catch((err) => {
 		t.fail(err.stack ? err.stack : err);

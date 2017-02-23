@@ -114,7 +114,7 @@ var Chain = class {
 		this.setInitialAbsoluteMaxBytes(10 * 1024 * 1024);
 		this.setInitialPreferredMaxBytes(10 * 1024 * 1024);
 		this._consensus_type = 'solo';
-		// user must set this value before the initializeChain() method
+		// user must set this value before the createChannel() method
 		// is called
 		this._initial_transaction_id = null;
 
@@ -448,7 +448,7 @@ var Chain = class {
 	/**
 	 * Set the initial transaction ID that will be used when this
 	 * chain is created. This value must be set before the
-	 * initializeChain() method is called.
+	 * createChannel() method is called.
 	 * There is no default.
 	 *
 	 * @param {int} initial transaction ID
@@ -603,7 +603,7 @@ var Chain = class {
 				seekInfo.setStart(seekStart);
 				seekInfo.setStop(seekStop);
 				seekInfo.setBehavior(_abProto.SeekInfo.SeekBehavior.BLOCK_UNTIL_READY);
-				//logger.debug('initializeChain - seekInfo ::' + JSON.stringify(seekInfo));
+				//logger.debug('createChannel - seekInfo ::' + JSON.stringify(seekInfo));
 
 				// build the header for use with the seekInfo payload
 				var seekInfoHeader = buildChannelHeader(
@@ -948,6 +948,13 @@ var Chain = class {
 	 *                            the source code of the chaincode
 	 *		<br>`chaincodeId` : required - String of the name of the chaincode
 	 *		<br>`chaincodeVersion` : required - String of the version of the chaincode
+	 *		<br>`chaincodePackage` : optional - Byte array of the archive content for
+	 *                               the chaincode source. The archive must have a 'src'
+	 *                               folder containing subfolders corresponding to the
+	 *                               'chaincodePath' field. For instance, if the chaincodePath
+	 *                               is 'mycompany/myproject', then the archive must contain a
+	 *                               folder at the path 'src/mycompany/myproject', where the
+	 *                               GO source code resides.
 	 *		<br>`txId` : required - String of the transaction id
 	 *		<br>`nonce` : required - Integer of the once time number
 	 * @returns {Promise} A Promise for a `ProposalResponse`
@@ -1026,7 +1033,7 @@ var Chain = class {
 		chaincodeDeploymentSpec.setChaincodeSpec(ccSpec);
 		chaincodeDeploymentSpec.setEffectiveDate(buildCurrentTimestamp()); //TODO may wish to add this as a request setting
 
-		return packageChaincode(this.isDevMode(), request)
+		return Chain.packageChaincode(this.isDevMode(), request)
 			.then(
 				function(data) {
 
@@ -1071,6 +1078,68 @@ var Chain = class {
 						);
 				}
 			);
+	}
+
+	/**
+	* Utility function to package a chaincode.  All of the files
+	* in the directory of the environment variable GOPATH joined
+	* to the request.chaincodePath will be included in an archive
+	* file.  The contents will be returned as a byte array.
+	*
+	* @param {boolean} devmode True if using dev mode
+	* @param {Object} request - The request object created for the
+	*                 function `sendInstallProposal`
+	* @returns {Promise} A promise for the data as a byte array
+	* @see sendInstallProposal
+	*/
+	static packageChaincode(devmode, request) {
+		return new Promise(function(resolve, reject) {
+			if (devmode) {
+				logger.debug('Skipping chaincode packaging due to devmode configuration');
+				return resolve(null);
+			}
+
+			if (!request.chaincodePath || request.chaincodePath === '') {
+				// Verify that chaincodePath is being passed
+				return reject(new Error('Missing chaincodePath parameter in Install proposal request'));
+			}
+
+			if (request.chaincodePackage && request.chaincodePackage != '') {
+				return resolve(request.chaincodePackage);
+			}
+
+			var chaincodePath = request.chaincodePath;
+			var chaincodeId = request.chaincodeId;
+
+			// Determine the user's $GOPATH
+			let goPath =  process.env['GOPATH'];
+
+			// Compose the path to the chaincode project directory
+			let projDir = path.join(goPath, 'src', chaincodePath);
+
+			// Create the .tar.gz file of the chaincode package
+			fs.mkdtemp(path.join(os.tmpdir(), path.sep), (err, folder) => {
+				if (err) return reject(new Error('Failed to create temp folder. ' + err));
+
+				// first copy all the target chaincode files from the source folder to
+				// <this_temp_folder>/src/<chaincodePath> folder so that the tar.gz
+				// archive can be created with the folder structure preserved
+				var dest = path.join(folder, 'src', chaincodePath);
+				fs.copy(projDir, dest, (err) => {
+					if (err) return reject(new Error('Failed to copy chaincode source to temp folder. ' + err));
+
+					let targzFilePath = path.join(folder, 'deployment-package.tar.gz');
+					return utils.generateTarGz(folder, targzFilePath)
+						.then(function() {
+							logger.debug('Chain.packageChaincode - Successfully generated chaincode instantiate archive %s and name (%s)', targzFilePath, chaincodeId);
+							return readFile(targzFilePath)
+							.then((data) => {
+								return resolve(data);
+							});
+						});
+				});
+			});
+		});
 	}
 
 	/**
@@ -1442,6 +1511,7 @@ var Chain = class {
 		);
 	}
 
+
 	// internal utility method to build the proposal
 	/**
 	 * @private
@@ -1648,52 +1718,6 @@ function writeFile(path, contents) {
 			} else {
 				resolve(path);
 			}
-		});
-	});
-}
-
-function packageChaincode(devmode, request) {
-	return new Promise(function(resolve, reject) {
-		if (devmode) {
-			logger.debug('Skipping chaincode packaging due to devmode configuration');
-			return resolve(null);
-		}
-
-		if (!request.chaincodePath || request.chaincodePath === '') {
-			// Verify that chaincodePath is being passed
-			return reject(new Error('Missing chaincodePath parameter in Install proposal request'));
-		}
-
-		var chaincodePath = request.chaincodePath;
-		var chaincodeId = request.chaincodeId;
-
-		// Determine the user's $GOPATH
-		let goPath =  process.env['GOPATH'];
-
-		// Compose the path to the chaincode project directory
-		let projDir = path.join(goPath, 'src', chaincodePath);
-
-		// Create the .tar.gz file of the chaincode package
-		fs.mkdtemp(path.join(os.tmpdir(), path.sep), (err, folder) => {
-			if (err) return reject(new Error('Failed to create temp folder. ' + err));
-
-			// first copy all the target chaincode files from the source folder to
-			// <this_temp_folder>/src/<chaincodePath> folder so that the tar.gz
-			// archive can be created with the folder structure preserved
-			var dest = path.join(folder, 'src', chaincodePath);
-			fs.copy(projDir, dest, (err) => {
-				if (err) return reject(new Error('Failed to copy chaincode source to temp folder. ' + err));
-
-				let targzFilePath = path.join(folder, 'deployment-package.tar.gz');
-				return utils.generateTarGz(folder, targzFilePath)
-					.then(function() {
-						logger.debug('Chain.sendInstantiateProposal - Successfully generated chaincode instantiate archive %s and name (%s)', targzFilePath, chaincodeId);
-						return readFile(targzFilePath)
-						.then((data) => {
-							return resolve(data);
-						});
-					});
-			});
 		});
 	});
 }
