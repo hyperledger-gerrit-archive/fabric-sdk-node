@@ -1555,9 +1555,7 @@ var Chain = class {
 		var errorMsg = null;
 
 		if (request) {
-			if(!request.chaincodePath) {
-				errorMsg = 'Missing "chaincodePath" parameter in the proposal request';
-			}  else if(!request.chaincodeVersion) {
+			if(!request.chaincodeVersion) {
 				errorMsg = 'Missing "chaincodeVersion" parameter in the proposal request';
 			}
 		} else {
