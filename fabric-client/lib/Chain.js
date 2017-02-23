@@ -948,6 +948,7 @@ var Chain = class {
 	 *                            the source code of the chaincode
 	 *		<br>`chaincodeId` : required - String of the name of the chaincode
 	 *		<br>`chaincodeVersion` : required - String of the version of the chaincode
+	 *		<br>`chaincodePackage` : optional - Byte array of the source code of the chaincode
 	 *		<br>`txId` : required - String of the transaction id
 	 *		<br>`nonce` : required - Integer of the once time number
 	 * @returns {Promise} A Promise for a `ProposalResponse`
@@ -1662,6 +1663,10 @@ function packageChaincode(devmode, request) {
 		if (!request.chaincodePath || request.chaincodePath === '') {
 			// Verify that chaincodePath is being passed
 			return reject(new Error('Missing chaincodePath parameter in Install proposal request'));
+		}
+
+		if (request.chaincodePackage && request.chaincodePackage != '') {
+			return resolve(request.chaincodePackage);
 		}
 
 		var chaincodePath = request.chaincodePath;

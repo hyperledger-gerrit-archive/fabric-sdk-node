@@ -570,11 +570,23 @@ test('\n\n** Chain packageChaincode tests **\n\n', function(t) {
 			t.equal(fs.existsSync(checkPath), true, 'The tar.gz file produced by Chain.packageChaincode() has the "src/github.com/example_cc" folder');
 		});
 
+		return packageChaincode(false, {
+			chaincodePath: testutil.CHAINCODE_PATH+'_doesNotExist',
+			chaincodeId: 'testChaincodeId2',
+			chaincodePackage: data
+		});
+	}).then((data) => {
+		if (!!data) {
+			t.pass('Chain.packageChaincode returned chaincodePackage as bytes parameter');
+		} else {
+			t.fail('Chain.packageChaincode failed to return chaincodePackage as bytes parameter');
+		}
 		t.end();
 	}).catch((err) => {
 		t.fail(err.stack ? err.stack : err);
 		t.end();
 	});
+	t.end();
 });
 
 test('\n\n ** Chain sendInstallProposal() tests **\n\n', function (t) {
