@@ -62,7 +62,7 @@ test('FabricCAServices: Test enroll() With Dynamic CSR', function (t) {
 		enrollmentSecret: 'adminpw'
 	};
 
-	var eResult, client, member;
+	var eResult, client, member, webAdmin;
 	return cop.enroll(req)
 		.then((enrollment) => {
 			t.pass('Successfully enrolled \'' + req.enrollmentID + '\'.');
@@ -85,7 +85,7 @@ test('FabricCAServices: Test enroll() With Dynamic CSR', function (t) {
 
 			var signingIdentity = new SigningIdentity('testSigningIdentity', eResult.certificate, pubKey, msp, new Signer(msp.cryptoSuite, eResult.key));
 
-			return cop._fabricCAClient.register(enrollmentID, 'client', 'bank_a', [], 'admin', signingIdentity);
+			return cop._fabricCAClient.register(enrollmentID, 'client', 'bank_a', [], signingIdentity);
 		}).then((secret) => {
 			t.comment(secret);
 			enrollmentSecret = secret; // to be used in the next test case
@@ -108,6 +108,57 @@ test('FabricCAServices: Test enroll() With Dynamic CSR', function (t) {
 			return cop.register({enrollmentID: 'testUserX', group: 'bank_a'}, member);
 		}).then((secret) => {
 			t.pass('Successfully enrolled "testUserX" in group "bank_a" with enrollment secret returned: ' + secret);
+
+			return cop.revoke({enrollmentID: 'testUserX'}, member);
+		}).then((response) => {
+			t.equal(response.success, true, 'Successfully revoked "testUserX"');
+
+			return cop.register({enrollmentID: 'testUserY', group: 'bank_a'}, member);
+		}).then((secret) => {
+			t.comment('Successfully registered another user "testUserY"');
+
+			return cop.enroll({enrollmentID: 'testUserY', enrollmentSecret: secret});
+		}).then((enrollment) => {
+			t.comment('Successfully enrolled "testUserY"');
+
+			var cert = new X509();
+			cert.readCertPEM(enrollment.certificate);
+			var aki = X509.getExtAuthorityKeyIdentifier(cert.hex).kid;
+			var serial = cert.getSerialNumberHex();
+
+			t.comment(util.format('Ready to revoke certificate serial # "%s" with aki "%s"', serial, aki));
+
+			return cop.revoke({serial: serial, aki: aki}, member);
+		}).then((response) => {
+			t.equal(response.success, true, 'Successfully revoked "testUserY" using serial number and AKI');
+
+			// register a new user 'webAdmin' that can register other users of the role 'client'
+			return cop.register({enrollmentID: 'webAdmin', group: 'bank_a', attrs: [{name: 'hf.Registrar.Roles', value: 'client'}]}, member);
+		}).then((secret) => {
+			t.pass('Successfully registered "webAdmin" who can register other users of the "client" role');
+
+			return cop.enroll({enrollmentID: 'webAdmin', enrollmentSecret: secret});
+		},(err) => {
+			t.fail('Failed to register "webAdmin". ' + err.stack ? err.stack : err);
+			t.end();
+		}).then((enrollment) => {
+			t.pass('Successfully enrolled "webAdmin"');
+
+			webAdmin = new User('webAdmin', client);
+			return webAdmin.setEnrollment(enrollment.key, enrollment.certificate);
+		}).then(() => {
+			t.pass('Successfully constructed User object for "webAdmin"');
+
+			return cop.register({enrollmentID: 'auditor', role: 'auditor'}, webAdmin);
+		}).then(() => {
+			t.fail('Should not have been able to use "webAdmin" to register a user of the "auditor" role');
+			t.end();
+		},(err) => {
+			t.pass('Successfully rejected attempt to register a user of invalid role. ' + err);
+			
+			return cop.register({enrollmentID: 'auditor', role: 'client', group: 'bank_a'}, webAdmin);
+		}).then(() => {
+			t.pass('Successfully registered "auditor" of role "client" from "webAdmin"');
 			t.end();
 		}).catch((err) => {
 			t.fail('Failed at ' + err.stack ? err.stack : err);
