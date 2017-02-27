@@ -1141,6 +1141,7 @@ var Chain = class {
 			type: _ccProto.ChaincodeSpec.Type.GOLANG,
 			chaincode_id: {
 				name: request.chaincodeId,
+				path: request.chaincodePath,
 				version: request.chaincodeVersion
 			},
 			input: {
