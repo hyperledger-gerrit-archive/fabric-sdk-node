@@ -50,6 +50,8 @@ var the_user = null;
 testUtil.setupChaincodeDeploy();
 
 test('\n\n** Test chaincode install using chaincodePath to create chaincodePackage **\n\n', (t) => {
+	clearConfigMemory(t);
+
 	var testDesc = null,chaincodePackage = null,chain = null, chainName = null;
 	hfc.newDefaultKeyValueStore({
 		path: testUtil.KVS
@@ -237,4 +239,16 @@ function install(user,chainName,orderer,peers,request,testDesc,t) {
 		t.comment(testDesc+' - Error in install function');
 		return Promise.reject(new Error(err.stack ? err.stack : err));
 	};
+}
+
+function clearConfigMemory(t) {
+	var cryptoKeySize = utils.getConfigSetting('crypto-keysize');
+	var cryptoHashAlgo = utils.getConfigSetting('crypto-hash-algo');
+	t.comment('before clearConfigMemory cryptoHashAlgo: '+cryptoHashAlgo+', cryptoKeySize: '+cryptoKeySize);
+
+	testUtil.clearConfigMemory();
+
+	cryptoKeySize = utils.getConfigSetting('crypto-keysize');
+	cryptoHashAlgo = utils.getConfigSetting('crypto-hash-algo');
+	t.comment('after  clearConfigMemory cryptoHashAlgo: '+cryptoHashAlgo+', cryptoKeySize: '+cryptoKeySize);
 }

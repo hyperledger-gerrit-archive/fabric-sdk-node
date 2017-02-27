@@ -49,6 +49,8 @@ test('\n\n** TEST ** endorse chaincode install good test', function(t) {
 	//
 	// Create and configure the test chain
 	//
+	clearConfigMemory(t);
+
 	var client = new Client();
 	var chain = client.newChain('testChain', client);
 
@@ -190,4 +192,16 @@ function rmdir(path) {
 		});
 		fs.rmdirSync(path);
 	}
+}
+
+function clearConfigMemory(t) {
+	var cryptoKeySize = utils.getConfigSetting('crypto-keysize');
+	var cryptoHashAlgo = utils.getConfigSetting('crypto-hash-algo');
+	t.comment('before clearConfigMemory cryptoHashAlgo: '+cryptoHashAlgo+', cryptoKeySize: '+cryptoKeySize);
+
+	testUtil.clearConfigMemory();
+
+	cryptoKeySize = utils.getConfigSetting('crypto-keysize');
+	cryptoHashAlgo = utils.getConfigSetting('crypto-hash-algo');
+	t.comment('after  clearConfigMemory cryptoHashAlgo: '+cryptoHashAlgo+', cryptoKeySize: '+cryptoKeySize);
 }

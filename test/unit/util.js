@@ -23,6 +23,7 @@ var KEYUTIL = jsrsa.KEYUTIL;
 
 var copService = require('fabric-ca-client/lib/FabricCAClientImpl.js');
 var User = require('fabric-client/lib/User.js');
+var utils = require('fabric-client/lib/utils.js');
 var CryptoSuite = require('fabric-client/lib/impl/CryptoSuite_ECDSA_AES.js');
 var KeyStore = require('fabric-client/lib/impl/CryptoKeyStore.js');
 var ecdsaKey = require('fabric-client/lib/impl/ecdsa/key.js');
@@ -42,6 +43,13 @@ module.exports.setupChaincodeDeploy = function() {
 // running in the overall test bucket ('gulp test')
 module.exports.resetDefaults = function() {
 	global.hfc.config = undefined;
+};
+
+module.exports.clearConfigMemory = function() {
+	var config = utils.getConfig();
+	if (config && config._config && config._config.stores && config._config.stores.memory) {
+		config._config.stores.memory.store = null;
+	}
 };
 
 module.exports.cleanupDir = function(keyValStorePath) {
