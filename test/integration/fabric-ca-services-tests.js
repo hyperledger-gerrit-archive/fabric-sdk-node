@@ -51,11 +51,7 @@ var csr = fs.readFileSync(path.resolve(__dirname, '../fixtures/fabriccop/enroll-
 
 test('FabricCAServices: Test enroll() With Dynamic CSR', function (t) {
 
-	// need to override the default key size 384 to match the member service backend
-	// otherwise the client will not be able to decrypt the enrollment challenge
-	utils.setConfigSetting('crypto-keysize', 256);
-
-	var cop = new FabricCAServices('http://localhost:7054');
+	var cop = new FabricCAServices('http://localhost:7054', {keysize: 256, hash: 'SHA2'});
 
 	var req = {
 		enrollmentID: 'admin',
@@ -75,6 +71,10 @@ test('FabricCAServices: Test enroll() With Dynamic CSR', function (t) {
 			t.equal(cert.getSubjectString(), '/CN=' + req.enrollmentID, 'Subject should be /CN=' + req.enrollmentID);
 
 			return cop.cryptoPrimitives.importKey(enrollment.certificate);
+		},(err) => {
+			t.fail('Failed to enroll the admin. Can not progress any further. Exiting. ' + err.stack ? err.stack : err);
+
+			t.end();
 		}).then((pubKey) => {
 			t.pass('Successfully imported public key from the resulting enrollment certificate');
 
@@ -85,7 +85,10 @@ test('FabricCAServices: Test enroll() With Dynamic CSR', function (t) {
 
 			var signingIdentity = new SigningIdentity('testSigningIdentity', eResult.certificate, pubKey, msp, new Signer(msp.cryptoSuite, eResult.key));
 
-			return cop._fabricCAClient.register(enrollmentID, 'client', 'bank_a', [], signingIdentity);
+			return cop._fabricCAClient.register(enrollmentID, 'client', null, [], signingIdentity);
+		},(err) => {
+			t.fail('Failed to import the public key from the enrollment certificate. ' + err.stack ? err.stack : err);
+			t.end();
 		}).then((secret) => {
 			t.comment(secret);
 			enrollmentSecret = secret; // to be used in the next test case
@@ -95,6 +98,9 @@ test('FabricCAServices: Test enroll() With Dynamic CSR', function (t) {
 			return hfc.newDefaultKeyValueStore({
 				path: testUtil.KVS
 			});
+		},(err) => {
+			t.fail(util.format('Failed to register "%s". %s', enrollmentID, err.stack ? err.stack : err));
+			t.end();
 		}).then((store) => {
 			t.comment('Successfully constructed a state store');
 
@@ -105,15 +111,28 @@ test('FabricCAServices: Test enroll() With Dynamic CSR', function (t) {
 		}).then(() => {
 			t.comment('Successfully constructed a user object based on the enrollment');
 
-			return cop.register({enrollmentID: 'testUserX', group: 'bank_a'}, member);
+			return cop.register({enrollmentID: 'testUserX', group: 'bank_X'}, member);
 		}).then((secret) => {
-			t.pass('Successfully enrolled "testUserX" in group "bank_a" with enrollment secret returned: ' + secret);
+			t.fail('Should not have been able to register user of a group "bank_X" because "admin" does not belong to that group');
+			t.end();
+		},(err) => {
+			t.pass('Successfully rejected registration request "testUserX" in group "bank_X"');
+
+			return cop.register({enrollmentID: 'testUserX'}, member);
+		}).then((secret) => {
+			t.pass('Successfully registered "testUserX" in group "" with enrollment secret returned: ' + secret);
 
 			return cop.revoke({enrollmentID: 'testUserX'}, member);
+		},(err) => {
+			t.fail('Failed to register "testUserX". '  + err.stack ? err.stack : err);
+			t.end();
 		}).then((response) => {
 			t.equal(response.success, true, 'Successfully revoked "testUserX"');
 
 			return cop.register({enrollmentID: 'testUserY', group: 'bank_a'}, member);
+		},(err) => {
+			t.fail('Failed to revoke "testUserX". ' + err.stack ? err.stack : err);
+			t.end();
 		}).then((secret) => {
 			t.comment('Successfully registered another user "testUserY"');
 
