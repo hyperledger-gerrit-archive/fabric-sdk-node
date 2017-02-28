@@ -45,7 +45,7 @@ test('\n\n** TEST ** new chain using chain.createChannel() method with good orde
 	// Create and configure the test chain
 	//
 	var client = new hfc();
-	var chain = client.newChain('foo');
+	var chain = client.newChain('myc1');
 	chain.addOrderer(new Orderer('grpc://localhost:7050'));
 	chain.addPeer(peer0);
 	chain.addPeer(peer1);
@@ -63,7 +63,7 @@ test('\n\n** TEST ** new chain using chain.createChannel() method with good orde
 			t.pass('Successfully enrolled user \'admin\'');
 			the_user = admin;
 			// readin the envelope to send to the orderer
-			return readFile('./test/fixtures/foo.tx');
+			return readFile('./test/fixtures/channel.tx');
 		},
 		function(err) {
 			t.fail('Failed to enroll user \'admin\'. ' + err);
@@ -118,8 +118,8 @@ test('\n\n** TEST ** new chain using chain.createChannel() method with good orde
 		}
 	)
 	.then(
-		function(response) {
-			console.log(' Join Channel R E S P O N S E ::'+ JSON.stringify(response));
+		function(results) {
+			console.log(' Join Channel R E S P O N S E ::'+ JSON.stringify(results));
 			t.pass('Successfully joined channel.');
 			t.end();
 		},
@@ -147,7 +147,6 @@ test('\n\n** TEST ** new chain - chain.createChannel() fail due to already exist
 	//
 	var client = new hfc();
 	var chain = client.newChain('testChain2');
-	chain.setInitialTransactionId('1234');
 	chain.addOrderer(new Orderer('grpc://localhost:7050'));
 
 	hfc.newDefaultKeyValueStore({path: testUtil.KVS}
@@ -163,7 +162,7 @@ test('\n\n** TEST ** new chain - chain.createChannel() fail due to already exist
 			t.pass('Successfully enrolled user \'admin\'');
 			the_user = admin;
 			// readin the envelope to send to the orderer
-			return readFile('./test/fixtures/foo.tx');
+			return readFile('./test/fixtures/channel.tx');
 		},
 		function(err) {
 			t.fail('Failed to enroll user \'admin\'. ' + err);
