@@ -151,6 +151,7 @@ var Orderer = class extends Remote {
 			try {
 				var deliver = self._ordererClient.deliver();
 				var return_block = null;
+				var connect = false;
 
 				var deliver_timeout = setTimeout(function(){
 					logger.debug('sendDeliver - timed out after:%s', self._request_timeout);
@@ -180,6 +181,8 @@ var Orderer = class extends Remote {
 						logger.debug('sendDeliver - wait for success, keep this block number %s',return_block.header.number);
 					}
 					else if(response.Type === 'status') {
+						clearTimeout(deliver_timeout);
+						connect = false;
 						deliver.end();
 						// response type should now be 'status'
 						if (response.status === 'SUCCESS') {
@@ -193,34 +196,47 @@ var Orderer = class extends Remote {
 					}
 					else {
 						logger.error('sendDeliver ERROR - reject with invalid response from the orderer');
+						if(connect) {
+							clearTimeout(deliver_timeout);
+							deliver.end();
+							connect = false;
+						}
 						return reject(new Error('SYSTEM_ERROR'));
 					}
 				});
 
 				deliver.on('status', function (response) {
-					logger.debug('sendDeliver - on status:'+ JSON.stringify(response));
+					logger.debug('sendDeliver - on status:%j',response);
 				});
 
 				deliver.on('end', function (response) {
 					logger.debug('sendDeliver - on end');
-					clearTimeout(deliver_timeout);
-					deliver.cancel();
+					if(connect) {
+						clearTimeout(deliver_timeout);
+						deliver.cancel();
+						connect = false;
+					}
+
 				});
 
 				deliver.on('error', function (err) {
 					logger.debug('sendDeliver - on error');
-					deliver.end();
-					if(err && err.code) {
-						if(err.code == 14) {
-							logger.error('sendDeliver - on error code 14: %j',err.stack ? err.stack : err);
-							return reject(new Error('SERVICE_UNAVAILABLE'));
+					if(connect) {
+						clearTimeout(deliver_timeout);
+						deliver.end();
+						connect = false;
+						if(err && err.code) {
+							if(err.code == 14) {
+								logger.error('sendDeliver - on error code 14: %j',err.stack ? err.stack : err);
+								return reject(new Error('SERVICE_UNAVAILABLE'));
+							}
 						}
 					}
-					logger.debug('sendDeliver - on error: %j',err.stack ? err.stack : err);
 					return reject(new Error(err));
 				});
 
 				deliver.write(envelope);
+				connect = true;
 //				deliver.end();
 				logger.debug('sendDeliver - sent envelope');
 			}
