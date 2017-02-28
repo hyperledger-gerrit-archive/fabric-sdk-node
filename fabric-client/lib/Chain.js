@@ -1321,7 +1321,7 @@ var Chain = class {
 			args.push(Buffer.from(request.args[i], 'utf8'));
 
 		let ccSpec = {
-			type: _ccProto.ChaincodeSpec.Type.GOLANG,
+			type: translateCCType(request.chaincodeType),
 			chaincode_id: {
 				name: request.chaincodeId,
 				path: request.chaincodePath,
