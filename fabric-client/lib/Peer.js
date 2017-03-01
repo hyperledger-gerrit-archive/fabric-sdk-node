@@ -52,7 +52,8 @@ var Peer = class extends Remote {
 	 */
 	constructor(url, opts) {
 		super(url, opts);
-		logger.info('Peer.const - url: %s options ',url, this._options);
+		this._request_timeout = utils.getConfigSetting('request-timeout',3000); //default 3 seconds
+		logger.debug('Peer.const - url: %s timeout: %s', url, this._request_timeout);
 		this._endorserClient = new _serviceProto.Endorser(this._endpoint.addr, this._endpoint.creds, this._options);
 		this._name = null;
 		this._roles = [];
@@ -181,17 +182,27 @@ var Peer = class extends Remote {
 		logger.debug('Peer.sendProposal - Start');
 		var self = this;
 
+		if(!proposal) {
+			return Promise.reject(new Error('Missing proposal to send to peer'));
+		}
+
 		// Send the transaction to the peer node via grpc
 		// The rpc specification on the peer side is:
 		//     rpc ProcessProposal(Proposal) returns (ProposalResponse) {}
 		return new Promise(function(resolve, reject) {
+			var send_timeout = setTimeout(function(){
+				logger.debug('sendProposal - timed out after:%s', self._request_timeout);
+				return reject(new Error('REQUEST_TIMEOUT'));
+			}, self._request_timeout);
+
 			self._endorserClient.processProposal(proposal, function(err, proposalResponse) {
+				clearTimeout(send_timeout);
 				if (err) {
 					logger.error('GRPC client got an error response from the peer. %s', err.stack ? err.stack : err);
 					reject(new Error(err));
 				} else {
 					if (proposalResponse) {
-						logger.info('Received proposal response received: status - %s', proposalResponse.response.status);
+						logger.debug('Received proposal response received: status - %s', proposalResponse.response.status);
 						resolve(proposalResponse);
 					} else {
 						logger.error('GRPC client failed to get a proper response from the peer.');
