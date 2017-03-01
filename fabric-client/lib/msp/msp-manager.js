@@ -22,7 +22,9 @@ var grpc = require('grpc');
 
 var MSP = require('./msp.js');
 var utils = require('../utils.js');
+var logger = utils.getLogger('MSPManager.js');
 var idModule = require('./identity.js');
+
 var SigningIdentity = idModule.SigningIdentity;
 var Signer = idModule.Signer;
 
@@ -77,10 +79,27 @@ var MSPManager = class {
 			// and digital signature algorithm should be from the config itself
 			var cs = utils.getCryptoSuite();
 
+			// get the org names
+			var orgs = [];
+			let org_units = fabricConfig.getOrganizationalUnitIdentifiers();
+			if(org_units) for(let i = 0; i < org_units.length; i++) {
+				let org_unit = org_units[i];
+				let org_id = org_unit.organizational_unit_identifier;
+				logger.debug('loadMSPs - found org of :: %s',org_id);
+				orgs.push(org_id);
+			}
+			if(orgs.length == 0) {
+				// since there were not orgs included, use the name of this MSP
+				logger.debug('loadMSPs - adding config name instead of actual org name :: %s',fabricConfig.getName());
+				orgs.push(fabricConfig.getName());
+			}
+
 			var newMSP = new MSP({
 				rootCerts: fabricConfig.getRootCerts(),
+				intermediateCerts: fabricConfig.getIntermediateCerts(),
 				admins: fabricConfig.getAdmins(),
 				id: fabricConfig.getName(),
+				orgs : orgs,
 				cryptoSuite: cs
 			});
 
