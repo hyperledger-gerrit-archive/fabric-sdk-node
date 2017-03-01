@@ -18,7 +18,13 @@ var tape = require('tape');
 var _test = require('tape-promise');
 var test = _test(tape);
 
+var log4js = require('log4js');
+var logger = log4js.getLogger('cloudant-fabricca');
+logger.setLevel('DEBUG');
+
 var hfc = require('fabric-client');
+hfc.setLogger(logger);
+
 var Client = hfc;
 var User = require('fabric-client/lib/User.js');
 var FabricCAServices = require('fabric-ca-client/lib/FabricCAClientImpl');
@@ -40,13 +46,13 @@ var cloudantUrl = 'https://1421acc7-6faa-491a-8e10-951e2e190684-bluemix:7179ef7a
 // CouchDB KeyValueStore. Then the test uses the Chain class to load the member
 // from the key value store.
 test('Use FabricCAServices wih a Cloudant CouchDB KeyValueStore', function(t) {
-	t.equal(keyValueStore, 'fabric-client/lib/impl/CouchDBKeyValueStore.js', 'Check key value store override for CouchDBKeyValueStore');
 
 	//var user = new User();
 	var client = new Client();
 
 	// Set the relevant configuration values
 	utils.setConfigSetting('crypto-keysize', 256);
+	utils.setConfigSetting('key-value-store','fabric-client/lib/impl/CouchDBKeyValueStore.js');
 
 	// Clean up the cloudant couchdb test database
 	var dbname = 'member_db';
@@ -72,14 +78,14 @@ test('Use FabricCAServices wih a Cloudant CouchDB KeyValueStore', function(t) {
 				return new FabricCAServices('http://localhost:7054', {name: dbname, url: cloudantUrl});
 			},
 			function(err) {
-				console.log(err);
+				logger.err(err);
 				t.fail('Error initializing Cloudant KeyValueStore. Exiting.');
 				t.end();
 				process.exit(1);
 			})
 		.then(
 			function(caService) {
-				console.log('ADD: caService - ' + caService);
+				logger.info('ADD: caService - ' + caService);
 				t.pass('Successfully initialized the Fabric CA service.');
 
 				client.setCryptoSuite(caService.getCrypto());
