@@ -301,6 +301,21 @@ var Chain = class {
 		return false;
 	}
 
+	// utility function to ensure that a list peers exists on this chain
+	isValidPeers(peers) {
+		var result = true;
+		if (peers && peers.length > 0) {
+			for (let p = 0; p < peers.length; p++) {
+				if (!this.isValidPeer(peers[p])) {
+					errorMsg = 'Peer object '+ peers[p] +' not in chain';
+					logger.error('isValidPeers error '+ errorMsg);
+					result = false;
+				}
+			}
+		}
+		return result;
+	}
+
 	/**
 	 * Set the primary peer
 	 * The peer to use for doing queries.
@@ -405,8 +420,7 @@ var Chain = class {
 			errorMsg = 'Missing orderer object for the initialize channel';
 		}
 
-		// verify that we have targets (Peers) to join this channel
-		// defined by the caller
+		// verify that we have a request
 		else if(!request) {
 			errorMsg = 'Missing all required input request parameters for initialize channel';
 		}
@@ -484,7 +498,7 @@ var Chain = class {
 			errorMsg = 'Missing orderer object for the join channel proposal';
 		}
 
-		// verify that we have targets (Peers) to join this channel
+		// verify that we have a request to join this channel
 		// defined by the caller
 		else if(!request) {
 			errorMsg = 'Missing all required input request parameters';
@@ -1425,6 +1439,8 @@ var Chain = class {
 	 * Sends an install proposal to one or more endorsing peers.
 	 *
 	 * @param {Object} request - An object containing the following fields:
+	 *		<br>`targets` : An array or single endorsing {@link Peer} objects as the
+	 *                      targets of the request
 	 *		<br>`chaincodePath` : required - String of the path to location of
 	 *                            the source code of the chaincode
 	 *		<br>`chaincodeId` : required - String of the name of the chaincode
@@ -1449,17 +1465,8 @@ var Chain = class {
 		var errorMsg = null;
 
 		var peers = null;
-		if (request) {
-			let peers = request.targets;
-			if (peers && peers.length > 0) {
-				for (let p = 0; p < peers.length; p++) {
-					if (!this.isValidPeer(peers[p])) {
-						errorMsg = 'Request targets peer object '+ peers[p] +' not in chain';
-						logger.error('Chain.sendInstallProposal error '+ errorMsg);
-						return Promise.reject(new Error(errorMsg));
-					}
-				}
-			}
+		if (request && request.targets && this.isValidPeers(request.targets)) {
+			peers = request.targets;
 		}
 		if (!peers || peers.length < 1) {
 			peers = this.getPeers();
@@ -1554,6 +1561,8 @@ var Chain = class {
 	 * Sends an instantiate proposal to one or more endorsing peers.
 	 *
 	 * @param {Object} request - An object containing the following fields:
+	 *		<br>`targets` : An array or single endorsing {@link Peer} objects as the
+	 *                      targets of the request
 	 *		<br>`chaincodeType` : optional -- Type of chaincode ['golang', 'car', 'java']
 	 *                            (default 'golang')
 	 *		<br>`chaincodePath` : required - String of the path to location of
@@ -1570,45 +1579,71 @@ var Chain = class {
 	 * @returns {Promise} A Promise for a `ProposalResponse`
 	 * @see /protos/peer/proposal_response.proto
 	 */
-	sendInstantiateProposal(request) {
+	instantiateChaincode(request) {
+		return this.sendChainCodeProposal(request, 'deploy');
+	}
+
+
+	/**
+	 * Sends an upgrade proposal to one or more endorsing peers.
+	 *
+	 * @param {Object} request - An object containing the following fields:
+	 *		<br>`targets` : An array or single endorsing {@link Peer} objects as the
+	 *                      targets of the request
+	 *		<br>`chaincodeType` : optional -- Type of chaincode ['golang', 'car', 'java']
+	 *                            (default 'golang')
+	 *		<br>`chaincodePath` : required - String of the path to location of
+	 *                            the source code of the chaincode
+	 *		<br>`chaincodeId` : required - String of the name of the chaincode
+	 *		<br>`chaincodeVersion` : required - String of the version of the chaincode
+	 *		<br>`chainId` : required - String of the name of the chain
+	 *		<br>`txId` : required - String of the transaction id
+	 *		<br>`nonce` : required - Integer of the once time number
+	 *		<br>`fcn` : optional - String of the function to be called on
+	 *                  the chaincode once instantiated (default 'init')
+	 *		<br>`args` : optional - String Array arguments specific to
+	 *                   the chaincode being instantiated
+	 * @returns {Promise} A Promise for a `ProposalResponse`
+	 * @see /protos/peer/proposal_response.proto
+	 */
+	upgradeChaincode(request) {
+		return this.sendChainCodeProposal(request, 'upgrade');
+	}
+
+	/*
+	 * Utility method to perform the Chain code instantiate or upgrade
+	 */
+	sendChainCodeProposal(request, command) {
 		var errorMsg = null;
 
 		var peers = null;
-		if (request) {
-			let peers = request.targets;
-			if (peers && peers.length > 0) {
-				for (let p = 0; p < peers.length; p++) {
-					if (!this.isValidPeer(peers[p])) {
-						errorMsg = 'Request targets peer object '+ peers[p] +' not in chain';
-						logger.error('Chain.sendInstantiateProposal error '+ errorMsg);
-						return Promise.reject(new Error(errorMsg));
-					}
-				}
-			}
+		if (request && request.targets && this.isValidPeers(request.targets)) {
+			peers = request.targets;
 		}
 		if (!peers || peers.length < 1) {
 			peers = this.getPeers();
 		}
+
 		// Verify that a Peer has been added
 		if (peers.length < 1) {
-			errorMsg = 'Missing peer objects in Instantiate proposal chain';
-			logger.error('Chain.sendInstantiateProposal error '+ errorMsg);
+			errorMsg = 'Missing peer objects in proposal';
+			logger.error('sendChainCodeProposal error '+ errorMsg);
 			return Promise.reject(new Error(errorMsg));
 		}
 
 		errorMsg = Chain._checkProposalRequest(request);
 		if (errorMsg) {
-			logger.error('Chain.sendInstantiateProposal error ' + errorMsg);
+			logger.error('sendChainCodeProposal error ' + errorMsg);
 			return Promise.reject(new Error(errorMsg));
 		}
 		errorMsg = Chain._checkInstallRequest(request);
 		if (errorMsg) {
-			logger.error('Chain.sendInstantiateProposal error ' + errorMsg);
+			logger.error('sendChainCodeProposal error ' + errorMsg);
 			return Promise.reject(new Error(errorMsg));
 		}
 		errorMsg = Chain._checkInstantiateRequest(request);
 		if (errorMsg) {
-			logger.error('Chain.sendInstantiateProposal error ' + errorMsg);
+			logger.error('sendChainCodeProposal error ' + errorMsg);
 			return Promise.reject(new Error(errorMsg));
 		}
 
@@ -1647,7 +1682,7 @@ var Chain = class {
 				name: 'lccc'
 			},
 			input: {
-				args: [Buffer.from('deploy', 'utf8'), Buffer.from('default', 'utf8'), chaincodeDeploymentSpec.toBuffer()]
+				args: [Buffer.from(command, 'utf8'), Buffer.from('default', 'utf8'), chaincodeDeploymentSpec.toBuffer()]
 			}
 		};
 

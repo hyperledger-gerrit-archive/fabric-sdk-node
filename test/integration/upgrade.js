@@ -24,7 +24,7 @@ var _test = require('tape-promise');
 var test = _test(tape);
 
 var log4js = require('log4js');
-var logger = log4js.getLogger('E2E');
+var logger = log4js.getLogger('UPGRADE');
 logger.setLevel('DEBUG');
 
 var path = require('path');
@@ -40,7 +40,7 @@ var Orderer = require('fabric-client/lib/Orderer.js');
 var EventHub = require('fabric-client/lib/EventHub.js');
 
 var chaincode_id = 'end2end';
-var chaincode_version = 'v0';
+var chaincode_version = 'v1';
 var chain_id = 'testchainid';
 
 var client = new hfc();
@@ -64,13 +64,20 @@ if (steps.length > 0 &&
 	useSteps = true;
 logger.info('Found steps: %s', steps, 'useSteps: '+useSteps);
 
+var useErrorSteps = false;
+if (steps.length > 0 &&
+	(steps.indexOf('error1') > -1 || steps.indexOf('error2') > -1 || steps.indexOf('error3') > -1 ))
+	useErrorSteps = true;
+logger.info('Found error steps: %s', steps, 'useErrorSteps: '+useErrorSteps);
+
 testUtil.setupChaincodeDeploy();
 
 chain.addOrderer(new Orderer('grpc://localhost:7050'));
 chain.addPeer(peer0);
 chain.addPeer(peer1);
 
-test('End-to-end flow of chaincode install, instantiate, transaction invocation, and query', (t) => {
+// M U S T   B E   R U N   A F T E R   end-to-end.js
+if(!useErrorSteps) test('End-to-end flow of chaincode install, upgrade, transaction invocation, and query', (t) => {
 
 	hfc.newDefaultKeyValueStore({
 		path: testUtil.KVS
@@ -114,7 +121,7 @@ test('End-to-end flow of chaincode install, instantiate, transaction invocation,
 
 				// send proposal to endorser
 				var request = {
-					chaincodePath: testUtil.CHAINCODE_PATH,
+					chaincodePath: testUtil.CHAINCODE_UPGRADE_PATH,
 					chaincodeId: chaincode_id,
 					chaincodeVersion: chaincode_version,
 					txId: tx_id,
@@ -171,17 +178,17 @@ test('End-to-end flow of chaincode install, instantiate, transaction invocation,
 
 				// send proposal to endorser
 				var request = {
-					chaincodePath: testUtil.CHAINCODE_PATH,
+					chaincodePath: testUtil.CHAINCODE_UPGRADE_PATH,
 					chaincodeId: chaincode_id,
 					chaincodeVersion: chaincode_version,
 					fcn: 'init',
-					args: ['a', '100', 'b', '200'],
+					args: ['a', '500', 'b', '600'],
 					chainId: chain_id,
 					txId: tx_id,
 					nonce: nonce
 				};
 
-				return chain.instantiateChaincode(request);
+				return chain.upgradeChaincode(request);
 
 			},
 			(err) => {
@@ -197,9 +204,9 @@ test('End-to-end flow of chaincode install, instantiate, transaction invocation,
 					let one_good = false;
 					if (proposalResponses && proposalResponses[0].response && proposalResponses[0].response.status === 200) {
 						one_good = true;
-						logger.info('instantiate proposal was good');
+						logger.info('upgrade proposal was good');
 					} else {
-						logger.error('instantiate proposal was bad');
+						logger.error('upgrade proposal was bad');
 					}
 					all_good = all_good & one_good;
 				}
@@ -258,28 +265,28 @@ test('End-to-end flow of chaincode install, instantiate, transaction invocation,
 						}
 						return results[0]; // the first returned value is from the 'sendPromise' which is from the 'sendTransaction()' call
 					}).catch((err) => {
-						t.fail('Failed to send instantiate transaction and get notifications within the timeout period. ');
+						t.fail('Failed to send upgrade transaction and get notifications within the timeout period. ');
 						t.end();
 					});
 
 				} else {
-					t.fail('Failed to send instantiate Proposal or receive valid response. Response null or status is not 200. exiting...');
+					t.fail('Failed to send upgrade Proposal or receive valid response. Response null or status is not 200. exiting...');
 					t.end();
 				}
 			},
 			(err) => {
-				t.fail('Failed to send instantiate proposal due to error: ' + err.stack ? err.stack : err);
+				t.fail('Failed to send upgrade proposal due to error: ' + err.stack ? err.stack : err);
 				t.end();
 			}).then((response) => {
 				if (response.status === 'SUCCESS') {
-					t.pass('Successfully sent instantiate transaction to the orderer.');
+					t.pass('Successfully sent upgrade transaction to the orderer.');
 				} else {
-					t.fail('Failed to order the instantiate endorsement. Error code: ' + response.status);
+					t.fail('Failed to order the upgrade endorsement. Error code: ' + response.status);
 					t.end();
 				}
 			},
 			(err) => {
-				t.fail('Failed to send instantiate due to error: ' + err.stack ? err.stack : err);
+				t.fail('Failed to send upgrade due to error: ' + err.stack ? err.stack : err);
 				t.end();
 			});
 		}
@@ -291,9 +298,7 @@ test('End-to-end flow of chaincode install, instantiate, transaction invocation,
 				if(the_user === null) {
 					the_user = admin;
 				}
-				nonce = Buffer.from('12');//hard coded this so that we have a known transaction id that may be queried later
-//				nonce = utils.getNonce();
-
+				nonce = utils.getNonce();
 				tx_id = chain.buildTransactionID(nonce, the_user);
 
 				// send proposal to endorser
@@ -434,7 +439,7 @@ test('End-to-end flow of chaincode install, instantiate, transaction invocation,
 			}).then((response_payloads) => {
 				if (response_payloads) {
 					for(let i = 0; i < response_payloads.length; i++) {
-						t.equal(response_payloads[i].toString('utf8'),'300','checking query results are correct that user b has 300 now after the move');
+						t.equal(response_payloads[i].toString('utf8'),'410','checking query results are correct that user b has 410 (got the bonus) now after the move');
 					}
 					t.end();
 				} else {
@@ -451,5 +456,160 @@ test('End-to-end flow of chaincode install, instantiate, transaction invocation,
 			});
 		}
 	});
-	t.end();
+});
+
+if(!useSteps) test('E R R O R  T E S T I N G on upgrade call', (t) => {
+
+	hfc.newDefaultKeyValueStore({
+		path: testUtil.KVS
+	}).then((store) => {
+		client.setStateStore(store);
+		var promise = testUtil.getSubmitter(client, t);
+
+		if (!useErrorSteps || steps.indexOf('error1') >= 0) {
+			logger.info('Executing error1');
+			promise = promise.then((admin) => {
+				t.pass('Successfully enrolled user \'admin\'');
+				if(the_user === null) {
+					the_user = admin;
+				}
+				nonce = utils.getNonce();
+				tx_id = chain.buildTransactionID(nonce, the_user);
+
+				// send proposal to endorser
+				var request = {
+					chaincodePath: testUtil.CHAINCODE_UPGRADE_PATH,
+					chaincodeId: chaincode_id,
+					chaincodeVersion: chaincode_version,
+					fcn: 'init',
+					args: ['a', '500', 'b', '600'],
+					chainId: chain_id,
+					txId: tx_id,
+					nonce: nonce
+				};
+
+				return chain.upgradeChaincode(request);
+
+			},
+			(err) => {
+				t.fail('Failed to enroll user \'admin\'. ' + err);
+				t.end();
+			}).then((results) => {
+				if(results && Array.isArray(results) ) {
+					if (results[0][0] instanceof Error && results[0][0].toString().indexOf('Error: chain code with the same version exists') >= 0) {
+						t.pass('Should not be able to upgrade with same version number');
+						if (useErrorSteps) {
+							t.end();
+						}
+					} else {
+						t.fail(results);
+						t.end();
+					}
+				}
+			},
+			(err) => {
+				logger.info('TEST PASSED - not able to upgrade with same version number');
+				t.pass('This action should fail: ' + err.stack ? err.stack : err);
+				if (useErrorSteps) {
+					t.end();
+				}
+			});
+		}
+
+		if (!useErrorSteps || steps.indexOf('error2') >= 0) {
+			logger.info('Executing error2');
+			promise = promise.then((admin) => {
+				t.pass('Successfully enrolled user \'admin\'');
+				if(the_user === null) {
+					the_user = admin;
+				}
+				nonce = utils.getNonce();
+				tx_id = chain.buildTransactionID(nonce, the_user);
+
+				// send proposal to endorser
+				var request = {
+					chaincodePath: testUtil.CHAINCODE_UPGRADE_PATH,
+					chaincodeId: 'dummy',
+					chaincodeVersion: chaincode_version,
+					fcn: 'init',
+					args: ['a', '500', 'b', '600'],
+					chainId: chain_id,
+					txId: tx_id,
+					nonce: nonce
+				};
+
+				return chain.upgradeChaincode(request);
+
+			},
+			(err) => {
+				t.fail('Failed to enroll user \'admin\'. ' + err);
+				t.end();
+			}).then((results) => {
+				if(results && Array.isArray(results) ) {
+					if (results[0][0] instanceof Error && results[0][0].toString().indexOf('Error: chaincode not found default') >= 0) {
+						t.pass('Should not able to upgrade non existing chaincode');
+						if (useErrorSteps) {
+							t.end();
+						}
+					} else {
+						t.fail(results);
+						t.end();
+					}
+				}
+			},
+			(err) => {
+				logger.info('TEST PASSED - not able to upgrade non existing chaincode');
+				t.pass('This action should fail: ' + err.stack ? err.stack : err);
+				if (useErrorSteps) {
+					t.end();
+				}
+			});
+		}
+
+		if (!useErrorSteps || steps.indexOf('error3') >= 0) {
+			logger.info('Executing error3');
+			promise = promise.then((admin) => {
+				t.pass('Successfully enrolled user \'admin\'');
+				if(the_user === null) {
+					the_user = admin;
+				}
+				nonce = utils.getNonce();
+				tx_id = chain.buildTransactionID(nonce, the_user);
+
+				// send proposal to endorser
+				var request = {
+					chaincodePath: testUtil.CHAINCODE_UPGRADE_PATH,
+					chaincodeId: chaincode_id,
+					chaincodeVersion: 'v3',
+					fcn: 'init',
+					args: ['a', '500', 'b', '600'],
+					chainId: chain_id,
+					txId: tx_id,
+					nonce: nonce
+				};
+
+				return chain.upgradeChaincode(request);
+
+			},
+			(err) => {
+				t.fail('Failed to enroll user \'admin\'. ' + err);
+				t.end();
+			}).then((results) => {
+				if(results && Array.isArray(results) ) {
+					if (results[0][0] instanceof Error && results[0][0].toString().indexOf('no such file or directory') >= 0) {
+						t.pass('Should not able to upgrade with non existing version of chaincode');
+						t.end();
+					} else {
+						t.fail(results);
+						t.end();
+					}
+				}
+			},
+			(err) => {
+				logger.info('TEST PASSED - not able to upgrade with non existing version of chaincode');
+				t.pass('This action should fail: ' + err.stack ? err.stack : err);
+				t.end();
+			});
+		}
+	});
 });

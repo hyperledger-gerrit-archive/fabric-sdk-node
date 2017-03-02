@@ -139,7 +139,7 @@ test('\n\n** TEST ** endorse chaincode install good test', function(t) {
 					nonce: nonce
 				};
 
-				return chain.sendInstantiateProposal(request);
+				return chain.instantiateChaincode(request);
 			},
 			function(err) {
 				t.fail('Failed to enroll user \'admin\'. ' + err);
