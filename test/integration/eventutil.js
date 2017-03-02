@@ -26,7 +26,7 @@ module.exports.registerTxEvent = function(eh, txid, timeout) {
 		}, timeout);
 
 		eh.registerTxEvent(txid, (txid, invalid) => {
-			if (invalid) {
+			if (invalid != 'VALID') {
 				reject('invalid');
 			} else {
 				resolve();
@@ -78,8 +78,8 @@ function checkProposal(results) {
 		let one_good = false;
 
 		if (proposalResponses &&
-			proposalResponses[0].response &&
-			proposalResponses[0].response.status === 200) {
+			proposalResponses[i].response &&
+			proposalResponses[i].response.status === 200) {
 
 			one_good = true;
 		}

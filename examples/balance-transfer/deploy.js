@@ -76,7 +76,7 @@ hfc.newDefaultKeyValueStore({
 			txId: tx_id,
 			nonce: nonce,
 		};
-		return chain.sendInstantiateProposal(request);
+		return chain.instantiateChaincode(request);
 	}
 ).then(
 	function(results) {

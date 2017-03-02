@@ -82,7 +82,7 @@ test('End-to-end flow of chaincode instantiate, transaction invocation, and quer
 					nonce: nonce
 				};
 
-				return admin.sendInstantiateProposal(request);
+				return admin.instantiateChaincode(request);
 			},
 			function(err) {
 				t.fail('Failed to enroll user \'admin\'. ' + err);

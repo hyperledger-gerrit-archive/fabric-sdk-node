@@ -15,7 +15,7 @@
  */
 
 'use strict';
-
+//process.env.HFC_LOGGING = '{"debug": "console"}';
 var tape = require('tape');
 var _test = require('tape-promise');
 var test = _test(tape);
@@ -64,7 +64,7 @@ testUtil.setupChaincodeDeploy();
 
 chain.addOrderer(new Orderer('grpc://localhost:7050'));
 chain.addPeer(peer0);
-chain.addPeer(peer1);
+//chain.addPeer(peer1);
 
 test('Test chaincode instantiate with event, transaction invocation with chaincode event, and query number of chaincode events', (t) => {
 	hfc.newDefaultKeyValueStore({
@@ -108,7 +108,7 @@ test('Test chaincode instantiate with event, transaction invocation with chainco
 					request = eputil.createRequest(chain, the_user, chaincode_id, 'init', []);
 					request.chaincodePath = 'github.com/events_cc';
 					request.chaincodeVersion = chaincode_version;
-					return chain.sendInstantiateProposal(request);
+					return chain.instantiateChaincode(request);
 				} else {
 					return Promise.reject('bad install proposal:' + results);
 				}

@@ -100,7 +100,7 @@ test('\n\n** TEST ** endorse chaincode install good test', function(t) {
 				var all_good = true;
 				for(var i in proposalResponses) {
 					let one_good = false;
-					if (proposalResponses && proposalResponses[0].response && proposalResponses[0].response.status === 200) {
+					if (proposalResponses && proposalResponses[i].response && proposalResponses[i].response.status === 200) {
 						one_good = true;
 						logger.info('install proposal was good');
 					} else {
@@ -139,7 +139,7 @@ test('\n\n** TEST ** endorse chaincode install good test', function(t) {
 					nonce: nonce
 				};
 
-				return chain.sendInstantiateProposal(request);
+				return chain.instantiateChaincode(request);
 			},
 			function(err) {
 				t.fail('Failed to enroll user \'admin\'. ' + err);
