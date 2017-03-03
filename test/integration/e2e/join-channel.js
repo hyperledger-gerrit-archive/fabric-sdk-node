@@ -112,13 +112,22 @@ function joinChannel(org, t) {
 	.then((results) => {
 		logger.info(util.format('Join Channel R E S P O N S E : %j', results));
 
-		if(results[0] && results[0].response && results[0].response.status == 200)
+		if(results[0] && results[0].response && results[0].response.status == 200) {
 			t.pass('Successfully joined channel.');
-		else {
+			return sleep(5000);
+		} else {
 			t.fail(' Failed to join channel');
 			throw new Error('Failed to join channel');
 		}
 	}, (err) => {
 		t.fail('Failed to join channel due to error: ' + err.stack ? err.stack : err);
+	}).then((nothing) => {
+		t.pass('Successfully waited to make sure new channel was joined.');
+	}, (err) => {
+		t.fail('Failed to sleep due to error: ' + err.stack ? err.stack : err);
 	});
+}
+
+function sleep(ms) {
+	return new Promise(resolve => setTimeout(resolve, ms));
 }
