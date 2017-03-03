@@ -20,14 +20,8 @@ var tape = require('tape');
 var _test = require('tape-promise');
 var test = _test(tape);
 
-var log4js = require('log4js');
-var logger = log4js.getLogger('events-test');
-
 var path = require('path');
-
 var hfc = require('fabric-client');
-hfc.setLogger(logger);
-
 var util = require('util');
 var testUtil = require('../unit/util.js');
 var utils = require('fabric-client/lib/utils.js');
@@ -36,12 +30,15 @@ var Orderer = require('fabric-client/lib/Orderer.js');
 var EventHub = require('fabric-client/lib/EventHub.js');
 var eputil = require('./eventutil.js');
 
+var logger = utils.getLogger('events');
+hfc.setConfigSetting('hfc-logging', '{"debug":"console"}');
+
 var client = new hfc();
 var chain_id = 'testchainid';
 var chain = client.newChain(chain_id);
 
-var chaincode_id = 'events_unit_test';
-var chaincode_version = 'v0';
+var chaincode_id = testUtil.getUniqueVersion('events_unit_test');
+var chaincode_version = testUtil.getUniqueVersion();
 var request = null;
 var nonce = null;
 var the_user = null;
@@ -154,7 +151,7 @@ test('Test chaincode instantiate with event, transaction invocation with chainco
 				t.fail('Failed to send transaction proposal due to error: ' + err.stack ? err.stack : err);
 				t.end();
 			}).then((results) => {
-				t.pass('Successfully recieved chaincode event.');
+				t.pass('Successfully received chaincode event.');
 				if (steps.length === 1 && steps[0] === 'step2') {
 					t.end();
 				}

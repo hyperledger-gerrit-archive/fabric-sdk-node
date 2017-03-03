@@ -18,20 +18,12 @@
 // in a happy-path scenario
 'use strict';
 
-process.env.HFC_LOGGING = '{"debug": "console"}';
 var tape = require('tape');
 var _test = require('tape-promise');
 var test = _test(tape);
 
-var log4js = require('log4js');
-var logger = log4js.getLogger('E2E');
-logger.setLevel('DEBUG');
-
 var path = require('path');
-
 var hfc = require('fabric-client');
-hfc.setLogger(logger);
-
 var util = require('util');
 var testUtil = require('../unit/util.js');
 var utils = require('fabric-client/lib/utils.js');
@@ -39,14 +31,22 @@ var Peer = require('fabric-client/lib/Peer.js');
 var Orderer = require('fabric-client/lib/Orderer.js');
 var EventHub = require('fabric-client/lib/EventHub.js');
 
-var chaincode_id = 'end2end';
-var chaincode_version = 'v0';
-var chain_id = 'testchainid';
+var logger = utils.getLogger('E2E');
+hfc.setConfigSetting('hfc-logging', '{"debug":"console"}');
 
+var chaincode_id = testUtil.getUniqueVersion('end2end');
+utils.setConfigSetting('END_TO_END_CHAINCODE_ID', chaincode_id);
+logger.info('setConfigSetting("END_TO_END_CHAINCODE_ID") = %s', chaincode_id);
+
+var chaincode_version = testUtil.getUniqueVersion();
+utils.setConfigSetting('END_TO_END_CHAINCODE_VERSION', chaincode_version);
+logger.info('setConfigSetting("END_TO_END_CHAINCODE_VERSION") = %s', chaincode_version);
+
+var chain_id = 'testchainid';
 var client = new hfc();
 var chain = client.newChain(chain_id);
 
-var tx_id = null;
+var tx_id = null, end_to_end_tx_id = null;
 var nonce = null;
 var the_user = null;
 var peer0 = new Peer('grpc://localhost:7051'),
@@ -109,7 +109,6 @@ test('End-to-end flow of chaincode install, instantiate, transaction invocation,
 			promise = promise.then((admin) => {
 				t.pass('Successfully enrolled user \'admin\'');
 				the_user = admin;
-
 				nonce = utils.getNonce();
 				tx_id = chain.buildTransactionID(nonce, the_user);
 
@@ -274,6 +273,9 @@ test('End-to-end flow of chaincode install, instantiate, transaction invocation,
 			}).then((response) => {
 				if (response.status === 'SUCCESS') {
 					t.pass('Successfully sent instantiate transaction to the orderer.');
+					if (useSteps) {
+						t.end();
+					}
 				} else {
 					t.fail('Failed to order the instantiate endorsement. Error code: ' + response.status);
 					t.end();
@@ -292,10 +294,12 @@ test('End-to-end flow of chaincode install, instantiate, transaction invocation,
 				if(the_user === null) {
 					the_user = admin;
 				}
-				nonce = Buffer.from('12');//hard coded this so that we have a known transaction id that may be queried later
-//				nonce = utils.getNonce();
+				nonce = utils.getNonce();
 
 				tx_id = chain.buildTransactionID(nonce, the_user);
+				end_to_end_tx_id = tx_id;
+				utils.setConfigSetting('END_TO_END_TX_ID', tx_id);
+				logger.info('setConfigSetting("END_TO_END_TX_ID") = %s', tx_id);
 
 				// send proposal to endorser
 				var request = {
@@ -395,6 +399,9 @@ test('End-to-end flow of chaincode install, instantiate, transaction invocation,
 			}).then((response) => {
 				if (response && response.status === 'SUCCESS') {
 					t.pass('Successfully ordered endorsement transaction.');
+					if (useSteps) {
+						t.end();
+					}
 				} else {
 					t.fail('Failed to order the endorsement of the transaction. Error code: ' + response.status);
 					t.end();
@@ -437,6 +444,12 @@ test('End-to-end flow of chaincode install, instantiate, transaction invocation,
 					for(let i = 0; i < response_payloads.length; i++) {
 						t.equal(response_payloads[i].toString('utf8'),'300','checking query results are correct that user b has 300 now after the move');
 					}
+					t.comment('******************************************************************');
+					t.comment('To manually run query.js, set the following environment variables:');
+					t.comment('END_TO_END_CHAINCODE_ID='+'\''+chaincode_id+'\'');
+					t.comment('END_TO_END_CHAINCODE_VERSION='+'\''+chaincode_version+'\'');
+					t.comment('END_TO_END_TX_ID='+'\''+end_to_end_tx_id+'\'');
+					t.comment('******************************************************************');
 					t.end();
 				} else {
 					t.fail('response_payloads is null');
@@ -452,5 +465,4 @@ test('End-to-end flow of chaincode install, instantiate, transaction invocation,
 			});
 		}
 	});
-	t.end();
 });

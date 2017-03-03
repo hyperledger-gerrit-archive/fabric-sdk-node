@@ -17,22 +17,22 @@
 // This is an end-to-end test that focuses on exercising all parts of the fabric APIs
 // in a happy-path scenario
 'use strict';
-process.env.HFC_LOGGING = '{"debug": "console"}';
+
 var tape = require('tape');
 var _test = require('tape-promise');
 var test = _test(tape);
 
 var path = require('path');
-
 var hfc = require('fabric-client');
-
 var util = require('util');
 var testUtil = require('../unit/util.js');
 var utils = require('fabric-client/lib/utils.js');
 var Peer = require('fabric-client/lib/Peer.js');
 var Orderer = require('fabric-client/lib/Orderer.js');
 var EventHub = require('fabric-client/lib/EventHub.js');
+
 var logger = utils.getLogger('GET CONFIG');
+hfc.setConfigSetting('hfc-logging', '{"debug":"console"}');
 
 // Get the proto bufs
 var grpc = require('grpc');

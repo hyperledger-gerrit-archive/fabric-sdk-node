@@ -17,10 +17,7 @@
 var tape = require('tape');
 var _test = require('tape-promise');
 var test = _test(tape);
-process.env.HFC_LOGGING = '{"debug": "console"}';
-var log4js = require('log4js');
-var logger = log4js.getLogger('NEW CHAIN');
-logger.setLevel('DEBUG');
+
 var hfc = require('fabric-client');
 var util = require('util');
 var fs = require('fs');
@@ -32,6 +29,10 @@ var Peer = require('fabric-client/lib/Peer.js');
 
 var peer0 = new Peer('grpc://localhost:7051'),
 	peer1 = new Peer('grpc://localhost:7056');
+
+var logger = utils.getLogger('NEW CHAIN');
+hfc.setConfigSetting('hfc-logging', '{"debug":"console"}');
+
 
 var keyValStorePath = testUtil.KVS;
 var the_user = null;

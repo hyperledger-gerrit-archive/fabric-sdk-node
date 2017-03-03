@@ -61,6 +61,11 @@ module.exports.cleanupDir = function(keyValStorePath) {
 	}
 };
 
+module.exports.getUniqueVersion = function(prefix) {
+	if (!prefix) prefix = 'v';
+	return prefix + Date.now();
+};
+
 // utility function to check if directory or file exists
 // uses entire / absolute path from root
 module.exports.existsSync = function(absolutePath /*string*/) {
