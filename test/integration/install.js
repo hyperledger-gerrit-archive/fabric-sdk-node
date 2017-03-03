@@ -18,19 +18,13 @@
 // in a happy-path scenario
 'use strict';
 
-process.env.HFC_LOGGING = '{"debug": "console"}';
 var tape = require('tape');
 var _test = require('tape-promise');
 var test = _test(tape);
 
-var log4js = require('log4js');
-var logger = log4js.getLogger('install');
-logger.setLevel('DEBUG');
-
 var path = require('path');
 
 var hfc = require('fabric-client');
-hfc.setLogger(logger);
 
 var util = require('util');
 var testUtil = require('../unit/util.js');
@@ -38,10 +32,14 @@ var utils = require('fabric-client/lib/utils.js');
 var Peer = require('fabric-client/lib/Peer.js');
 var Orderer = require('fabric-client/lib/Orderer.js');
 var Packager = require('fabric-client/lib/Packager.js');
+var Chain = require('fabric-client/lib/Chain.js');
 
 var client = new hfc();
-var Chain = require('fabric-client/lib/Chain.js');
+
+var logger = utils.getLogger('install');
+hfc.setConfigSetting('hfc-logging', '{"debug":"console"}');
 var chain_id = 'testchainid';
+
 var orderer = new Orderer('grpc://localhost:7050');
 var peer0 = new Peer('grpc://localhost:7051'),
 	peer1 = new Peer('grpc://localhost:7056');
@@ -50,7 +48,7 @@ var the_user = null;
 testUtil.setupChaincodeDeploy();
 
 test('\n\n** Test chaincode install using chaincodePath to create chaincodePackage **\n\n', (t) => {
-	var testDesc = null,chaincodePackage = null,chain = null, chainName = null;
+	var testDesc = null, chaincodePackage = null, ccVersion = null, chain = null, chainName = null;
 	hfc.newDefaultKeyValueStore({
 		path: testUtil.KVS
 	}).then((store) => {
@@ -67,10 +65,11 @@ test('\n\n** Test chaincode install using chaincodePath to create chaincodePacka
 		throw('Error - Failed to enroll user \'admin\'. ' + err);
 	}).then((admin) => {
 		t.comment('chaincodePath: '+testUtil.CHAINCODE_PATH);
+		ccVersion = testUtil.getUniqueVersion();
 		var request = {
 			chaincodePath: testUtil.CHAINCODE_PATH,
 			chaincodeId: 'install',
-			chaincodeVersion: 'v0',
+			chaincodeVersion: ccVersion
 		};
 		chainName = 'testInstall';
 		testDesc = 'using chaincodePath';
@@ -98,11 +97,12 @@ test('\n\n** Test chaincode install using chaincodePath to create chaincodePacka
 			t.comment('#########################################');
 			return install(the_user,chainName+'0',orderer,[peer0],request,testDesc+'0',t)
 			.then((info) => {
-				if (info.toString().indexOf('install.v0 exists') > 0) {
-					t.pass(info);
+				t.comment('Checking for \'install-package.'+ccVersion+' exists\'');
+				if (info && info.error && info.error.toString().indexOf('install.'+ccVersion+' exists') > 0) {
+					t.pass('passed check for exists');
 					t.end();
 				} else {
-					t.fail(info);
+					t.fail('failed check for exists');
 					t.end();
 				}
 			},
@@ -119,7 +119,7 @@ test('\n\n** Test chaincode install using chaincodePath to create chaincodePacka
 });
 
 test('\n\n** Test chaincode install using chaincodePackage[byte] **\n\n', (t) => {
-	var testDesc = null,chaincodePackage = null,chain = null, chainName = null,request=null;
+	var testDesc = null, chaincodePackage = null, ccVersion = null, chain = null, chainName = null,request=null;
 	hfc.newDefaultKeyValueStore({
 		path: testUtil.KVS
 	}).then((store) => {
@@ -139,10 +139,11 @@ test('\n\n** Test chaincode install using chaincodePackage[byte] **\n\n', (t) =>
 	})
 	.then((data) => {
 		t.comment('Packager.package data: '+data);
+		ccVersion = testUtil.getUniqueVersion();
 		request = {
 			chaincodePath: testUtil.CHAINCODE_PATH+'pkg',//not an existing path
 			chaincodeId: 'install-package',
-			chaincodeVersion: 'v0',
+			chaincodeVersion: ccVersion,
 			chaincodePackage: data
 		};
 		chainName = 'testInstallPackage';
@@ -172,17 +173,22 @@ test('\n\n** Test chaincode install using chaincodePackage[byte] **\n\n', (t) =>
 		t.comment('################################################');
 		return install(the_user,chainName+'0',orderer,[peer0],request,testDesc+'0',t)
 		.then((info) => {
-			if (info.toString().indexOf('install-package.v0 exists') > 0) {
-				t.pass(info);
-			} else t.fail(info);
-			t.end();
+			t.comment('Checking for \'install-package.'+ccVersion+' exists\'');
+			if (info && info.error && info.error.toString().indexOf('install-package.'+ccVersion+' exists') > 0) {
+				t.pass('passed check for exists');
+				t.end();
+			} else {
+				t.fail('failed check for exists');
+				t.end();
+			}
 		},
 		(err) => {
-			t.fail(testDesc+' - install same chaincode again - reject: '+err);
+			t.fail(testDesc+' - install same chaincode again - reject, error');
+			logger.error(err.stack ? err.stack : err);
 			t.end();
 		}).catch((err) => {
 			t.fail(testDesc+' - install same chaincode again - error');
-			t.comment(err.stack ? err.stack : err);
+			logger.error(err.stack ? err.stack : err);
 			t.end();
 		});
 	});
@@ -225,7 +231,10 @@ function install(user,chainName,orderer,peers,request,testDesc,t) {
 				return 'success';
 			} else {
 				t.comment(testDesc+' - Failed to send install Proposal or receive valid response. Response null or status is not 200.');
-				if (error) return new Error(error.stack ? error.stack : error);
+				if (error) {
+					if (typeof error === 'Error') return new Error(error.stack ? error.stack : error);
+					return error;
+				}
 				else return 'fail';
 			}
 		},

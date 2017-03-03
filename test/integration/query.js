@@ -16,21 +16,19 @@
 
 // This is an end-to-end test that focuses on exercising all parts of the fabric APIs
 // in a happy-path scenario
+
+// IMPORTANT ------>>>>> MUST RUN end-to-end.js FIRST
+// AND set environment variables indicated in the comments
+// at the end of the run.
+
 'use strict';
-process.env.HFC_LOGGING = '{"debug": "console"}';
+
 var tape = require('tape');
 var _test = require('tape-promise');
 var test = _test(tape);
 
-var log4js = require('log4js');
-var logger = log4js.getLogger('QUERY TEST');
-logger.setLevel('DEBUG');
-
 var path = require('path');
-
 var hfc = require('fabric-client');
-hfc.setLogger(logger);
-
 var util = require('util');
 var testUtil = require('../unit/util.js');
 var utils = require('fabric-client/lib/utils.js');
@@ -42,9 +40,11 @@ var client = new hfc();
 var chain_id = 'testchainid';
 var chain = client.newChain(chain_id);
 
+var logger = utils.getLogger('query');
+hfc.setConfigSetting('hfc-logging', '{"debug":"console"}');
+
 var webUser = null;
-var chaincode_id = 'end2end'; // assumes end to end has run first and installed and instantiated this chain code
-var tx_id = null;
+var tx_id = null, chaincode_id = null, chaincode_version = null;
 var nonce = null;
 var peer0 = new Peer('grpc://localhost:7051'),
 	peer1 = new Peer('grpc://localhost:7056');
@@ -86,7 +86,7 @@ test('  ---->>>>> Query chain working <<<<<-----', function(t) {
 		testUtil.getSubmitter(client, t)
 			.then(
 				function(admin) {
-					t.pass('Successfully enrolled user ' + admin);
+					t.pass('Successfully enrolled user \'admin\'');
 					webUser = admin;
 					// use default primary peer
 					// send query
@@ -101,9 +101,15 @@ test('  ---->>>>> Query chain working <<<<<-----', function(t) {
 					logger.info(' Chain getBlock() returned block number=%s',block.header.number);
 					t.equal(block.header.number.toString(),'0','checking query results are correct that we got zero block back');
 					chain.setPrimaryPeer(peer0);
-					nonce = Buffer.from('12');//hard coded to be the same as end-to-end.js, this transaction will only exist if
-					                          // end-to-end runs first
-					tx_id = chain.buildTransactionID(nonce, webUser);
+
+					tx_id = utils.getConfigSetting('END_TO_END_TX_ID', 'notfound');
+					logger.info('getConfigSetting("END_TO_END_TX_ID") = %s', tx_id);
+					if (tx_id === 'notfound') {
+						t.fail('Could not get tx_id from ConfigSetting "END_TO_END_TX_ID"');
+						t.end();
+					} else {
+						t.pass('Got tx_id from ConfigSetting "END_TO_END_TX_ID"');
+					}
 					// send query
 					return chain.queryTransaction(tx_id); //assumes the end-to-end has run first
 				},
@@ -183,7 +189,7 @@ test('  ---->>>>> Query chain failing <<<<<-----', function(t) {
 			logger.info('Executing GetBlockByNumber');
 			promise = promise.then(
 				function(admin) {
-					t.pass('Successfully enrolled user ' + admin);
+					t.pass('Successfully enrolled user \'admin\'');
 					webUser = admin;
 					// send query
 					return chain.queryBlock(9999999); //should not find it
@@ -213,7 +219,7 @@ test('  ---->>>>> Query chain failing <<<<<-----', function(t) {
 			queryAttempts++;
 			promise = promise.then(
 				function(admin) {
-					t.pass('Successfully enrolled user ' + admin);
+					t.pass('Successfully enrolled user \'admin\'');
 					if(admin) webUser = admin;
 					// send query
 					return chain.queryTransaction('99999'); //assumes the end-to-end has run first
@@ -243,7 +249,7 @@ test('  ---->>>>> Query chain failing <<<<<-----', function(t) {
 			queryAttempts++;
 			promise = promise.then(
 				function(admin) {
-					t.pass('Successfully enrolled user ' + admin);
+					t.pass('Successfully enrolled user \'admin\'');
 					if(admin) webUser = admin;
 					// send query
 					chain._name = 'dummy';
@@ -274,7 +280,7 @@ test('  ---->>>>> Query chain failing <<<<<-----', function(t) {
 			queryAttempts++;
 			promise = promise.then(
 				function(admin) {
-					t.pass('Successfully enrolled user ' + admin);
+					t.pass('Successfully enrolled user \'admin\'');
 					if(admin) webUser = admin;
 					// send query
 					chain._name = chain_id; //put it back
@@ -316,7 +322,7 @@ test('  ---->>>>> Query Installed Chaincodes working <<<<<-----', function(t) {
 			testUtil.getSubmitter(client, t)
 				.then(
 					function(admin) {
-						t.pass('Successfully enrolled user ' + admin);
+						t.pass('Successfully enrolled user \'admin\'');
 						// send query
 						return chain.queryInstalledChaincodes(peer0);
 					},
@@ -327,16 +333,34 @@ test('  ---->>>>> Query Installed Chaincodes working <<<<<-----', function(t) {
 				).then(
 					function(response) {
 						t.comment('<<< installed chaincodes >>>');
+						let found = false;
+
+						chaincode_id = utils.getConfigSetting('END_TO_END_CHAINCODE_ID', 'notfound');
+						logger.info('getConfigSetting("END_TO_END_CHAINCODE_ID")=%s',chaincode_id);
+						if (chaincode_id === 'notfound') {
+							t.fail('Could not get chaincode_id from ConfigSetting "END_TO_END_CHAINCODE_ID"');
+							t.end();
+						}
+						chaincode_version = utils.getConfigSetting('END_TO_END_CHAINCODE_VERSION', 'notfound');
+						logger.info('getConfigSetting("END_TO_END_CHAINCODE_VERSION")=%s',chaincode_version);
+						if (chaincode_version === 'notfound') {
+							t.fail('Could not get chaincode_version from ConfigSetting "END_TO_END_CHAINCODE_VERSION"');
+							t.end();
+						}
 						for (let i=0; i<response.chaincodes.length; i++) {
 							t.comment('name: '+response.chaincodes[i].name+
 							', version: '+response.chaincodes[i].version+
 							', path: '+response.chaincodes[i].path);
-						}
-						if (response.chaincodes[0].name === 'end2end' && response.chaincodes[0].version === 'v0' && response.chaincodes[0].path === 'github.com/example_cc') {
-							t.pass('queryInstalledChaincodes matches end2end');
+
+							if (response.chaincodes[i].name === chaincode_id && response.chaincodes[i].version === chaincode_version && response.chaincodes[i].path === 'github.com/example_cc') {
+								found = true;
+							}
 							t.end();
+						}
+						if (found) {
+							t.pass('queryInstalledChaincodes - found match for end2end');
 						} else {
-							t.fail('queryInstalledChaincodes does not match end2end');
+							t.fail('queryInstalledChaincodes - did not find match for end2end');
 							t.end();
 						}
 					},
@@ -363,7 +387,7 @@ test('  ---->>>>> Query Instantiated Chaincodes working <<<<<-----', function(t)
 			testUtil.getSubmitter(client, t)
 				.then(
 					function(admin) {
-						t.pass('Successfully enrolled user ' + admin);
+						t.pass('Successfully enrolled user \'admin\'');
 						// send query
 						return chain.queryInstantiatedChaincodes();
 					},
@@ -374,16 +398,21 @@ test('  ---->>>>> Query Instantiated Chaincodes working <<<<<-----', function(t)
 				).then(
 					function(response) {
 						t.comment('<<< instantiated chaincodes >>>');
+						let found = false;
 						for (let i=0; i<response.chaincodes.length; i++) {
 							t.comment('name: '+response.chaincodes[i].name+
 							', version: '+response.chaincodes[i].version+
 							', path: '+response.chaincodes[i].path);
+
+							if (response.chaincodes[i].name === chaincode_id && response.chaincodes[i].version === chaincode_version && response.chaincodes[i].path === 'github.com/example_cc') {
+								found = true;
+							}
 						}
-						if (response.chaincodes[0].name === 'end2end' && response.chaincodes[0].version === 'v0' && response.chaincodes[0].path === 'github.com/example_cc') {
-							t.pass('queryInstantiatedChaincodes matches end2end');
+						if (found) {
+							t.pass('queryInstantiatedChaincodes - found match for end2end');
 							t.end();
 						} else {
-							t.fail('queryInstantiatedChaincodes does not match end2end');
+							t.fail('queryInstantiatedChaincodes - did not find match for end2end');
 							t.end();
 						}
 					},
@@ -410,7 +439,7 @@ test('  ---->>>>> Query Channels working <<<<<-----', function(t) {
 			testUtil.getSubmitter(client, t)
 				.then(
 					function(admin) {
-						t.pass('Successfully enrolled user ' + admin);
+						t.pass('Successfully enrolled user \'admin\'');
 						// send query
 						return chain.queryChannels(peer0);
 					},
@@ -424,7 +453,7 @@ test('  ---->>>>> Query Channels working <<<<<-----', function(t) {
 						for (let i=0; i<response.channels.length; i++) {
 							t.comment('channel id: '+response.channels[i].channel_id);
 						}
-						if (response.channels[0].channel_id === 'testchainid') {
+						if (response.channels[0].channel_id === chain_id) {
 							t.pass('queryChannels matches end2end');
 							t.end();
 						} else {

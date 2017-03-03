@@ -19,12 +19,7 @@ var tape = require('tape');
 var _test = require('tape-promise');
 var test = _test(tape);
 
-var log4js = require('log4js');
-var logger = log4js.getLogger('E2E');
-logger.setLevel('DEBUG');
-
 var Client = require('fabric-client');
-Client.setLogger(logger);
 var Peer = require('fabric-client/lib/Peer');
 var copService = require('fabric-ca-client');
 var util = require('util');
@@ -32,9 +27,12 @@ var fs = require('fs');
 var testUtil = require('../unit/util.js');
 var utils = require('fabric-client/lib/utils.js');
 
+var logger = utils.getLogger('endorser-tests');
+Client.setConfigSetting('hfc-logging', '{"debug":"console"}');
+
 var keyValStorePath = testUtil.KVS;
 var chaincode_id = 'endorsertest';
-var chaincode_version = 'endorser-v0';
+var chaincode_version = testUtil.getUniqueVersion();
 var chain_id = 'testchainid';
 var tx_id = null;
 var nonce = null;
