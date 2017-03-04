@@ -52,8 +52,7 @@ gulp.task('test-headless', ['lint', 'pre-test'], function() {
 
 	return gulp.src([
 		'test/unit/**/*.js',
-		'!test/unit/util.js',
-		'!test/unit/pkcs11.js'
+		'!test/unit/util.js'
 	])
 	.pipe(tape({
 		reporter: tapColorize()
