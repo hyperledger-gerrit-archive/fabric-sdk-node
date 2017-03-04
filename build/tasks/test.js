@@ -23,7 +23,6 @@ gulp.task('test', ['lint', 'pre-test'], function() {
 	return gulp.src([
 		'test/unit/**/*.js',
 		'!test/unit/util.js',
-		'!test/unit/pkcs11.js',
 		'test/integration/fabric-ca-services-tests.js',
 		'test/integration/orderer-chain-tests.js',
 		'test/integration/cloudant-fabricca-tests.js',
@@ -52,8 +51,7 @@ gulp.task('test-headless', ['lint', 'pre-test'], function() {
 
 	return gulp.src([
 		'test/unit/**/*.js',
-		'!test/unit/util.js',
-		'!test/unit/pkcs11.js'
+		'!test/unit/util.js'
 	])
 	.pipe(tape({
 		reporter: tapColorize()
