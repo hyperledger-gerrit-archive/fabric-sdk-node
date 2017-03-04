@@ -17,15 +17,17 @@
 // To run this test case, install SoftHSM2 library at this link:
 // https://wiki.opendnssec.org/display/SoftHSMDOCS/SoftHSM+Documentation+v2
 // After installing the library, you need to initialize at least one token
-// which will be used below. For the 'pin' property in the configuration
-// object below, use the 'user PIN' value (not SO PIN) and please set it to
-// '1234' so the code below can run successfully
+// which will be used below.  The test case assumes you have configured slot 0
+// with user pin = 98765432.
+// Sample configuration using softhsm2-util command line utility:
+// softhsm2-util --init-token --slot 0 --label "My token 1" so pin abcd user pin 98765432
 
 'use strict';
 
 var tape = require('tape');
 var _test = require('tape-promise');
 var test = _test(tape);
+var fs = require('fs');			// for existsSync()
 
 var crypto = require('crypto');
 var util = require('util');
@@ -34,24 +36,45 @@ var path = require('path');
 var utils = require('fabric-client/lib/utils.js');
 
 var libpath;
-switch(process.platform) {
-case 'darwin': // OSX
-case 'linux':  // Ubuntu VM
-	libpath = '/usr/local/lib/softhsm/libsofthsm2.so';
-	break;
-default:
-	libpath = '/usr/lib/libacsp-pkcs11.so'; //LinuxOne
-}
-
 var cryptoUtils;
+
+// Common locations of the PKCS11 library.
+// Based on findPKCS11Lib() in fabric/bccsp/pkcs11/impl_test.go
+var common_pkcs_pathnames = [
+	'/usr/lib/softhsm/libsofthsm2.so'                               // Ubuntu
+	,'/usr/lib/x86_64-linux-gnu/softhsm/libsofthsm2.so'             // Ubuntu  apt-get install
+	,'/usr/lib/s390x-linux-gnu/softhsm/libsofthsm2.so'              // Ubuntu
+	,'/usr/local/lib/softhsm/libsofthsm2.so'                        // Ubuntu, OSX (tar ball install)
+	,'/usr/lib/powerpc64le-linux-gnu/softhsm/libsofthsm2.so'        // Power (can't test this)
+	,'/usr/lib/libacsp-pkcs11.so'                                   // LinuxOne
+];
+
+test('\n\n**PKCS11 - locate PKCS11 libpath\n\n', (t) => {
+
+	//
+	// Check common locations for PKCS library
+	//
+	libpath = '';  // no library found yet
+	for (var i = 0; i < common_pkcs_pathnames.length && libpath == ''; i++) {
+		t.comment('Looking for ' + common_pkcs_pathnames[i]);
+		if (fs.existsSync(common_pkcs_pathnames[i])) {
+			libpath = common_pkcs_pathnames[i];
+			t.pass('Found a library at ' + libpath);
+		}
+	};
+
+	if (!libpath) {
+		t.fail('Could not locate a PKCS11 library -- PKCS11 tests will probably fail');
+	}
+	t.end();
+});
 
 test('\n\n**PKCS11 - generate an ephemeral key\n\n', (t) => {
 	utils.setConfigSetting('crypto-hsm', true);
-
 	cryptoUtils = utils.getCryptoSuite({
 		lib: libpath,
 		slot: 0,
-		pin: '1234'
+		pin:  '98765432' // user pin not SO pin
 	});
 
 	// Test generate AES key, encrypt, and decrypt.
@@ -104,7 +127,7 @@ test('\n\n**PKCS11 - generate a non-ephemeral key\n\n', (t) => {
 		var cryptoUtils = utils.getCryptoSuite({
 			lib: libpath,
 			slot: 0,
-			pin: '1234' });
+			pin: '98765432' });
 
 		return cryptoUtils.getKey(ski);
 	})
@@ -211,7 +234,7 @@ test('\n\n**PKCS11 - Test sign and verify with non-ephemeral ECDSA key pair in t
 		var cryptoUtils = utils.getCryptoSuite({
 			lib: libpath,
 			slot: 0,
-			pin: '1234' });
+			pin: '98765432' });
 
 		return cryptoUtils.getKey(ski);
 	})
