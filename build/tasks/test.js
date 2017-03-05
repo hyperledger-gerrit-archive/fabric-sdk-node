@@ -13,7 +13,7 @@ gulp.task('pre-test', function() {
 	.pipe(istanbul.hookRequire());
 });
 
-gulp.task('test', ['lint', 'test-headless'], function() {
+gulp.task('test', ['lint', 'pre-test'], function() {
 	// use individual tests to control the sequence they get executed
 	// first run the ca-tests that tests all the member registration
 	// and enrollment scenarios (good and bad calls). Then the rest
@@ -21,12 +21,7 @@ gulp.task('test', ['lint', 'test-headless'], function() {
 	// saved the user certificates so they can interact with the
 	// network
 	return gulp.src([
-		'test/integration/chain-fabric-ca-tests.js',
-		'test/integration/endorser-tests.js',
-		'test/integration/orderer-chain-tests.js',
-		'test/integration/cloudant-fabricca-tests.js',
-		'test/integration/install.js',
-		'test/integration/end-to-end.js'
+		'test/integration/e2e.js'
 	])
 	.pipe(tape({
 		reporter: tapColorize()
