@@ -13,7 +13,7 @@ gulp.task('pre-test', function() {
 	.pipe(istanbul.hookRequire());
 });
 
-gulp.task('test', ['lint', 'test-headless'], function() {
+gulp.task('test', ['lint', 'pre-test'], function() {
 	// use individual tests to control the sequence they get executed
 	// first run the ca-tests that tests all the member registration
 	// and enrollment scenarios (good and bad calls). Then the rest
