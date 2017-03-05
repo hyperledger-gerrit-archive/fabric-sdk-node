@@ -1959,7 +1959,8 @@ var Chain = class {
 	_buildDefaultEndorsementPolicy() {
 		// construct a list of msp principals to select from using the 'n out of' operator
 		var msps = this.getMSPManager().getMSPs();
-		var principals = [];
+		var principals = [], policies = [];
+		var index = 0;
 		for (let name in msps) {
 			if (msps.hasOwnProperty(name)) {
 				let onePrn = new _mspPrProto.MSPPrincipal();
@@ -1972,16 +1973,16 @@ var Chain = class {
 				onePrn.setPrincipal(memberRole.toBuffer());
 
 				principals.push(onePrn);
+
+				var signedBy = new _policiesProto.SignaturePolicy();
+				signedBy.set('signed_by', index++);
+				policies.push(signedBy);
 			}
 		}
 
 		if (principals.length === 0) {
 			throw new Error('Verifying MSPs not found in the chain object, make sure "intialize()" is called first.');
 		}
-
-		// construct 'signed by msp principal at index 0'
-		var signedBy = new _policiesProto.SignaturePolicy();
-		signedBy.set('signed_by', 0);
 
 		// construct 'one of one' policy
 		var oneOfone = new _policiesProto.SignaturePolicy.NOutOf();
