@@ -1,0 +1,7 @@
+Code-Review+2: Jason Yellick <jyellick@us.ibm.com>
+Verified+1: Hyperledger Jobbuilder <jobbuilder@jenkins.hyperledger.org>
+Submitted-by: Jason Yellick <jyellick@us.ibm.com>
+Submitted-at: Sun, 05 Mar 2017 19:13:39 +0000
+Reviewed-on: http://gerrit.hyperledger.org/r/6881
+Project: fabric-sdk-node
+Branch: refs/heads/master
