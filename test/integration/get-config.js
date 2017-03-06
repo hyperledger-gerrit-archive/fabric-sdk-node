@@ -47,7 +47,7 @@ var _ccEventProto = grpc.load(__dirname + '/../../fabric-client/lib/protos/peer/
 
 var client = new hfc();
 // IMPORTANT ------>>>>> MUST RUN new-chain.js FIRST
-var chain_id = 'foo';
+var chain_id = 'mychannel';
 var chain = client.newChain(chain_id);
 
 var webUser = null;
