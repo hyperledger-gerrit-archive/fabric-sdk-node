@@ -310,7 +310,7 @@ var EventHub = class {
 			}
 
 			var val_code = convertValidationCode(txStatusCodes[index]);
-			logger.debug('txCallback - txid=%s  val_code=%s',val_code,  channel_header.tx_id);
+			logger.debug('txCallback - txid=%s  val_code=%s', channel_header.tx_id, val_code);
 			var cb = eh.txRegistrants.get(channel_header.tx_id);
 			if (cb){
 				logger.debug('txCallback - about to call the transaction call back for code=%s tx=%s', val_code, channel_header.tx_id);

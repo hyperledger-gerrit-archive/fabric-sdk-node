@@ -26,7 +26,7 @@ module.exports.registerTxEvent = function(eh, txid, timeout) {
 		}, timeout);
 
 		eh.registerTxEvent(txid, (txid, invalid) => {
-			if (invalid) {
+			if (invalid != 'VALID') {
 				reject('invalid');
 			} else {
 				resolve();
