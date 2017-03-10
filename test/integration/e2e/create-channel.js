@@ -43,24 +43,28 @@ test('\n\n***** End-to-end flow: create channel *****\n\n', function(t) {
 	//
 	var client = new hfc();
 	var chain = client.newChain('mychannel');
-	chain.addOrderer(new Orderer(ORGS.orderer));
 
-	// Acting as a client in org1 when creating the channel
-	var org = ORGS.org1.name;
+	var caRootsPath = ORGS.tls_trusted_roots;
 
-	hfc.newDefaultKeyValueStore({
-		path: testUtil.storePathForOrg(org)
-	})
-	.then((store) => {
+	return testUtil.readFile(path.join(__dirname, caRootsPath))
+	.then((data) => {
+		let caroots = Buffer.from(data).toString();
+
+		chain.addOrderer(new Orderer(ORGS.orderer, { pem: caroots }));
+
+		// Acting as a client in org1 when creating the channel
+		var org = ORGS.org1.name;
+
+		return hfc.newDefaultKeyValueStore({
+			path: testUtil.storePathForOrg(org)
+		});
+	}).then((store) => {
 		client.setStateStore(store);
 		return testUtil.getSubmitter(client, t, 'org1');
 	})
 	.then((admin) => {
 		t.pass('Successfully enrolled user \'admin\'');
 		the_user = admin;
-
-		//FIXME: temporary fix until mspid is configured into Chain
-		the_user.mspImpl._id = ORGS.org1.mspid;
 
 		// readin the envelope to send to the orderer
 		return readFile('./test/fixtures/channel/mychannel.tx');
