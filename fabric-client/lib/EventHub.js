@@ -17,6 +17,7 @@
 'use strict';
 
 var utils = require('./utils.js');
+var Remote = require('./Remote.js');
 var grpc = require('grpc');
 var HashTable = require('hashtable');
 var logger = utils.getLogger('EventHub.js');
@@ -98,8 +99,8 @@ var EventHub = class {
 	 * @param {object} opts grpc options for peer
 	 */
 
-	setPeerAddr(peerUrl) {
-		this.ep = new utils.Endpoint(peerUrl, null);
+	setPeerAddr(peerUrl, opts) {
+		this.ep = new Remote.Endpoint(peerUrl, opts);
 	}
 
 	/**

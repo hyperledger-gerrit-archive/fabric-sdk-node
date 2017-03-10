@@ -16,8 +16,6 @@
 
 'use strict';
 
-var grpc = require('grpc');
-var urlParser = require('url');
 var util = require('util');
 var winston = require('winston');
 var fs = require('fs-extra');
@@ -49,7 +47,7 @@ var sha3_256 = require('js-sha3').sha3_256;
 // KeyValueStore interface.
 // @param {object} opts Implementation-specific option object used in the constructor
 //
-module.exports.getCryptoSuite = function(setting, KVSImplClass, opts) {
+module.exports.newCryptoSuite = function(setting, KVSImplClass, opts) {
 	var csImpl, keysize, algorithm, hashAlgo, haveSettings = false;
 
 	var useHSM = false;
@@ -62,12 +60,12 @@ module.exports.getCryptoSuite = function(setting, KVSImplClass, opts) {
 	csImpl = useHSM ? this.getConfigSetting('crypto-suite-hsm') : this.getConfigSetting('crypto-suite-software');
 
 	// this function supports skipping any of the arguments such that it can be called in any of the following fashions:
-	// - getCryptoSuite({software: true, keysize: 256, algorithm: EC}, CouchDBKeyValueStore, {name: 'member_db', url: 'http://localhost:5984'})
-	// - getCryptoSuite(CouchDBKeyValueStore, {name: 'member_db', url: 'http://localhost:5984'})
-	// - getCryptoSuite({software: true, keysize: 256, algorithm: EC}, {path: '/tmp/app-state-store'})
-	// - getCryptoSuite({software: false}, {lib: '/usr/local/bin/pkcs11.so', slot: 0, pin: '1234'})
-	// - getCryptoSuite({keysize: 384})
-	// - getCryptoSuite()
+	// - newCryptoSuite({software: true, keysize: 256, algorithm: EC}, CouchDBKeyValueStore, {name: 'member_db', url: 'http://localhost:5984'})
+	// - newCryptoSuite(CouchDBKeyValueStore, {name: 'member_db', url: 'http://localhost:5984'})
+	// - newCryptoSuite({software: true, keysize: 256, algorithm: EC}, {path: '/tmp/app-state-store'})
+	// - newCryptoSuite({software: false}, {lib: '/usr/local/bin/pkcs11.so', slot: 0, pin: '1234'})
+	// - newCryptoSuite({keysize: 384})
+	// - newCryptoSuite()
 
 	// step 1: what's the cryptosuite impl to use, key size and algo
 	if (setting && setting.keysize && typeof setting === 'object' && typeof setting.keysize === 'number') {
@@ -332,34 +330,6 @@ module.exports.addMSPManager = function(chainId, mspm) {
 //
 module.exports.removeMSPManager = function(chainId) {
 	delete mspManagers[chainId];
-};
-
-//
-// The Endpoint class represents a remote grpc or grpcs target
-//
-module.exports.Endpoint = class {
-	constructor(url /*string*/ , pem /*string*/ ) {
-		var purl = urlParser.parse(url, true);
-		var protocol;
-		if (purl.protocol) {
-			protocol = purl.protocol.toLowerCase().slice(0, -1);
-		}
-		if (protocol === 'grpc') {
-			this.addr = purl.host;
-			this.creds = grpc.credentials.createInsecure();
-		} else if (protocol === 'grpcs') {
-			if(!(typeof pem === 'string')) {
-				throw new Error('PEM encoded certificate is required.');
-			}
-			this.addr = purl.host;
-			this.creds = grpc.credentials.createSsl(new Buffer(pem));
-		} else {
-			var error = new Error();
-			error.name = 'InvalidProtocol';
-			error.message = 'Invalid protocol: ' + protocol + '.  URLs must begin with grpc:// or grpcs://';
-			throw error;
-		}
-	}
 };
 
 //
