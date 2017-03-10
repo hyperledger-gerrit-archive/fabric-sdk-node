@@ -65,14 +65,14 @@ test('\n\n***** End-to-end flow: join channel *****\n\n', function(t) {
 		t.pass(util.format('Successfully joined peers in organization "%s" to the channel', ORGS['org1'].name));
 		return joinChannel('org2', t);
 	}, (err) => {
-		t.fail(util.format('Failed to join peers in organization "%s" to the channel', ORGS['org1'].name));
+		t.fail(util.format('Failed to join peers in organization "%s" to the channel. %s', ORGS['org1'].name, err.stack ? err.stack : err));
 		t.end();
 	})
 	.then(() => {
 		t.pass(util.format('Successfully joined peers in organization "%s" to the channel', ORGS['org2'].name));
 		t.end();
 	}, (err) => {
-		t.fail(util.format('Failed to join peers in organization "%s" to the channel', ORGS['org2'].name));
+		t.fail(util.format('Failed to join peers in organization "%s" to the channel. %s', ORGS['org2'].name), err.stack ? err.stack : err);
 		t.end();
 	})
 	.catch(function(err) {
@@ -93,35 +93,38 @@ function joinChannel(org, t) {
 
 	var orgName = ORGS[org].name;
 
+	var caRootsPath = ORGS.tls_trusted_roots;
 	var targets = [],
 		eventhubs = [];
-	for (let key in ORGS[org]) {
-		if (ORGS[org].hasOwnProperty(key)) {
-			if (key.indexOf('peer') === 0) {
-				targets.push(new Peer(ORGS[org][key].requests));
 
-				let eh = new EventHub();
-				eh.setPeerAddr(ORGS[org][key].events);
-				eh.connect();
-				eventhubs.push(eh);
-				allEventhubs.push(eh);
+	return testUtil.readFile(path.join(__dirname, caRootsPath))
+	.then((data) => {
+		let caroots = Buffer.from(data).toString();
+
+		for (let key in ORGS[org]) {
+			if (ORGS[org].hasOwnProperty(key)) {
+				if (key.indexOf('peer') === 0) {
+					targets.push(new Peer(ORGS[org][key].requests, { pem: caroots }));
+
+					// let eh = new EventHub();
+					// eh.setPeerAddr(ORGS[org][key].events, caroots);
+					// eh.connect();
+					// eventhubs.push(eh);
+					// allEventhubs.push(eh);
+				}
 			}
 		}
-	}
 
-	return hfc.newDefaultKeyValueStore({
-		path: testUtil.storePathForOrg(orgName)
-	})
-	.then((store) => {
+		return hfc.newDefaultKeyValueStore({
+			path: testUtil.storePathForOrg(orgName)
+		});
+	}).then((store) => {
 		client.setStateStore(store);
 		return testUtil.getSubmitter(client, t, org);
 	})
 	.then((admin) => {
 		t.pass('Successfully enrolled user \'admin\'');
 		the_user = admin;
-
-		//FIXME: temporary fix until mspid is configured into Chain
-		the_user.mspImpl._id = ORGS[org].mspid;
 
 		nonce = utils.getNonce();
 		tx_id = chain.buildTransactionID(nonce, the_user);

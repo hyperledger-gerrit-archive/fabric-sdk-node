@@ -33,17 +33,23 @@ services:
       - ORDERER_GENERAL_GENESISFILE=/etc/hyperledger/configtx/twoorgs.orderer.block
       - ORDERER_GENERAL_LOCALMSPID=OrdererMSP
       - ORDERER_GENERAL_LOCALMSPDIR=/etc/hyperledger/configtx/crypto-config/ordererOrganizations/ordererOrg1/orderers/ordererOrg1orderer1/
+      - ORDERER_PEER_TLS_ENABLED=true
+      - ORDERER_PEER_TLS_KEY_FILE=/etc/hyperledger/tls-config/Org1-server1-key.pem
+      - ORDERER_PEER_TLS_CERT_FILE=/etc/hyperledger/tls-config/Org1-server1-cert.pem
+      - ORDERER_PEER_TLS_ROOTCERT_FILE=/etc/hyperledger/tls-config/caroots/Org1-cert.pem
     working_dir: /opt/gopath/src/github.com/hyperledger/fabric/orderer
     command: orderer
     ports:
       - 7050:7050
     volumes:
         - ./:/etc/hyperledger/configtx
+        - ../config/tls:/etc/hyperledger/tls-config
 
   peer0:
     container_name: peer0
     image: hyperledger/fabric-peer
     environment:
+      - GRPC_TRACE=all
       - CORE_PEER_ADDRESSAUTODETECT=true
       - CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock
       - CORE_PEER_NETWORKID=peer0
@@ -54,6 +60,10 @@ services:
       - CORE_PEER_PROFILE_ENABLED=true
       - CORE_PEER_LOCALMSPID=Org1MSP
       - CORE_PEER_MSPCONFIGPATH=/etc/hyperledger/configtx/crypto-config/peerOrganizations/peerOrg1/peers/peerOrg1Peer1/
+      - CORE_PEER_TLS_ENABLED=true
+      - CORE_PEER_TLS_KEY_FILE=/etc/hyperledger/tls-config/Org1-server1-key.pem
+      - CORE_PEER_TLS_CERT_FILE=/etc/hyperledger/tls-config/Org1-server1-cert.pem
+      - CORE_PEER_TLS_ROOTCERT_FILE=/etc/hyperledger/tls-config/caroots/Org1-cert.pem
     working_dir: /opt/gopath/src/github.com/hyperledger/fabric
     command: peer node start --peer-defaultchain=false
     ports:
@@ -62,6 +72,7 @@ services:
     volumes:
         - /var/run/:/host/var/run/
         - ./:/etc/hyperledger/configtx
+        - ../config/tls:/etc/hyperledger/tls-config
     depends_on:
       - orderer
 
@@ -79,6 +90,10 @@ services:
       - CORE_PEER_PROFILE_ENABLED=true
       - CORE_PEER_LOCALMSPID=Org1MSP
       - CORE_PEER_MSPCONFIGPATH=/etc/hyperledger/configtx/crypto-config/peerOrganizations/peerOrg1/peers/peerOrg1Peer2/
+      - CORE_PEER_TLS_ENABLED=true
+      - CORE_PEER_TLS_KEY_FILE=/etc/hyperledger/tls-config/Org1-server2-key.pem
+      - CORE_PEER_TLS_CERT_FILE=/etc/hyperledger/tls-config/Org1-server2-cert.pem
+      - CORE_PEER_TLS_ROOTCERT_FILE=/etc/hyperledger/tls-config/caroots/Org1-cert.pem
     working_dir: /opt/gopath/src/github.com/hyperledger/fabric
     command: peer node start --peer-defaultchain=false
     ports:
@@ -87,6 +102,7 @@ services:
     volumes:
         - /var/run/:/host/var/run/
         - ./:/etc/hyperledger/configtx
+        - ../config/tls:/etc/hyperledger/tls-config
     depends_on:
       - orderer
       - peer0
@@ -105,6 +121,10 @@ services:
       - CORE_PEER_PROFILE_ENABLED=true
       - CORE_PEER_LOCALMSPID=Org2MSP
       - CORE_PEER_MSPCONFIGPATH=/etc/hyperledger/configtx/crypto-config/peerOrganizations/peerOrg2/peers/peerOrg2Peer1/
+      - CORE_PEER_TLS_ENABLED=true
+      - CORE_PEER_TLS_KEY_FILE=/etc/hyperledger/tls-config/Org2-server1-key.pem
+      - CORE_PEER_TLS_CERT_FILE=/etc/hyperledger/tls-config/Org2-server1-cert.pem
+      - CORE_PEER_TLS_ROOTCERT_FILE=/etc/hyperledger/tls-config/caroots/Org2-cert.pem
     working_dir: /opt/gopath/src/github.com/hyperledger/fabric
     command: peer node start --peer-defaultchain=false
     ports:
@@ -113,10 +133,9 @@ services:
     volumes:
         - /var/run/:/host/var/run/
         - ./:/etc/hyperledger/configtx
+        - ../config/tls:/etc/hyperledger/tls-config
     depends_on:
       - orderer
-      - peer0
-      - peer1
 
   peer3:
     container_name: peer3
@@ -132,6 +151,10 @@ services:
       - CORE_PEER_PROFILE_ENABLED=true
       - CORE_PEER_LOCALMSPID=Org2MSP
       - CORE_PEER_MSPCONFIGPATH=/etc/hyperledger/configtx/crypto-config/peerOrganizations/peerOrg2/peers/peerOrg2Peer2/
+      - CORE_PEER_TLS_ENABLED=true
+      - CORE_PEER_TLS_KEY_FILE=/etc/hyperledger/tls-config/Org2-server2-key.pem
+      - CORE_PEER_TLS_CERT_FILE=/etc/hyperledger/tls-config/Org2-server2-cert.pem
+      - CORE_PEER_TLS_ROOTCERT_FILE=/etc/hyperledger/tls-config/caroots/Org2-cert.pem
     working_dir: /opt/gopath/src/github.com/hyperledger/fabric
     command: peer node start --peer-defaultchain=false
     ports:
@@ -140,10 +163,9 @@ services:
     volumes:
         - /var/run/:/host/var/run/
         - ./:/etc/hyperledger/configtx
+        - ../config/tls:/etc/hyperledger/tls-config
     depends_on:
       - orderer
-      - peer0
-      - peer1
       - peer2
 
   couchdb:
