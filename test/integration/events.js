@@ -40,14 +40,9 @@ var ORGS = hfc.getConfigSetting('test-network');
 chain.addOrderer(new Orderer(ORGS.orderer));
 var org = 'org1';
 var orgName = ORGS[org].name;
-for (let key in ORGS[org]) {
-	if (ORGS[org].hasOwnProperty(key)) {
-		if (key.indexOf('peer') === 0) {
-			let peer = new Peer(ORGS[org][key].requests);
-			chain.addPeer(peer);
-		}
-	}
-}
+let peer1 = new Peer(ORGS.org1.peer1.requests);
+chain.addPeer(peer1);
+
 var chaincode_id = testUtil.getUniqueVersion('events_unit_test');
 var chaincode_version = testUtil.getUniqueVersion();
 var request = null;
@@ -76,21 +71,24 @@ test('Test chaincode instantiate with event, transaction invocation with chainco
 		var promise = testUtil.getSubmitter(client, t, org);
 
 		// setup event hub to get notified when transactions are committed
-		var eh = new EventHub();
-		eh.setPeerAddr(ORGS[org].peer1.events);
-		eh.connect();
+		var eh1 = new EventHub();
+		eh1.setPeerAddr(ORGS['org1'].peer1.events);
+		eh1.connect();
 
 		// override t.end function so it'll always disconnect the event hub
-		t.end = ((context, eventhub, f) => {
+		t.end = ((context, eventhubs, f) => {
 			return function() {
-				if (eventhub && eventhub.isconnected()) {
-					logger.info('Disconnecting the event hub');
-					eventhub.disconnect();
+				for(var i in eventhubs) {
+					let eventhub = eventhubs[i];
+					if (eventhub && eventhub.isconnected()) {
+						logger.info('Disconnecting the event hub');
+						eventhub.disconnect();
+					}
 				}
 
 				f.apply(context, arguments);
 			};
-		})(t, eh, t.end);
+		})(t, [eh1], t.end);
 
 		if (!useSteps || steps.indexOf('step1') >= 0) {
 			logger.info('Executing step1');
@@ -133,7 +131,8 @@ test('Test chaincode instantiate with event, transaction invocation with chainco
 				t.end();
 			}).then((results) => {
 				var tmo = 50000;
-				return Promise.all([eputil.registerTxEvent(eh, request.txId.toString(), tmo),
+				return Promise.all([
+					eputil.registerTxEvent(eh1, request.txId.toString(), tmo),
 					eputil.sendTransaction(chain, results)]);
 			},
 			(err) => {
@@ -156,12 +155,14 @@ test('Test chaincode instantiate with event, transaction invocation with chainco
 				logger.info('Executing step2');
 				if(the_user === null) {
 					the_user = admin;
+					the_user.mspImpl._id = ORGS[org].mspid;
 				}
 				request = eputil.createRequest(chain, the_user, chaincode_id, 'invoke', ['invoke', 'SEVERE']);
 				return chain.sendTransactionProposal(request);
 			}).then((results) => {
 				var tmo = 20000;
-				return Promise.all([eputil.registerCCEvent(eh, chaincode_id.toString(), '^evtsender*', tmo),
+				return Promise.all([
+					eputil.registerCCEvent(eh1, chaincode_id.toString(), '^evtsender*', tmo),
 					eputil.sendTransaction(chain, results)
 				]);
 			},
@@ -229,8 +230,8 @@ test('Test chaincode instantiate with event, transaction invocation with chainco
 			}).then(([results1, results2]) => {
 				t.comment('sendTransactionProposal received [results1, results2]');
 				var tmo = 20000;
-				return Promise.all([eputil.registerTxEvent(eh, req1.txId.toString(), tmo),
-					eputil.registerTxEvent(eh, req2.txId.toString(), tmo),
+				return Promise.all([eputil.registerTxEvent(eh1, req1.txId.toString(), tmo),
+					eputil.registerTxEvent(eh1, req2.txId.toString(), tmo),
 					eputil.sendTransaction(chain, results1),
 					eputil.sendTransaction(chain, results2)
 				]);

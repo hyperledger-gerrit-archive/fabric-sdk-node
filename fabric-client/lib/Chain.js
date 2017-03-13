@@ -1365,7 +1365,7 @@ var Chain = class {
 			var request = {
 				targets: [peer],
 				chaincodeId : 'cscc',
-				chainId: self._name,
+				chainId: '',
 				txId: txId,
 				nonce: nonce,
 				fcn : 'GetChannels',
@@ -1902,8 +1902,16 @@ var Chain = class {
 				if(responses && Array.isArray(responses)) {
 					var results = [];
 					for(let i = 0; i < responses.length; i++) {
-						if(responses[i].response && responses[i].response.payload) {
-							results.push(responses[i].response.payload);
+						let response = responses[i];
+						if(response instanceof Error) {
+							results.push(response);
+						}
+						else if(response.response && response.response.payload) {
+							results.push(response.response.payload);
+						}
+						else {
+							logger.error('queryByChaincode - unknown or missing results in query ::'+results);
+							results.push(new Error(response));
 						}
 					}
 					return Promise.resolve(results);
@@ -2023,9 +2031,12 @@ var Chain = class {
 				responses.push(result.value());
 			  } else {
 				logger.debug('Chain-sendPeersProposal - Promise is rejected: '+result.reason());
-				// the reason() would simply return the error object that's difficult to print in logs
-				// wrap it in an object for better visibility
-				responses.push({error: result.reason().toString()});
+				if(result.reason() instanceof Error) {
+					responses.push(result.reason());
+				}
+				else {
+					responses.push(new Error(result.reason()));
+				}
 			  }
 			});
 			return responses;
@@ -2059,7 +2070,7 @@ var Chain = class {
 		var errorMsg = null;
 
 		if(request) {
-			var isQuery = request.chaincodeId == 'qscc';
+			var isQuery = (request.chaincodeId == 'qscc' || request.chaincodeId == 'cscc');
 			if(!request.chaincodeId) {
 				errorMsg = 'Missing "chaincodeId" parameter in the proposal request';
 			} else if(!request.chainId && !isQuery) {
