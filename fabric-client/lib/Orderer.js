@@ -42,7 +42,6 @@ var Orderer = class extends Remote {
 	 */
 	constructor(url, opts) {
 		super(url, opts);
-
 		this._request_timeout = 30000;
 		if(opts && opts['request-timeout']) {
 			this._request_timeout = opts['request-timeout'];
@@ -50,7 +49,7 @@ var Orderer = class extends Remote {
 		else {
 			this._request_timeout = utils.getConfigSetting('request-timeout',30000); //default 30 seconds
 		}
-
+		logger.debug('Orderer.const - url: %s timeout: %s', url, this._request_timeout);
 		this._ordererClient = new _abProto.AtomicBroadcast(this._endpoint.addr, this._endpoint.creds, this._options);
 	}
 
@@ -159,7 +158,7 @@ var Orderer = class extends Remote {
 				var connect = false;
 
 				var deliver_timeout = setTimeout(function(){
-					logger.debug('sendDeliver - timed out after:%s', self._request_timeout);
+					logger.error('sendDeliver - timed out after:%s', self._request_timeout);
 					deliver.end();
 					return reject(new Error('REQUEST_TIMEOUT'));
 				}, self._request_timeout);
