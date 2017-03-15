@@ -118,6 +118,20 @@ var MSP = class {
 	}
 
 	/**
+	 * build Identity object from a protobuf Identity bytes
+	 * @param {Identity} A GRPC protobuf decoded object
+	 * @rturns {Identity} The node SDK populated object
+	 */
+	buildIdentity(grpc_identity) {
+		var cert = grpc_identity.IdBytes.toBinary();
+		logger.debug('Encoded cert from deserialized identity: %s', cert);
+		var publicKey =this.cryptoSuite.importKey(cert, { algorithm: api.CryptoAlgorithms.X509Certificate }, false);
+		// TODO: the id of the new Identity instance should probably be derived from the subject info in the cert?
+		var sdk_identity = new Identity('SomeDummyValue', cert, publicKey, this);
+		return sdk_identity;
+	}
+
+	/**
 	 * Checks whether the supplied identity is valid
 	 * @param {Identity} id
 	 * @returns {boolean}
