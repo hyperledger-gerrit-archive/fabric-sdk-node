@@ -214,6 +214,13 @@ test('\n\n ** Identity class tests **\n\n', function (t) {
 	var identity = new Identity('testIdentity', TEST_CERT_PEM, pubKey, mspImpl);
 
 	var serializedID = identity.serialize();
+
+	var grpc = require('grpc');
+	var identityProto = grpc.load('fabric-client/lib/protos/identity.proto').msp;
+	var sid = identityProto.SerializedIdentity.decode(serializedID);
+	var identity_g = mspImpl.buildIdentity(sid);
+	t.equals(identity_g.getId(),'SomeDummyValue');
+
 	mspImpl.deserializeIdentity(serializedID)
 	.then((dsID) => {
 		t.equal(dsID._certificate, TEST_CERT_PEM, 'Identity class function tests: deserialized certificate');
