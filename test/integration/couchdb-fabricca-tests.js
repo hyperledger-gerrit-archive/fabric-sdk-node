@@ -14,20 +14,24 @@
  *  limitations under the License.
  */
 
+if (global && global.hfc) global.hfc.config = undefined;
+require('nconf').reset();
+var utils = require('fabric-client/lib/utils.js');
+utils.setConfigSetting('hfc-logging', '{"debug":"console"}');
+var logger = utils.getLogger('couchdb-fabricca');
+
 var tape = require('tape');
 var _test = require('tape-promise');
 var test = _test(tape);
 
+var path = require('path');
 var hfc = require('fabric-client');
 
 var Client = hfc;
 var User = require('fabric-client/lib/User.js');
 var FabricCAServices = require('fabric-ca-client/lib/FabricCAClientImpl');
 
-var utils = require('fabric-client/lib/utils.js');
 var couchdbUtil = require('./couchdb-util.js');
-var logger = utils.getLogger('couchdb-fabricca');
-hfc.setConfigSetting('hfc-logging', '{"debug":"console"}');
 
 // Use the CouchDB specific config file
 hfc.addConfigFile('test/fixtures/couchdb.json');
@@ -40,14 +44,16 @@ var couchdbPort = hfc.getConfigSetting('couchdb-port', 'notfound');
 var keyValStorePath = couchdbIPAddr + ':' + couchdbPort;
 logger.info('couch keyValStorePath: '+keyValStorePath);
 
+hfc.addConfigFile(path.join(__dirname, '../integration/e2e/config.json'));
+var ORGS = hfc.getConfigSetting('test-network');
+var userOrg = 'org1';
+
 // This test first checks to see if a user has already been enrolled. If so,
 // the test terminates. If the user is not yet enrolled, the test uses the
 // FabricCAClientImpl to enroll a user, and saves the enrollment materials into the
 // CouchDB KeyValueStore. Then the test uses the Chain class to load the member
 // from the key value store.
 test('Use FabricCAServices with a CouchDB KeyValueStore', function(t) {
-
-	//var user = new User();
 	var client = new Client();
 
 	// Set the relevant configuration values
@@ -55,13 +61,13 @@ test('Use FabricCAServices with a CouchDB KeyValueStore', function(t) {
 	utils.setConfigSetting('key-value-store','fabric-client/lib/impl/CouchDBKeyValueStore.js');
 
 	// Clean up the couchdb test database
-	var dbname = 'member_db';
+	var dbname = 'my_member_db';
 
-	var member;
+	var member, opts;
 	couchdbUtil.destroy(dbname, keyValStorePath)
 	.then( function(status) {
 		t.comment('Cleanup of existing ' + dbname + ' returned '+status);
-		t.comment('Initilize the CouchDB KeyValueStore');
+		t.comment('Initialize the CouchDB KeyValueStore');
 		utils.newKeyValueStore({name: dbname, url: keyValStorePath})
 		.then(
 			function(kvs) {
@@ -107,8 +113,10 @@ test('Use FabricCAServices with a CouchDB KeyValueStore', function(t) {
 				t.pass('Successfully enrolled admin2 with CA server');
 
 				// Persist the user state
-				member = new User('admin2', client);
-				return member.setEnrollment(admin2.key, admin2.certificate);
+				member = new User('admin2');
+				opts = {KVSImplClass: keyValueStore, kvsOpts: {name: dbname, url: keyValStorePath}};
+				t.comment('setEnrollment kvs opts: '+JSON.stringify(opts));
+				return member.setEnrollment(admin2.key, admin2.certificate, ORGS[userOrg].mspid, opts);
 			},
 			function(err) {
 				t.fail('Failed to use obtained private key and certificate to construct a User object. Error: ' + err);
@@ -121,6 +129,7 @@ test('Use FabricCAServices with a CouchDB KeyValueStore', function(t) {
 				} else {
 					t.fail('Member isEnrolled failed.');
 				}
+				t.comment('setting UserContext...');
 				return client.setUserContext(member);
 			},
 			function(err) {
@@ -129,6 +138,7 @@ test('Use FabricCAServices with a CouchDB KeyValueStore', function(t) {
 			})
 		.then(
 			function(user) {
+				t.comment('loading user admin2 from StateStore...');
 				return client.loadUserFromStateStore('admin2');
 			}
 		).then(

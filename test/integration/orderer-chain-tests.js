@@ -13,6 +13,14 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
+'use strict';
+
+if (global && global.hfc) global.hfc.config = undefined;
+require('nconf').reset();
+var utils = require('fabric-client/lib/utils.js');
+utils.setConfigSetting('hfc-logging', '{"debug":"console"}');
+var logger = utils.getLogger('orderer-chain');
+
 
 var tape = require('tape');
 var _test = require('tape-promise');
@@ -41,6 +49,8 @@ var client = new hfc();
 // to send the request.
 //
 test('\n\n** TEST ** orderer via member missing orderer', function(t) {
+	testUtil.resetDefaults();
+	utils.setConfigSetting('key-value-store', 'fabric-ca-client/lib/impl/FileKeyValueStore.js');//force for 'gulp test'
 	//
 	// Create and configure the test chain
 	//

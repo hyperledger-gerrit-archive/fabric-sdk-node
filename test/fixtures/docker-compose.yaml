@@ -190,7 +190,6 @@ services:
     ports:
       - 5984:5984
     environment:
-      COUCHDB_USER: admin
-      COUCHDB_PASSWORD: password
       DB_URL: http://localhost:5984/member_db
+
 

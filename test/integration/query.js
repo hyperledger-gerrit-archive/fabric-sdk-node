@@ -23,6 +23,12 @@
 
 'use strict';
 
+if (global && global.hfc) global.hfc.config = undefined;
+require('nconf').reset();
+var utils = require('fabric-client/lib/utils.js');
+utils.setConfigSetting('hfc-logging', '{"debug":"console"}');
+var logger = utils.getLogger('query');
+
 var tape = require('tape');
 var _test = require('tape-promise');
 var test = _test(tape);
@@ -33,7 +39,6 @@ var fs = require('fs');
 
 var testUtil = require('../unit/util.js');
 var hfc = require('fabric-client');
-var utils = require('fabric-client/lib/utils.js');
 var Peer = require('fabric-client/lib/Peer.js');
 var Orderer = require('fabric-client/lib/Orderer.js');
 var EventHub = require('fabric-client/lib/EventHub.js');
@@ -47,9 +52,6 @@ var org = 'org1';
 var orgName = ORGS[org].name;
 
 var e2e = testUtil.END2END;
-
-var logger = utils.getLogger('query');
-hfc.setConfigSetting('hfc-logging', '{"debug":"console"}');
 
 var the_user = null;
 var tx_id = null;

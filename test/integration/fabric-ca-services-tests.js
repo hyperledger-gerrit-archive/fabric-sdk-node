@@ -13,6 +13,13 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
+'use strict';
+
+if (global && global.hfc) global.hfc.config = undefined;
+require('nconf').reset();
+var utils = require('fabric-client/lib/utils.js');
+utils.setConfigSetting('hfc-logging', '{"debug":"console"}');
+var logger = utils.getLogger('fabric-ca-services');
 
 var tape = require('tape');
 var _test = require('tape-promise');
@@ -27,7 +34,6 @@ var util = require('util');
 var fs = require('fs');
 var path = require('path');
 var testUtil = require('../unit/util.js');
-var utils = require('fabric-client/lib/utils.js');
 var LocalMSP = require('fabric-client/lib/msp/msp.js');
 var idModule = require('fabric-client/lib/msp/identity.js');
 var SigningIdentity = idModule.SigningIdentity;
