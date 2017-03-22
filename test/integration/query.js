@@ -352,7 +352,7 @@ test('  ---->>>>> Query Installed Chaincodes working <<<<<-----', function(t) {
 			function(admin) {
 				t.pass('Successfully enrolled user \'admin\'');
 				// send query
-				return chain.queryInstalledChaincodes(peer0);
+				return client.queryInstalledChaincodes(peer0);
 			},
 			function(err) {
 				t.fail('Failed to enroll user: ' + err.stack ? err.stack : err);
@@ -463,7 +463,7 @@ test('  ---->>>>> Query Channels working <<<<<-----', function(t) {
 				the_user = admin;
 
 				// send query
-				return chain.queryChannels(peer0);
+				return client.queryChannels(peer0);
 			},
 			function(err) {
 				t.fail('Failed to enroll user: ' + err.stack ? err.stack : err);

@@ -55,10 +55,11 @@ module.exports.registerCCEvent = function(eh, ccid, enregex, timeout) {
 	});
 };
 
-module.exports.createRequest = function(chain, user, chaincode_id, fcn, args) {
+module.exports.createRequest = function(client, chain, user, chaincode_id, targets, fcn, args) {
 	var nonce = utils.getNonce();
-	var tx_id = chain.buildTransactionID(nonce, user);
+	var tx_id = client.buildTransactionID(nonce, user);
 	var request = {
+		targets : targets,
 		chaincodeId: chaincode_id,
 		chaincodeVersion: '',
 		fcn: fcn,

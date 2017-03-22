@@ -28,8 +28,6 @@ var util = require('util');
 
 var hfc = require('fabric-client');
 var utils = require('fabric-client/lib/utils.js');
-var Peer = require('fabric-client/lib/Peer.js');
-var Orderer = require('fabric-client/lib/Orderer.js');
 var EventHub = require('fabric-client/lib/EventHub.js');
 var testUtil = require('../../unit/util.js');
 
@@ -60,7 +58,7 @@ test('\n\n***** End-to-end flow: query chaincode *****', (t) => {
 	for (let key in ORGS) {
 		if (ORGS.hasOwnProperty(key) && typeof ORGS[key].peer1 !== 'undefined') {
 			let data = fs.readFileSync(path.join(__dirname, ORGS[key].peer1['tls_cacerts']));
-			let peer = new Peer(
+			let peer = client.newPeer(
 				ORGS[key].peer1.requests,
 				{
 					pem: Buffer.from(data).toString(),
@@ -81,7 +79,7 @@ test('\n\n***** End-to-end flow: query chaincode *****', (t) => {
 		the_user = admin;
 
 		nonce = utils.getNonce();
-		tx_id = chain.buildTransactionID(nonce, the_user);
+		tx_id = client.buildTransactionID(nonce, the_user);
 
 		// send query
 		var request = {

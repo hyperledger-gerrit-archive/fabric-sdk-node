@@ -25,8 +25,6 @@ var grpc = require('grpc');
 
 var hfc = require('fabric-client');
 var utils = require('fabric-client/lib/utils.js');
-var Peer = require('fabric-client/lib/Peer.js');
-var Orderer = require('fabric-client/lib/Orderer.js');
 var EventHub = require('fabric-client/lib/EventHub.js');
 
 var testUtil = require('../../unit/util.js');
@@ -101,7 +99,7 @@ function joinChannel(org, t) {
 	let caroots = Buffer.from(data).toString();
 
 	chain.addOrderer(
-		new Orderer(
+		client.newOrderer(
 			ORGS.orderer.url,
 			{
 				'pem': caroots,
@@ -115,7 +113,7 @@ function joinChannel(org, t) {
 			if (key.indexOf('peer') === 0) {
 				data = fs.readFileSync(path.join(__dirname, ORGS[org][key]['tls_cacerts']));
 				targets.push(
-					new Peer(
+					client.newPeer(
 						ORGS[org][key].requests,
 						{
 							pem: Buffer.from(data).toString(),
@@ -150,7 +148,7 @@ function joinChannel(org, t) {
 		the_user = admin;
 
 		nonce = utils.getNonce();
-		tx_id = chain.buildTransactionID(nonce, the_user);
+		tx_id = client.buildTransactionID(nonce, the_user);
 		var request = {
 			targets : targets,
 			txId : 	tx_id,

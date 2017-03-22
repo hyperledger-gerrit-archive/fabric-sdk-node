@@ -28,8 +28,6 @@ var util = require('util');
 
 var hfc = require('fabric-client');
 var utils = require('fabric-client/lib/utils.js');
-var Peer = require('fabric-client/lib/Peer.js');
-var Orderer = require('fabric-client/lib/Orderer.js');
 var Packager = require('fabric-client/lib/Packager.js');
 var testUtil = require('../unit/util.js');
 
@@ -174,7 +172,7 @@ function installChaincode(params, t) {
 		let caroots = Buffer.from(data).toString();
 
 		chain.addOrderer(
-			new Orderer(
+			client.newOrderer(
 				ORGS.orderer.url,
 				{
 					'pem': caroots,
@@ -190,7 +188,7 @@ function installChaincode(params, t) {
 			if (ORGS[org].hasOwnProperty(key)) {
 				if (key.indexOf('peer') === 0) {
 					let data = fs.readFileSync(path.join(__dirname, 'e2e', ORGS[org][key]['tls_cacerts']));
-					let peer = new Peer(
+					let peer = client.newPeer(
 						ORGS[org][key].requests,
 						{
 							pem: Buffer.from(data).toString(),
@@ -212,7 +210,7 @@ function installChaincode(params, t) {
 			the_user = admin;
 
 			nonce = utils.getNonce();
-			tx_id = chain.buildTransactionID(nonce, the_user);
+			tx_id = client.buildTransactionID(nonce, the_user);
 
 			// send proposal to endorser
 			var request = {
@@ -225,7 +223,7 @@ function installChaincode(params, t) {
 				nonce: nonce
 			};
 
-			return chain.sendInstallProposal(request);
+			return client.installChaincode(request);
 		},
 		(err) => {
 			t.fail(params.testDesc+' - Failed to enroll user \'admin\'. ' + err);
@@ -239,7 +237,7 @@ function installChaincode(params, t) {
 			var error = null;
 			for(var i in proposalResponses) {
 				let one_good = false;
-				if (proposalResponses && proposalResponses[0].response && proposalResponses[0].response.status === 200) {
+				if (proposalResponses && proposalResponses[i].response && proposalResponses[i].response.status === 200) {
 					one_good = true;
 					logger.info(params.testDesc+' - install proposal was good');
 				} else {
@@ -261,7 +259,7 @@ function installChaincode(params, t) {
 			}
 		},
 		(err) => {
-			t.comment(params.testDesc+' - Error in sendInstallProposal');
+			t.comment(params.testDesc+' - Error in installChaincode');
 			return new Error(err.stack ? err.stack : err);
 		});
 	} catch (err) {
