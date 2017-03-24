@@ -23,6 +23,7 @@
 
 'use strict';
 
+process.env.HFC_LOGGING = '{"debug": "console"}';
 var tape = require('tape');
 var _test = require('tape-promise');
 var test = _test(tape);
@@ -182,6 +183,46 @@ test('  ---->>>>> Query chain working <<<<<-----', function(t) {
 		t.comment('Failed \'Query chain working\' with error:');
 		throw new Error(err.stack ? err.stack : err);
 	});
+});
+
+test('  ---->>>>> Query chain full block decode: GetBlockByNumber <<<<<-----', function(t) {
+	if (!queryParameters || querys.indexOf('GetBlockByNumber') >= 0) {
+		logger.info('Executing GetBlockByNumber');
+
+		return hfc.newDefaultKeyValueStore({
+			path: testUtil.storePathForOrg(orgName)
+		}).then(
+			function(store) {
+				client.setStateStore(store);
+				return testUtil.getSubmitter(client, t, org);
+			}
+		).then(
+			function(admin) {
+				t.pass('Successfully enrolled user \'admin\'');
+				the_user = admin;
+				// send query
+				return chain.queryBlock(1); //should not find it
+			},
+			function(err) {
+				t.fail('Failed to enroll user: ' + err.stack ? err.stack : err);
+				t.end();
+			}
+		).then(
+			function(block) {
+				t.pass('Should have found a block ::' + JSON.stringify( block));
+				t.end();
+			},
+			function(err) {
+				t.fail(util.format('Did not find a block with this number : %j', err));
+				t.end();
+			}
+		).catch(
+			function(err) {
+				t.fail('Failed to query with error:' + err.stack ? err.stack : err);
+				t.end();
+			}
+		);
+	} else t.end();
 });
 
 test('  ---->>>>> Query chain failing: GetBlockByNumber <<<<<-----', function(t) {

@@ -1047,7 +1047,8 @@ var Chain = class {
 						logger.debug('queryBlockByHash - response status %d:', response.response.status);
 						var block = _commonProto.Block.decode(response.response.payload);
 						logger.debug('queryBlockByHash - looking at block :: %s',block.header.number);
-						return Promise.resolve(block);
+						var json_block = Chain.decodeBlock(block);
+						return Promise.resolve(json_block);
 					}
 					// no idea what we have, lets fail it and send it back
 					return Promise.reject(response);
@@ -1105,11 +1106,12 @@ var Chain = class {
 					if(response instanceof Error ) {
 						return Promise.reject(response);
 					}
-					if(response.response) {
+					if(response.response && response.response.status === 200) {
 						logger.debug('queryBlock - response status %d:', response.response.status);
 						var block = _commonProto.Block.decode(response.response.payload);
 						logger.debug('queryBlockByHash - looking at block :: %s',block.header.number);
-						return Promise.resolve(block);
+						var json_block = Chain.decodeBlock(block);
+						return Promise.resolve(json_block);
 					}
 					// no idea what we have, lets fail it and send it back
 					return Promise.reject(response);
@@ -1123,6 +1125,8 @@ var Chain = class {
 			}
 		);
 	}
+
+
 
 	/**
 	 * Queries the ledger for Transaction by number.
@@ -2083,6 +2087,160 @@ var Chain = class {
 			return _ccProto.ChaincodeSpec.Type.JAVA;
 		}
 
+	}
+
+	/*
+	 * Utility methods to decode a block and return JSON
+	 */
+	static decodeBlock(proto_block) {
+		var block = {};
+		block.header = Chain.decodeBlockHeader(proto_block.getHeader());
+		block.data = Chain.docodeBlockData(proto_block.getData());
+		block.metadata = Chain.decodeBlockMetaData(proto_block.getMetadata());
+
+		return block;
+	}
+
+	static decodeBlockHeader(proto_block_header) {
+		var block_header = {};
+		block_header.number = proto_block_header.getNumber();
+		block_header.previous_hash = proto_block_header.getPreviousHash();
+		block_header.data_hash = proto_block_header.getDataHash();
+		return block_header;
+	}
+
+	static docodeBlockData(proto_block_data) {
+		var data = {};
+		data.data = [];
+		for(var i in proto_block_data.data) {
+			var proto_envelope = _commonProto.Envelope.decode(proto_block_data.data[i]);
+			var envelope = Chain.decodeBlockDataEnvelope(proto_envelope);
+			data.data.push(envelope);
+		}
+		return data;
+	}
+
+	static decodeBlockMetaData(proto_block_metadata) {
+		var metadata = {};
+		metadata.metadata = [];
+		for(var i in proto_block_metadata.metadata) {
+			let proto_block_metadata_metadata = proto_block_metadata.metadata[i];
+			metadata.metadata.push(proto_block_metadata_metadata.toBuffer());
+		}
+		return metadata;
+	}
+
+	static decodeBlockDataEnvelope(proto_envelope) {
+		var envelope = {};
+		envelope.signature = {};
+
+		envelope.payload = {};
+		var proto_payload = _commonProto.Payload.decode(proto_envelope.getPayload());
+
+		envelope.payload.header = {};
+		envelope.payload.header.signature_header = Chain.decodeSignatureHeader(proto_payload.header.getSignatureHeader());
+		envelope.payload.header.channel_header = Chain.decodeChannelHeader(proto_payload.header.getChannelHeader());
+
+		if(envelope.payload.header.channel_header.type == 3) { //ENDORSER_TRANSACTION
+			envelope.payload.data = Chain.decodeEndorserTransaction(proto_payload.getData());
+		}
+		else {
+			throw new Error('Only able to decode ENDORSER_TRANSACTION type blocks');
+		}
+		return envelope;
+	}
+
+	static decodeEndorserTransaction(trans_bytes) {
+		logger.debug('decodeEndorserTransaction - start');
+		var data = {};
+		var transaction = _transProto.Transaction.decode(trans_bytes);
+		data.actions = [];
+		if(transaction && transaction.actions) for(let i in transaction.actions) {
+			var action = {};
+			action.header = Chain.decodeSignatureHeader(transaction.actions[i].header);
+			action.payload = Chain.decodeChaincodeActionPayload(transaction.actions[i].payload);
+			data.actions.push(action);
+		}
+
+		return data;
+	}
+
+	static decodeSignatureHeader(header_bytes) {
+		var signature_header = {};
+		var proto_signature_header = _commonProto.SignatureHeader.decode(header_bytes);
+		signature_header.creator = Chain.decodeIdentity(proto_signature_header.getCreator());
+		signature_header.nonce = proto_signature_header.getNonce();
+		return signature_header;
+	}
+
+	static decodeIdentity(id_bytes) {
+		var identity = {};
+		var proto_identity = _identityProto.SerializedIdentity.decode(id_bytes);
+		identity.Mspid = proto_identity.getMspid();
+		identity.IdBytes = proto_identity.getIdBytes();
+	}
+
+	static decodeChannelHeader(header_bytes){
+		var channel_header = {};
+		var proto_channel_header = _commonProto.ChannelHeader.decode(header_bytes);
+		channel_header.type = proto_channel_header.getType();
+		channel_header.version = proto_channel_header.getType();
+		channel_header.timestamp = proto_channel_header.getTimestamp();
+		channel_header.tx_id = proto_channel_header.getTxId();
+		channel_header.epoch = proto_channel_header.getEpoch();
+		//TODO need to decode this
+		channel_header.extension = proto_channel_header.getExtension();
+		return channel_header;
+	}
+
+	static decodeChaincodeActionPayload(payload_bytes) {
+		var payload = {};
+		var proto_chaincode_action_payload = _transProto.ChaincodeActionPayload.decode(payload_bytes);
+		payload.chaincode_proposal_payload = proto_chaincode_action_payload.getChaincodeProposalPayload();//TODO more decode needed
+		payload.action = Chain.decodeChaincodeEndorsedAction(proto_chaincode_action_payload.getAction());
+		return payload;
+	}
+
+	static decodeChaincodeEndorsedAction(proto_chaincode_endorsed_action) {
+		var action = {};
+		action.proposal_response_payload = Chain.decodeProposalResponsePayload(proto_chaincode_endorsed_action.getProposalResponsePayload());
+		action.endorsements = [];
+		for(var i in proto_chaincode_endorsed_action.endorsements) {
+			var endorsement = Chain.decodeEndorsement(proto_chaincode_endorsed_action.endorsements[i]);
+			action.endorsements.push(endorsement);
+		}
+		action.proposal_response_payload = Chain.decodeProposalResponsePayload(proto_chaincode_endorsed_action.getProposalResponsePayload());
+		return action;
+	}
+
+	static decodeEndorsement(proto_endorsement) {
+		var endorsement = {};
+		endorsement.endorser = Chain.decodeIdentity(proto_endorsement.getEndorser());
+		endorsement.signature = proto_endorsement.getSignature();
+		return endorsement;
+	}
+
+	static decodeProposalResponsePayload(proposal_response_payload_bytes) {
+		var proposal_response_payload = {};
+		var proto_proposal_response_payload = _responseProto.ProposalResponsePayload.decode(proposal_response_payload_bytes);
+		proposal_response_payload.proposal_hash = proto_proposal_response_payload.getProposalHash();
+		proposal_response_payload.extension = Chain.decodeChaincodeAction(proto_proposal_response_payload.getExtension());
+	}
+
+	static decodeChaincodeAction(action_bytes) {
+		var chaincode_action = {};
+		var proto_chaincode_action = _proposalProto.ChaincodeAction.decode(action_bytes);
+		chaincode_action.results = proto_chaincode_action.getResults(); //TODO is there a way to decode the read/write sets
+		chaincode_action.events = proto_chaincode_action.getEvents(); //TODO should we decode these
+		chaincode_action.response = Chain.decodeResponse(proto_chaincode_action.getResponse());
+	}
+
+	static decodeResponse(proto_response) {
+		if(!proto_response) return null;
+		var response = {};
+		response.status = proto_response.getStatus();
+		response.message = proto_response.getMessage();
+		response.payload = proto_response.getPayload();
 	}
 
 	/**
