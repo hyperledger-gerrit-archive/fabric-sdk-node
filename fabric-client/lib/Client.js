@@ -25,7 +25,14 @@ var Chain = require('./Chain.js');
 var Peer = require('./Peer.js');
 var Orderer = require('./Orderer.js');
 var logger = sdkUtils.getLogger('Client.js');
+var KeyStore = require('./impl/CryptoKeyStore.js');
+var ecdsaKey = require('./impl/ecdsa/key.js');
 var util = require('util');
+var path = require('path');
+var fs = require('fs-extra');
+
+var jsrsa = require('jsrsasign');
+var KEYUTIL = jsrsa.KEYUTIL;
 
 var grpc = require('grpc');
 var _commonProto = grpc.load(__dirname + '/protos/common/common.proto').common;
@@ -743,6 +750,178 @@ var Client = class {
 	}
 
 	/**
+	 * Returns an authorized user.  If the user's enrollment is
+	 * found in the stateStore, the user is simply returned, else
+	 * the CA Service will attempt to enroll a previously registered
+	 * user.  If loadFromConfig is true, the user will be loaded
+	 * using the private key and pre-enrolled certificate from files
+	 * based on the MSP config directory structure:
+	 * <br>config
+	 * <br>&nbsp;&nbsp;&nbsp;\_ keystore
+	 * <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;\_ admin.pem  <<== this is the private key saved in PEM file
+	 * <br>&nbsp;&nbsp;&nbsp;\_ signcerts
+	 * <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;\_ admin.pem  <<== this is the signed certificate saved in PEM file
+	 * @param {object} opts - Optional parameters which will override the
+	 * 'ca-client' configuration settings.
+	 * <br>- username {string} user name used for enrollment with the CA Service
+	 * <br>- password {string} password used for enrollment with the CA Service
+	 * <br>- loadFromConfig {boolean} true to load user from MSP config files
+	 * <br>- userOrg {string} organization associated with an MSP
+	 * <br>- mspConfigDir - required when loadFromConfig is true.  The root
+	 *       directory which will be concatenated to the 'ca-client' config settings
+	 *       privateKeyStore and signedCertificate.
+	 * <br>
+	 * <br>See the default 'ca-client' configuration settings in
+	 * <br>/fabric-sdk-node/fabric-client/config/default.json.
+	 */
+	getSubmitter(opts) {
+		// Get the ca-client config settings
+		var caClient = sdkUtils.getConfigSetting('ca-client', 'notfound');
+		logger.info('opts = %s', JSON.stringify(opts));
+		logger.debug('caClient = %s', JSON.stringify(caClient));
+
+		if (!opts) {
+			if (caClient === 'notfound') {
+				return Promise.reject(new Error('Client.getSubmitter missing both \'opts\' parameter and \'ca-client\' configuration settings.'));
+			}
+		}
+
+		// Assuming that caClient has all of the default settings
+		if (opts && !opts.username && !caClient.username) {
+			return Promise.reject(new Error('Client.getSubmitter missing parameter, either \'opts.username\' or \'ca-client config username\' is required.'));
+		}
+		var username = opts && opts.username ? opts.username : caClient.username;
+
+		var loadFromConfig = false;
+		if (opts && opts.loadFromConfig) {
+			if  (opts.loadFromConfig == 'true' || opts.loadFromConfig == true) {
+				loadFromConfig = true;
+			}
+		} else {
+			if (caClient.loadFromConfig == 'true' || caClient.loadFromConfig == true) {
+				loadFromConfig = true;
+			}
+		}
+		if (opts && !opts.password && !caClient.password && !loadFromConfig) {
+			return Promise.reject(new Error('Client.getSubmitter missing parameter, either \'opts.password\' or \'ca-client config password\' is required when loadFromConfig is false.'));
+		}
+		var password = opts && opts.password ? opts.password : caClient.password;
+
+		if ( (opts && !opts.userOrg && !caClient.userOrg) && (opts && !opts.loadFromConfig && !caClient.loadFromConfig) ) {
+			return Promise.reject(new Error('Client.getSubmitter missing parameter, either \'userOrg\' or \'loadFromConfig\' is required in \'opts\' or \'ca-client config.'));
+		}
+		var userOrg = opts && opts.userOrg ? opts.userOrg : caClient.userOrg;
+		var mspid = caClient.orgs[userOrg].mspid;
+		var tlsOptions = caClient.orgs[userOrg].tlsOptions;
+		var keyStoreOpts = sdkUtils.getConfigSetting('keyStoreOpts',  'notfound');
+		if (keyStoreOpts == 'notfound') {
+			keyStoreOpts = { path: caClient.orgs[userOrg].storePath+'-'+caClient.orgs[userOrg].name };
+		}
+		var cryptoOpts = { kvsOpts: keyStoreOpts };
+		logger.debug('keyStoreOpts: '+JSON.stringify(keyStoreOpts));
+
+		var caService, caUrl, member, mspConfigDir;
+		if (loadFromConfig == false) {
+			caUrl = caClient.orgs[userOrg].ca;
+			try {
+				require(caClient.npmModule);
+				caService = require(caClient.classImpl);
+			} catch (err) {
+				logger.error(err.stack ? err.stack : err);
+				return Promise.reject(new Error('Client.getSubmitter error requiring npm module and class.'));
+			}
+		} else {
+			if (!opts || !opts.mspConfigDir) {
+				return Promise.reject(new Error('Client.getSubmitter missing parameter \'mspConfigDir\' is required when \'loadFromConfig\' is true.'));
+			}
+			mspConfigDir = opts.mspConfigDir;
+		}
+
+		var self = this;
+		return sdkUtils.newKeyValueStore(keyStoreOpts)
+		.then((store) => {
+			logger.info('store: %s',store);
+			self.setStateStore(store);
+			return true;
+		}).then(() => {
+			return self.getUserContext(username);
+		}).then((user) => {
+			return new Promise((resolve, reject) => {
+				if (user && user.isEnrolled()) {
+					logger.info('Successfully loaded member from persistence');
+					return resolve(user);
+				}
+				if (loadFromConfig == false) {
+					logger.info('Enrolling member with CA Service');
+					let ca = new caService(caUrl, tlsOptions/*cryptoSettings*/, null/*KVSImplClass*/, keyStoreOpts/*kvsOpts*/);
+					return ca.enroll({
+						enrollmentID: username,
+						enrollmentSecret: password
+					}).then((enrollment) => {
+						logger.info('Successfully enrolled user \'' + username + '\'');
+						member = new User(username);
+						return member.setEnrollment(enrollment.key, enrollment.certificate, mspid, cryptoOpts);
+					}).then(() => {
+						logger.info('setting User context');
+						return self.setUserContext(member);
+					}).then(() => {
+						logger.info('returning member');
+						return resolve(member);
+					}).catch((err) => {
+						logger.error(err.stack ? err.stack : err);
+						throw new Error('Failed to enroll and persist user.');
+					});
+				} else {
+					logger.info('loading submitter from files');
+					// need to load private key and pre-enrolled certificate from files based on the MSP
+					// config directory structure:
+					// <config>
+					//    \_ keystore
+					//       \_ admin.pem  <<== this is the private key saved in PEM file
+					//    \_ signcerts
+					//       \_ admin.pem  <<== this is the signed certificate saved in PEM file
+
+					// first load the private key and save in the BCCSP's key store
+					var privKeyPEM = path.join(mspConfigDir, caClient.orgs[userOrg].privateKeyStore);
+					var pemData, member, testKey;
+					return readFile(privKeyPEM)
+					.then((data) => {
+						logger.debug('then privKeyPEM data');
+						pemData = data;
+						return new KeyStore(keyStoreOpts);
+					}).then((store) => {
+						logger.debug('then store');
+						var rawKey = KEYUTIL.getKey(pemData.toString());
+						testKey = new ecdsaKey(rawKey);
+						return store.putKey(testKey);
+					}).then((value) => {
+						logger.debug('then value');
+						// next save the certificate in a serialized user enrollment in the state store
+						var certPEM = path.join(mspConfigDir, caClient.orgs[userOrg].signedCertificate);
+						return readFile(certPEM);
+					}).then((data) => {
+						logger.debug('then certPEM data');
+						member = new User(username);
+						return member.setEnrollment(testKey, data.toString(), mspid, cryptoOpts);
+					}).then(() => {
+						logger.debug('then setUserContext');
+						return self.setUserContext(member);
+					}).then((user) => {
+						logger.debug('then user');
+						return resolve(user);
+					}).catch((err) => {
+						throw new Error('Failed to load key or certificate and save to local stores.');
+						 logger.error(err.stack ? err.stack : err);
+					});
+				}
+			});
+		}).catch((err) => {
+			logger.error(err.stack ? err.stack : err);
+			throw new Error('Failed to get submitter.');
+		});
+	}
+
+	/**
 	 * Obtains an instance of the [KeyValueStore]{@link module:api.KeyValueStore} class. By default
 	 * it returns the built-in implementation, which is based on files ([FileKeyValueStore]{@link module:api.FileKeyValueStore}).
 	 * This can be overriden with an environment variable KEY_VALUE_STORE, the value of which is the
@@ -863,5 +1042,20 @@ var Client = class {
 		return sdkUtils.getConfigSetting(name, default_value);
 	}
 };
+
+function readFile(path) {
+	return new Promise(function(resolve, reject) {
+		fs.readFile(path, 'utf8', function (err, data) {
+			if (err) {
+				if (err.code !== 'ENOENT') {
+					return reject(err);
+				} else {
+					return resolve(null);
+				}
+			}
+			return resolve(data);
+		});
+	});
+}
 
 module.exports = Client;

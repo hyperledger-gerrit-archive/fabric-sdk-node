@@ -16,6 +16,12 @@
 
 'use strict';
 
+if (global && global.hfc) global.hfc.config = undefined;
+require('nconf').reset();
+var utils = require('fabric-client/lib/utils.js');
+utils.setConfigSetting('hfc-logging', '{"debug":"console"}');
+var logger = utils.getLogger('unit.client');
+
 var tape = require('tape');
 var _test = require('tape-promise');
 var test = _test(tape);
@@ -52,6 +58,9 @@ var client = new Client();
 var chainKeyValStorePath = 'tmp/chainKeyValStorePath';
 var testKey = 'keyValFileStoreName';
 var testValue = 'secretKeyValue';
+
+var caClientOrig = utils.getConfigSetting('ca-client', 'notfound');
+logger.debug('caClientOrig = %s', JSON.stringify(caClientOrig));
 
 test('\n\n ** lib/Client.js **\n\n', function (t) {
 
@@ -490,3 +499,172 @@ test('\n\n ** Client createChannel() tests **\n\n', function (t) {
 		}
 	);
 });
+
+test('\n\n ** getSubmitter require ca npm module and classImpl **\n\n', function (t) {
+	var msg = 'Client.getSubmitter error requiring npm module and class';
+	utils.setConfigSetting('ca-client', {'loadFromConfig': false});
+
+	var npmModule = caClientOrig.npmModule;
+	var classImpl = caClientOrig.classImpl;
+	var badCa = {'npmModule': npmModule+'x'};
+	utils.setConfigSetting('ca-client', badCa);
+
+	var client = new Client();
+	return client.getSubmitter()
+	.then((user) => {
+		t.fail('Should not have gotten user.');
+		utils.setConfigSetting('ca-client', {'npmModule': npmModule });//restore to original
+		t.end();
+	}).catch((err) => {
+		if (err.message.indexOf(msg) > -1) {
+			t.pass('Should throw '+msg);
+			utils.setConfigSetting('ca-client', {'npmModule': npmModule });//restore to original
+			t.end;
+		} else {
+			t.fail('Expected error message: '+msg+'\n but got '+err.message);
+			utils.setConfigSetting('ca-client', {'npmModule': npmModule });//restore to original
+			t.end;
+		}
+	})
+	.then(() => {
+		badCa = {'classImpl': classImpl+'x'};
+		utils.setConfigSetting('ca-client', badCa);
+
+		return client.getSubmitter()
+		.then((user) => {
+			t.fail('Should not have gotten user.');
+			utils.setConfigSetting('ca-client', {'classImpl': classImpl});//restore to original
+			t.end();
+		}).catch((err) => {
+			if (err.message.indexOf(msg) > -1) {
+				t.pass('Should throw '+msg);
+				utils.setConfigSetting('ca-client', {'classImpl': classImpl});//restore to original
+				t.end;
+			} else {
+				t.fail('Expected error message: '+msg+'\n but got '+err.message);
+				utils.setConfigSetting('ca-client', {'classImpl': classImpl});//restore to original
+				t.end;
+			}
+		});
+	});
+});
+
+test('\n\n ** getSubmitter error path - missing required settings **\n\n', function (t) {
+	var msg = 'Client.getSubmitter missing both \'opts\' parameter and \'ca-client\' configuration settings.';
+	utils.setConfigSetting('ca-client', {'loadFromConfig': false});
+	utils.setConfigSetting('ca-client', 'notfound');
+
+	var client = new Client();
+	return client.getSubmitter()
+	.then((user) => {
+		t.fail('Should not have gotten user.');
+		utils.setConfigSetting('ca-client', caClientOrig);//restore to original
+		t.end();
+	}).catch((err) => {
+		if (err.message.indexOf(msg) > -1) {
+			t.pass('Should throw '+msg);
+			utils.setConfigSetting('ca-client', caClientOrig);//restore to original
+			t.end;
+		} else {
+			t.fail('Expected error message: '+msg+'\n but got '+err.message);
+			utils.setConfigSetting('ca-client', caClientOrig);//restore to original
+			t.end;
+		}
+	});
+});
+
+test('\n\n ** getSubmitter error path - missing required username **\n\n', function (t) {
+	var msg = 'Client.getSubmitter missing parameter, either \'opts.username\' or \'ca-client config username\' is required.';
+	utils.setConfigSetting('ca-client', {'loadFromConfig': false});
+	utils.setConfigSetting('ca-client', 'notfound');
+
+	var client = new Client();
+	return client.getSubmitter({anything: 'goes'})
+	.then((user) => {
+		t.fail('Should not have gotten user.');
+		utils.setConfigSetting('ca-client', caClientOrig);//restore to original
+		t.end();
+	}).catch((err) => {
+		if (err.message.indexOf(msg) > -1) {
+			t.pass('Should throw '+msg);
+			utils.setConfigSetting('ca-client', caClientOrig);//restore to original
+			t.end;
+		} else {
+			t.fail('Expected error message: '+msg+'\n but got '+err.message);
+			utils.setConfigSetting('ca-client', caClientOrig);//restore to original
+			t.end;
+		}
+	});
+});
+
+test('\n\n ** getSubmitter error path - missing required password **\n\n', function (t) {
+	var msg = 'Client.getSubmitter missing parameter, either \'opts.password\' or \'ca-client config password\' is required when loadFromConfig is false.';
+	utils.setConfigSetting('ca-client', {'loadFromConfig': false});
+	utils.setConfigSetting('ca-client', 'notfound');
+
+	var client = new Client();
+	return client.getSubmitter({username: 'blah', anything: 'goes'})
+	.then((user) => {
+		t.fail('Should not have gotten user.');
+		utils.setConfigSetting('ca-client', caClientOrig);//restore to original
+		t.end();
+	}).catch((err) => {
+		if (err.message.indexOf(msg) > -1) {
+			t.pass('Should throw '+msg);
+			utils.setConfigSetting('ca-client', caClientOrig);//restore to original
+			t.end;
+		} else {
+			t.fail('Expected error message: '+msg+'\n but got '+err.message);
+			utils.setConfigSetting('ca-client', caClientOrig);//restore to original
+			t.end;
+		}
+	});
+});
+
+test('\n\n ** getSubmitter error path - missing required userOrg or loadFromConfig **\n\n', function (t) {
+	var msg = 'Client.getSubmitter missing parameter, either \'userOrg\' or \'loadFromConfig\' is required in \'opts\' or \'ca-client config.';
+	utils.setConfigSetting('ca-client', {'loadFromConfig': false});
+	utils.setConfigSetting('ca-client', 'notfound');
+
+	var client = new Client();
+	return client.getSubmitter({username: 'blah', password: 'blah'})
+	.then((user) => {
+		t.fail('Should not have gotten user.');
+		utils.setConfigSetting('ca-client', caClientOrig);//restore to original
+		t.end();
+	}).catch((err) => {
+		if (err.message.indexOf(msg) > -1) {
+			t.pass('Should throw '+msg);
+			utils.setConfigSetting('ca-client', caClientOrig);//restore to original
+			t.end;
+		} else {
+			t.fail('Expected error message: '+msg+'\n but got '+err.message);
+			utils.setConfigSetting('ca-client', caClientOrig);//restore to original
+			t.end;
+		}
+	});
+});
+
+test('\n\n ** getSubmitter error path - missing required setting loadFromConfig true **\n\n', function (t) {
+	var msg = 'Client.getSubmitter missing parameter \'mspConfigDir\' is required when \'loadFromConfig\' is true.';
+	utils.setConfigSetting('ca-client', {'loadFromConfig': true});
+
+	var client = new Client();
+	return client.getSubmitter()
+	.then((user) => {
+		t.fail('Should not have gotten user.');
+		utils.setConfigSetting('ca-client', {'loadFromConfig': caClientOrig.loadFromConfig});
+		t.end();
+	}).catch((err) => {
+		if (err.message.indexOf(msg) > -1) {
+			t.pass('Should throw '+msg);
+			utils.setConfigSetting('ca-client', {'loadFromConfig': caClientOrig.loadFromConfig});
+			t.end;
+		} else {
+			t.fail('Expected error message: '+msg+'\n but got '+err.message);
+			utils.setConfigSetting('ca-client', {'loadFromConfig': caClientOrig.loadFromConfig});
+			t.end;
+		}
+	});
+});
+
