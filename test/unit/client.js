@@ -16,6 +16,12 @@
 
 'use strict';
 
+if (global && global.hfc) global.hfc.config = undefined;
+require('nconf').reset();
+var utils = require('fabric-client/lib/utils.js');
+utils.setConfigSetting('hfc-logging', '{"debug":"console"}');
+var logger = utils.getLogger('unit.client');
+
 var tape = require('tape');
 var _test = require('tape-promise');
 var test = _test(tape);
@@ -52,6 +58,9 @@ var client = new Client();
 var chainKeyValStorePath = 'tmp/chainKeyValStorePath';
 var testKey = 'keyValFileStoreName';
 var testValue = 'secretKeyValue';
+
+var caImportOrig = utils.getConfigSetting('ca-import', 'notfound');
+logger.debug('caImportOrig = %s', JSON.stringify(caImportOrig));
 
 test('\n\n ** lib/Client.js **\n\n', function (t) {
 
@@ -490,3 +499,116 @@ test('\n\n ** Client createChannel() tests **\n\n', function (t) {
 		}
 	);
 });
+
+test('\n\n ** getSubmitter error path - missing required opt parameter **\n\n', function (t) {
+	var msg = 'Client.getSubmitter missing required \'opts\' parameter.';
+	utils.setConfigSetting('ca-import', 'notfound');
+
+	var client = new Client();
+	return client.getSubmitter()
+	.then((user) => {
+		t.fail('Should not have gotten user.');
+		utils.setConfigSetting('ca-import', caImportOrig);//restore to original
+		t.end();
+	}).catch((err) => {
+		if (err.message.indexOf(msg) > -1) {
+			t.pass('Should throw '+msg);
+			utils.setConfigSetting('ca-import', caImportOrig);//restore to original
+			t.end;
+		} else {
+			t.fail('Expected error message: '+msg+'\n but got '+err.message);
+			utils.setConfigSetting('ca-import', caImportOrig);//restore to original
+			t.end;
+		}
+	});
+});
+
+test('\n\n ** getSubmitter error path - missing required ca-import config setting **\n\n', function (t) {
+	var msg = 'Client.getSubmitter missing \'ca-import\' configuration settings.';
+	utils.setConfigSetting('ca-import', 'notfound');
+
+	var client = new Client();
+	return client.getSubmitter({anything: 'goes'})
+	.then((user) => {
+		t.fail('Should not have gotten user.');
+		utils.setConfigSetting('ca-import', caImportOrig);//restore to original
+		t.end();
+	}).catch((err) => {
+		if (err.message.indexOf(msg) > -1) {
+			t.pass('Should throw '+msg);
+			utils.setConfigSetting('ca-import', caImportOrig);//restore to original
+			t.end;
+		} else {
+			t.fail('Expected error message: '+msg+'\n but got '+err.message);
+			utils.setConfigSetting('ca-import', caImportOrig);//restore to original
+			t.end;
+		}
+	});
+});
+
+test('\n\n ** getSubmitter error path - missing required username **\n\n', function (t) {
+	var msg = 'Client.getSubmitter missing parameter, either \'opts username\' or \'ca-import username\' is required.';
+	var caImport = {userOrg:'org1',orgs: { org1: {username: ''}}};
+	utils.setConfigSetting('ca-import', caImport);
+
+	var client = new Client();
+	return client.getSubmitter({mspConfigDir: 'blah', userOrg: 'org1', username: ''})
+	.then((user) => {
+		t.fail('Should not have gotten user.');
+		utils.setConfigSetting('ca-import', caImportOrig);//restore to original
+		t.end();
+	}).catch((err) => {
+		if (err.message.indexOf(msg) > -1) {
+			t.pass('Should throw '+msg);
+			utils.setConfigSetting('ca-import', caImportOrig);//restore to original
+			t.end;
+		} else {
+			t.fail('Expected error message: '+msg+'\n but got '+err.message);
+			utils.setConfigSetting('ca-import', caImportOrig);//restore to original
+			t.end;
+		}
+	});
+});
+
+test('\n\n ** getSubmitter error path - missing required userOrg **\n\n', function (t) {
+	var msg = 'Client.getSubmitter missing parameter, either \'opts userOrg\' or \'ca-import userOrg\' is required.';
+	utils.setConfigSetting('ca-import', 'blah');
+
+	var client = new Client();
+	return client.getSubmitter({username: 'blah'})
+	.then((user) => {
+		t.fail('Should not have gotten user.');
+		utils.setConfigSetting('ca-import', caImportOrig);//restore to original
+		t.end();
+	}).catch((err) => {
+		if (err.message.indexOf(msg) > -1) {
+			t.pass('Should throw '+msg);
+			utils.setConfigSetting('ca-import', caImportOrig);//restore to original
+			t.end;
+		} else {
+			t.fail('Expected error message: '+msg+'\n but got '+err.message);
+			utils.setConfigSetting('ca-import', caImportOrig);//restore to original
+			t.end;
+		}
+	});
+});
+
+test('\n\n ** getSubmitter error path - missing required mspConfigDir **\n\n', function (t) {
+	var msg = 'Client.getSubmitter parameter \'opts mspConfigDir\' is required.';
+
+	var client = new Client();
+	return client.getSubmitter({ anything: 'goes'})
+	.then((user) => {
+		t.fail('Should not have gotten user.');
+		t.end();
+	}).catch((err) => {
+		if (err.message.indexOf(msg) > -1) {
+			t.pass('Should throw '+msg);
+			t.end;
+		} else {
+			t.fail('Expected error message: '+msg+'\n but got '+err.message);
+			t.end;
+		}
+	});
+});
+

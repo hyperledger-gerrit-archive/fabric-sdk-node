@@ -1,6 +1,35 @@
 { 
 	"request-timeout" : 30000,
 	"tcert-batch-size" : 10,
+	"ca-import" : {
+		"userOrg": "org1",
+		"orgs": { 
+			"org1": {
+				"username": "admin",
+				"name": "peerOrg1",
+				"mspid": "Org1MSP",
+				"storePath": "/tmp/hfc-test-kvs_org1",
+				"tlsOptions": {
+					"trustedRoots": [],
+					"verify": false
+				},
+				"privateKeyStore": "../fixtures/msp/local/keystore/admin.pem",
+				"signedCertificate": "../fixtures/msp/local/signcerts/admin.pem"
+			},
+			"org2": {
+				"username": "admin",
+				"name": "peerOrg2",
+				"mspid": "Org2MSP",
+				"storePath": "/tmp/hfc-test-kvs_org2",
+				"tlsOptions": {
+					"trustedRoots": [],
+					"verify": false
+				},
+				"privateKeyStore": "../fixtures/msp/local/keystore/admin.pem",
+				"signedCertificate": "../fixtures/msp/local/signcerts/admin.pem"
+			}
+		}
+	},
 	"crypto-hash-algo": "SHA2",
 	"crypto-keysize": 256,
 	"crypto-hsm": false,
