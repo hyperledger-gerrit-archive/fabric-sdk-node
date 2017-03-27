@@ -203,6 +203,367 @@ var FabricCAServices = class {
 	}
 
 	/**
+	 * Send a request for a new batch of TCerts.
+	 * @param {Object} req Tcert request with the following fields:
+	 * <br> - @param {number} count The number of transaction certificates to return."
+	 * <br> - @param {string[]} attr_names An array of: The name of an attribute whose name and value to put in each transaction certificate.
+	 * <br> - @param {bool} encrypt_attrs If true, encrypt the attribute(s) in each transaction certificate.
+	 * <br> - @param {number} validity_period The number of nanoseconds each transaction certificate will be valid before expiration.
+	 * @param {User} user The identity of the user (i.e. who is requesting the new TCerts)
+	 * @returns {Promise} batch of new TCerts
+	 */
+	getTCerts(req, user) {
+
+		if (typeof req === 'undefined' || req === null) {
+			throw new Error('Missing required argument "request"');
+		}
+
+		if (typeof req.count === 'undefined' || req.count === null) {
+			throw new Error('Missing required argument "request.count"');
+		}
+
+		if (typeof req.attr_names === 'undefined' || req.attr_names === null) {
+			throw new Error('Missing required argument "request.attr_names"');
+		}
+
+		if (typeof req.encrypt_attrs === 'undefined' || req.encrypt_attrs === null) {
+			throw new Error('Missing required argument "request.encrypt_attrs"');
+		}
+
+		if (typeof req.validity_period === 'undefined' || req.validity_period === null) {
+			throw new Error('Missing required argument "request.validity_period"');
+		}
+
+		if (user === undefined || user === null) {
+			throw new Error('Missing required argument "user"');
+		}
+
+		if (typeof user.getSigningIdentity !== 'function') {
+			throw new Error('Argument "user" must be an instance of the class "User", but is found to be missing a method "getSigningIdentity()"');
+		}
+
+		return this._fabricCAClient.getTCerts(req.count, req.attr_names, req.encrypt_attrs, req.validity_period, user.getSigningIdentity());
+	}
+
+	derivePrivateKey() {
+
+		logger.info('Derive private key');
+
+		var ecertPEM = '-----BEGIN CERTIFICATE-----'+
+		'MIICYjCCAgmgAwIBAgIUB3CTDOU47sUC5K4kn/Caqnh114YwCgYIKoZIzj0EAwIw'+
+		'fzELMAkGA1UEBhMCVVMxEzARBgNVBAgTCkNhbGlmb3JuaWExFjAUBgNVBAcTDVNh'+
+		'biBGcmFuY2lzY28xHzAdBgNVBAoTFkludGVybmV0IFdpZGdldHMsIEluYy4xDDAK'+
+		'BgNVBAsTA1dXVzEUMBIGA1UEAxMLZXhhbXBsZS5jb20wHhcNMTYxMDEyMTkzMTAw'+
+		'WhcNMjExMDExMTkzMTAwWjB/MQswCQYDVQQGEwJVUzETMBEGA1UECBMKQ2FsaWZv'+
+		'cm5pYTEWMBQGA1UEBxMNU2FuIEZyYW5jaXNjbzEfMB0GA1UEChMWSW50ZXJuZXQg'+
+		'V2lkZ2V0cywgSW5jLjEMMAoGA1UECxMDV1dXMRQwEgYDVQQDEwtleGFtcGxlLmNv'+
+		'bTBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABKIH5b2JaSmqiQXHyqC+cmknICcF'+
+		'i5AddVjsQizDV6uZ4v6s+PWiJyzfA/rTtMvYAPq/yeEHpBUB1j053mxnpMujYzBh'+
+		'MA4GA1UdDwEB/wQEAwIBBjAPBgNVHRMBAf8EBTADAQH/MB0GA1UdDgQWBBQXZ0I9'+
+		'qp6CP8TFHZ9bw5nRtZxIEDAfBgNVHSMEGDAWgBQXZ0I9qp6CP8TFHZ9bw5nRtZxI'+
+		'EDAKBggqhkjOPQQDAgNHADBEAiAHp5Rbp9Em1G/UmKn8WsCbqDfWecVbZPQj3RK4'+
+		'oG5kQQIgQAe4OOKYhJdh3f7URaKfGTf492/nmRmtK+ySKjpHSrU='+
+		'-----END CERTIFICATE-----';
+
+		var tcertPEM = '-----BEGIN CERTIFICATE-----'+
+		'MIICdjCCAhygAwIBAgIRAKiCjdZT4UfHryhb11k0jdkwCgYIKoZIzj0EAwIwfzEL'+
+		'MAkGA1UEBhMCVVMxEzARBgNVBAgTCkNhbGlmb3JuaWExFjAUBgNVBAcTDVNhbiBG'+
+		'cmFuY2lzY28xHzAdBgNVBAoTFkludGVybmV0IFdpZGdldHMsIEluYy4xDDAKBgNV'+
+		'BAsTA1dXVzEUMBIGA1UEAxMLZXhhbXBsZS5jb20wHhcNMTcwMzE1MTg1MDAzWhcN'+
+		'MTgwMzE1MTg1MDAzWjApMScwJQYDVQQDEx5GYWJyaWMgVHJhbnNhY3Rpb24gQ2Vy'+
+		'dGlmaWNhdGUwWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAARb5elijXHkKpwCIlFE'+
+		'9pEmHSR/0rv8efXwlrr0iJgdS9sKTl0wFoRGxW8zf2UDKMkccjettx4Hog95J7p6'+
+		'xWSNo4HOMIHLMA4GA1UdDwEB/wQEAwIHgDANBgNVHQ4EBgQEAQIDBDAfBgNVHSME'+
+		'GDAWgBQXZ0I9qp6CP8TFHZ9bw5nRtZxIEDBNBgYqAwQFBgcBAf8EQNxGJCN/BVMq'+
+		'WVVoKaxArfUg0TAi/iPrbYzDGCCnqZCLZqIYDFKe/R6o71E3dbmSNNfzLBeSKKmt'+
+		'mrMGvXXiwrcwOgYGKgMEBQYIBDB+J+9Ti8GMdc2lN0C5Q1GH4v0W/8Lq7qek3k0d'+
+		'uDPSJs+kG/yoakizoveA1UV8UhkwCgYIKoZIzj0EAwIDSAAwRQIhANxpPoVA1vbF'+
+		'5JJhfNBYIbO+ZIuv459fHNwbId1fCTvtAiAtOJcaTQIQPzroJDLIGvKvXtU0ZLpQ'+
+		'2LiK4IKK4KOe/Q=='+
+		'-----END CERTIFICATE-----';
+
+		var ecertPrivateKeyPEM = '-----BEGIN PRIVATE KEY-----'+
+		'MHcCAQEEINs5XopZVBEWTsUCCF8mU4H14/UN1alo+j5BzBQZ0PKtoAoGCCqGSM49'+
+		'AwEHoUQDQgAEogflvYlpKaqJBcfKoL5yaScgJwWLkB11WOxCLMNXq5ni/qz49aIn'+
+		'LN8D+tO0y9gA+r/J4QekFQHWPTnebGekyw=='+
+		'-----END PRIVATE KEY-----';
+
+		//var tcertDerivationKey = require('fs').readFileSync('/Users/pnovotny/code/tcert_derivationkey.dat');
+		var tcertDerivationKey = require('fs').readFileSync('./test/unit/tcert_derivationkey.dat');
+		logger.info('tcertDerivationKey: ', tcertDerivationKey);
+
+		// test cert and private key from test files elsewhere in this project
+		var TEST_KEY_PRIVATE_PEM = '-----BEGIN PRIVATE KEY-----' +
+		'MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgZYMvf3w5VkzzsTQY' +
+		'I8Z8IXuGFZmmfjIX2YSScqCvAkihRANCAAS6BhFgW/q0PzrkwT5RlWTt41VgXLgu' +
+		'Pv6QKvGsW7SqK6TkcCfxsWoSjy6/r1SzzTMni3J8iQRoJ3roPmoxPLK4' +
+		'-----END PRIVATE KEY-----';
+
+		var TEST_KEY_PRIVATE_CERT_PEM = '-----BEGIN CERTIFICATE-----' +
+		'MIICEDCCAbagAwIBAgIUXoY6X7jIpHAAgL267xHEpVr6NSgwCgYIKoZIzj0EAwIw' +
+		'fzELMAkGA1UEBhMCVVMxEzARBgNVBAgTCkNhbGlmb3JuaWExFjAUBgNVBAcTDVNh' +
+		'biBGcmFuY2lzY28xHzAdBgNVBAoTFkludGVybmV0IFdpZGdldHMsIEluYy4xDDAK' +
+		'BgNVBAsTA1dXVzEUMBIGA1UEAxMLZXhhbXBsZS5jb20wHhcNMTcwMTAzMDEyNDAw' +
+		'WhcNMTgwMTAzMDEyNDAwWjAQMQ4wDAYDVQQDEwVhZG1pbjBZMBMGByqGSM49AgEG' +
+		'CCqGSM49AwEHA0IABLoGEWBb+rQ/OuTBPlGVZO3jVWBcuC4+/pAq8axbtKorpORw' +
+		'J/GxahKPLr+vVLPNMyeLcnyJBGgneug+ajE8srijfzB9MA4GA1UdDwEB/wQEAwIF' +
+		'oDAdBgNVHSUEFjAUBggrBgEFBQcDAQYIKwYBBQUHAwIwDAYDVR0TAQH/BAIwADAd' +
+		'BgNVHQ4EFgQU9BUt7QfgDXx9g6zpzCyJGxXsNM0wHwYDVR0jBBgwFoAUF2dCPaqe' +
+		'gj/ExR2fW8OZ0bWcSBAwCgYIKoZIzj0EAwIDSAAwRQIgcWQbMzluyZsmvQCvGzPg' +
+		'f5B7ECxK0kdmXPXIEBiizYACIQD2x39Q4oVwO5uL6m3AVNI98C2LZWa0g2iea8wk' +
+		'BAHpeA==' +
+		'-----END CERTIFICATE-----';
+
+		// in first 3 steps is verified whether method which tests the result of derivation works
+		// given the data available, its hard to say
+
+		// 1 - tests whether verifyKeysHex works correctly - based on generating ec key pair and invoking verifyKeysHex
+		// if this one passes we know how to verify result of derivation
+		this.verifyKeysHex_Test_GenerateKeys();
+
+		// 2 - tests whether extracted public/private keys from x509 and private key PEM encoding are matching
+		// - here it is tested on the testing cert and private key used elsewhere in the tests and hence data which should work
+		// if 1 passes and this one not - there is a problem with input or loading of input - either way the rest is unlikely to work
+		this.verifyKeysHex_Test_FromPEM(TEST_KEY_PRIVATE_CERT_PEM, TEST_KEY_PRIVATE_PEM);
+
+		// 3 - tests whether extracted public/private keys from x509 and private key PEM encoding are matching
+		// - here is used ecert and its private key extracted from GO code of fabric-ca
+		// if 1 passes and this one not - 5 cant pass
+		this.verifyKeysHex_Test_FromPEM(ecertPEM, ecertPrivateKeyPEM);
+
+		// in remaining 2 steps is invoked key derivation and the result is verified
+
+		// 4 - invokes derivePrivateKey_Impl and tests whether the returned private key and public key extracted
+		// -- from the private key object are matching
+		// this one generally passes, however, not sure how the public key is internally derived and hence it does
+		// -- not say much about correctness of the derivation
+		this.derivePrivateKey_Impl_Test_DerivedPrivateAndPublicKeys(ecertPEM, tcertDerivationKey, tcertPEM);
+
+		// 5 - invokes derivePrivateKey_Impl and tests whether the returned private key and public key from tcert are matching
+		this.derivePrivateKey_Impl_Test_DerivedPrivateKeyAndTcertPublicKey(ecertPEM, tcertDerivationKey, tcertPEM);
+	}
+
+	// invokes derivePrivateKey_Impl and tests whether the returned private key and public key from tcert are matching
+	derivePrivateKey_Impl_Test_DerivedPrivateKeyAndTcertPublicKey(ecertPrivateKeyPEMBuffer, derivationKeyBuffer, tcertPEMBuffer) {
+		logger.info('derivePrivateKey_Impl_Test_DerivedPrivateKeyAndTcertPublicKey');
+		//logger.info('ecertPrivateKeyPEMBuffer: ', ecertPrivateKeyPEMBuffer);
+		//logger.info('derivationKeyBuffer: ', derivationKeyBuffer);
+		//logger.info('tcertPEMBuffer: ', tcertPEMBuffer);
+
+		var tcertPrivateKey = this.derivePrivateKey_Impl(ecertPrivateKeyPEMBuffer, derivationKeyBuffer, tcertPEMBuffer);
+
+		// extract public key from x509 tcert PEM
+		var publicKey = KEYUTIL.getKey(tcertPEMBuffer);
+		var publicKeyXY = publicKey.getPublicKeyXYHex();
+		var publicKeyHex = '04' + (JSON.stringify(publicKeyXY.x) + JSON.stringify(publicKeyXY.y)).replace(/"/g, '');
+
+		// extract private key
+		var privateKeyHex = tcertPrivateKey.getPrivate('hex');
+
+		this.verifyKeysHex(publicKeyHex, privateKeyHex);
+	}
+
+	// invokes derivePrivateKey_Impl and tests whether the returned private key and public key extracted from the private key object are matching
+	derivePrivateKey_Impl_Test_DerivedPrivateAndPublicKeys(ecertPrivateKeyPEMBuffer, derivationKeyBuffer, tcertPEMBuffer) {
+		logger.info('derivePrivateKey_Impl_Test_DerivedPrivateAndPublicKeys');
+		//logger.info('ecertPrivateKeyPEMBuffer: ', ecertPrivateKeyPEMBuffer);
+		//logger.info('derivationKeyBuffer: ', derivationKeyBuffer);
+		//logger.info('tcertPEMBuffer: ', tcertPEMBuffer);
+
+		var tcertPrivateKey = this.derivePrivateKey_Impl(ecertPrivateKeyPEMBuffer, derivationKeyBuffer, tcertPEMBuffer);
+
+		// extract private and public keys from returned tcert's private key
+		var privateKeyHex = tcertPrivateKey.getPrivate('hex');
+		var publicKeyHex = tcertPrivateKey.getPublic('hex');
+
+		this.verifyKeysHex(publicKeyHex, privateKeyHex);
+	}
+
+	// tests whether extracted public/private keys from x509 and private key PEM encoding are matching
+	verifyKeysHex_Test_FromPEM(x509PEM, privateKeyPEM) {
+		logger.info('verifyKeysHex_Test_FromPEM');
+
+		// extract public key from x509 cert PEM
+		var publicKey = KEYUTIL.getKey(x509PEM);
+		var publicKeyXY = publicKey.getPublicKeyXYHex();
+		var publicKeyHex = '04' + (JSON.stringify(publicKeyXY.x) + JSON.stringify(publicKeyXY.y)).replace(/"/g, '');
+
+		// extract private key from private key PEM
+		var privateKey = this.ecdsaKeyFromPrivate(privateKeyPEM, 'hex');
+		var privateKeyHex = privateKey.getPrivate('hex');
+
+		this.verifyKeysHex(publicKeyHex, privateKeyHex);
+	}
+
+	// tests whether verifyKeysHex works correctly - based on generating ec key pair and invoking verifyKeysHex
+	verifyKeysHex_Test_GenerateKeys() {
+		logger.info('verifyKeysHex_Test_GenerateKeys');
+
+		var key = new EC(elliptic.curves['p256']).genKeyPair();
+		var puplicKeyHex = key.getPublic(true, 'hex');
+		var privateKeyHex = key.getPrivate('hex');
+
+		this.verifyKeysHex(puplicKeyHex, privateKeyHex);
+	}
+
+	// verifies whether pair of public and private keys are matching by signing message and verifying the signature
+	verifyKeysHex(publicKeyHex, privateKeyHex) {
+		logger.info('verifyKeysHex');
+		logger.info('public: ', publicKeyHex);
+		logger.info('private: ', privateKeyHex);
+
+		var publicKey = this.ecdsaKeyFromPublic(publicKeyHex, 'hex');
+		var privateKey = this.ecdsaKeyFromPrivate(privateKeyHex, 'hex');
+
+
+		// Sign message (must be an array, or it'll be treated as a hex sequence)
+		var msg = [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 ];
+		//var signature = privateKey.sign(msg);
+		var signature = privateKey.sign(msg);
+
+		// Export DER encoded signature in Array
+		var derSign = signature.toDER();
+
+		// Verify signature with private key
+		logger.info('Verify signature - private key: ', privateKey.verify(msg, derSign));
+
+		// Verify signature with public key
+		logger.info('Verify signature - public key: ', publicKey.verify(msg, derSign));
+
+		return publicKey.verify(msg, derSign);
+	}
+
+	// private key derivation - based on code from v0.6
+	derivePrivateKey_Impl(ecertPrivateKeyPEMBuffer, derivationKeyBuffer, tcertPEMBuffer) {
+		logger.info('derivePrivateKey_Impl');
+
+		let byte1 = new Buffer(1);
+		byte1.writeUInt8(0x1, 0);
+		let byte2 = new Buffer(1);
+		byte2.writeUInt8(0x2, 0);
+
+		let tCertOwnerEncryptKey = this.hmac(derivationKeyBuffer, byte1).slice(0, 32);
+		let expansionKey = this.hmac(derivationKeyBuffer, byte2);
+
+		// extract the encrypted bytes from extension attribute
+		const TCertEncTCertIndex = '1.2.3.4.5.6.7';
+		var hCert = X509.pemToHex(tcertPEMBuffer);
+		var tCertIndexCT = X509.getHexOfV_V3ExtValue(hCert, TCertEncTCertIndex);
+		//logger.info('TCertEncTCertIndex: ', tCertIndexCT);
+		let tCertIndex = this.aesCBCPKCS7Decrypt(tCertOwnerEncryptKey, tCertIndexCT);
+		//logger.info('tCertIndex: ',JSON.stringify(tCertIndex));
+
+		let expansionValue = this.hmac(expansionKey, tCertIndex);
+		//logger.info('expansionValue: ',expansionValue);
+
+        // compute the private key
+		let one = new BN(1);
+		let k = new BN(expansionValue);
+		let n = this.ecdsaKeyFromPrivate(ecertPrivateKeyPEMBuffer, 'hex').ec.curve.n.sub(one);
+		//logger.info('n: ', n);
+		k = k.mod(n).add(one);
+		//logger.info('k: ', k);
+		let D = this.ecdsaKeyFromPrivate(ecertPrivateKeyPEMBuffer, 'hex').getPrivate().add(k);
+		//logger.info('D: ', D);
+		let pubHex = this.ecdsaKeyFromPrivate(ecertPrivateKeyPEMBuffer, 'hex').getPublic('hex');
+		//logger.info('pubHex: ', pubHex);
+		D = D.mod(this.ecdsaKeyFromPublic(pubHex, 'hex').ec.curve.n);
+		//logger.info('D: ', D);
+
+		var tcertPrivateKey = this.ecdsaKeyFromPrivate(D, 'hex');
+		//logger.info('derived private key: ', JSON.stringify(tcertPrivateKey));
+		logger.info('derived private key: ', JSON.stringify(tcertPrivateKey.getPrivate('hex')));
+
+		return tcertPrivateKey;
+	}
+
+	ecdsaKeyFromPrivate(key, encoding) {
+     // select curve and hash algo based on level
+		var privateKey = new EC(elliptic.curves['p256']).keyFromPrivate(key, encoding);
+		//logger.info('ecdsaKeyFromPrivate: ', privateKey);
+		return privateKey;
+	};
+
+	ecdsaKeyFromPublic(key, encoding) {
+		var publicKey = new EC(elliptic.curves['p256']).keyFromPublic(key, encoding);
+		//logger.info('ecdsaKeyFromPublic: ', publicKey);
+		return publicKey;
+	};
+
+	hmac(key, bytes) {
+		//logger.info('key: ', JSON.stringify(key));
+		//logger.info('bytes: ', JSON.stringify(bytes));
+		var hmac = new sjcl.misc.hmac(bytesToBits(key), this.hashFunctionKeyDerivation);
+		hmac.update(bytesToBits(bytes));
+		var result = hmac.digest();
+		//logger.info('result: ', bitsToBytes(result));
+		return bitsToBytes(result);
+	}
+
+	aesCBCPKCS7Decrypt(key, bytes) {
+		var decryptedBytes, unpaddedBytes;
+
+		decryptedBytes = this.CBCDecrypt(key, bytes);
+		unpaddedBytes = this.PKCS7UnPadding(decryptedBytes);
+
+		return unpaddedBytes;
+	}
+
+	CBCDecrypt(key, bytes) {
+		const BlockSize = 16;
+		//logger.info('key length: ', key.length);
+		//logger.info('bytes length: ', bytes.length);
+		var iv = bytes.slice(0, BlockSize);
+		//logger.info('iv length: ', iv.length);
+		var encryptedBytes = bytes.slice(BlockSize);
+		//logger.info('encrypted bytes length: ', encryptedBytes.length);
+
+		var decryptedBlocks = [];
+		var decryptedBytes;
+
+		// CBC only works with 16 bytes blocks
+		if (encryptedBytes.length > BlockSize) {
+			//CBC only support cipertext with length Blocksize
+			var start = 0;
+			var end = BlockSize;
+			while (end <= encryptedBytes.length) {
+				var aesCbc = new aesjs.ModeOfOperation.cbc(key, iv);
+				//logger.info('start|end', start, end);
+				var encryptedBlock = encryptedBytes.slice(start, end);
+				var textBytes = aesjs.util.convertStringToBytes(encryptedBlock);
+				//logger.info('encryptedBlock: ', encryptedBlock);
+				//var decryptedBlock = aesCbc.decrypt(encryptedBlock);
+				var decryptedBlock = aesCbc.decrypt(textBytes);
+				//logger.info('decryptedBlock: ', decryptedBlock);
+				decryptedBlocks.push(decryptedBlock);
+				//iv for next round equals previous block
+				iv = encryptedBlock;
+				start += BlockSize;
+				end += BlockSize;
+			}
+			decryptedBytes = Buffer.concat(decryptedBlocks);
+		}
+		else {
+			var aesCbc = new aesjs.ModeOfOperation.cbc(key, iv);
+			decryptedBytes = aesCbc.decrypt(encryptedBytes);
+		}
+
+		//logger.info('decrypted bytes: ', JSON.stringify(decryptedBytes));
+
+		return decryptedBytes;
+	}
+
+	PKCS7UnPadding(bytes) {
+		//last byte is the number of padded bytes
+		var padding = bytes.readUInt8(bytes.length - 1);
+		//logger.info('padding: ', padding);
+		//should check padded bytes, but just going to extract
+		var unpadded = bytes.slice(0, bytes.length - padding);
+		//logger.info('unpadded bytes: ', JSON.stringify(unpadded));
+		return unpadded;
+	}
+
+	/**
 	 * @typedef {Object} HTTPEndpoint
 	 * @property {string} hostname
 	 * @property {number} port
@@ -483,6 +844,102 @@ var FabricCAClient = class {
 
 		var b64Sign = Buffer.from(sig, 'hex').toString('base64');
 		return cert + '.' + b64Sign;
+	}
+
+	/**
+	 * Send a request for a new batch of TCerts.
+	 * @param {number} count The number of transaction certificates to return."
+	 * @param {string[]} attr_names An array of: The name of an attribute whose name and value to put in each transaction certificate.
+	 * @param {bool} encrypt_attrs If true, encrypt the attribute(s) in each transaction certificate.
+	 * @param {number} validity_period The number of nanoseconds each transaction certificate will be valid before expiration.
+	 * @param {SigningIdentity} signingIdentity The instance of a SigningIdentity encapsulating the signing certificate,
+	 * hash algorithm and signature algorithm
+	 * @returns {Promise} batch of new TCerts
+	 * @throws Will throw an error if all parameters are not provided
+	 * @throws Will throw an error if calling the tcert API fails for any reason
+	 */
+	getTCerts(count, attr_names, encrypt_attrs, validity_period, signingIdentity) {
+
+		var self = this;
+		var numArgs = arguments.length;
+
+		return new Promise(function (resolve, reject) {
+			//check for required args
+			if (numArgs < 5) {
+				reject(new Error('Missing required parameters.  \'count\', \'attr_names\', \'encrypt_attrs\', \'validity_period\', \'signingIdentity.'));
+			}
+
+			//https://github.com/hyperledger/fabric-ca/blob/master/swagger/swagger-fabric-ca.json
+			var requestBody = {
+				count: count,
+	            attr_names: attr_names,
+	            encrypt_attrs: encrypt_attrs,
+	            validity_period: validity_period
+			};
+			/*
+			 var regRequest = {
+				'id': enrollmentID,
+				'type': role,
+				'group': group,
+				'attrs': attrs,
+				'callerID': callerID
+			};
+			 */
+
+			var authToken = FabricCAClient.generateAuthToken(requestBody, signingIdentity);
+
+			var requestOptions = {
+				hostname: self._hostname,
+				port: self._port,
+				path: self._baseAPI + 'tcert',
+				method: 'POST',
+				headers: {
+					Authorization: authToken
+				}
+			};
+
+			var request = self._httpClient.request(requestOptions, function (response) {
+
+				const responseBody = [];
+				response.on('data', function (chunk) {
+					responseBody.push(chunk);
+				});
+
+				response.on('end', function () {
+
+					var payload = responseBody.join('');
+
+					if (!payload) {
+						reject(new Error(
+							util.format('Tcert failed with HTTP status code ', response.statusCode)));
+					}
+					//response should be JSON
+					try {
+						var enrollResponse = JSON.parse(payload);
+						if (enrollResponse.success) {
+							//we want the result field which is Base64-encoded PEM
+							return resolve(new Buffer.from(enrollResponse.result, 'base64').toString());
+						} else {
+							return reject(new Error(
+								util.format('Tcert failed with errors [%s]', JSON.stringify(enrollResponse.errors))));
+						}
+
+					} catch (err) {
+						reject(new Error(
+							util.format('Could not parse tcert response [%s] as JSON due to error [%s]', payload, err)));
+					}
+				});
+
+			});
+
+			request.on('error', function (err) {
+				reject(new Error(util.format('Calling tcert endpoint failed with error [%s]', err)));
+			});
+
+			request.write(JSON.stringify(requestBody));
+			request.end();
+		});
+
 	}
 
 	/**

@@ -244,6 +244,83 @@ test('FabricCAServices: Test revoke() function', function(t) {
 	);
 });
 
+test('FabricCAServices: Test getTCerts() function', function(t) {
+	var cop = new FabricCAServices('http://localhost:7054');
+
+	t.throws(
+		() => {
+			cop.getTCerts();
+		},
+		/Missing required argument "request"/,
+		'Must fail if missing request argument'
+	);
+	t.throws(
+		() => {
+			cop.getTCerts({});
+		},
+		/Missing required argument "request.count"/,
+		'Must fail if missing request.count argument'
+	);
+	t.throws(
+		() => {
+			cop.getTCerts({count: '1'});
+		},
+		/Missing required argument "request.attr_names"/,
+		'Must fail if missing request argument'
+	);
+	t.throws(
+		() => {
+			cop.getTCerts({count: '1', attr_names: 'name'});
+		},
+		/Missing required argument "request.encrypt_attrs"/,
+		'Must fail if missing request.encrypt_attrs argument'
+		);
+	t.throws(
+		() => {
+			cop.getTCerts({count: '1', attr_names: 'name', encrypt_attrs: 'attr'});
+		},
+		/Missing required argument "request.validity_period"/,
+		'Must fail if missing request.validity_period argument'
+		);
+	t.throws(
+		() => {
+			cop.getTCerts({count: '1', attr_names: 'name', encrypt_attrs: 'attr', validity_period: 'period'});
+		},
+		/Missing required argument "user"/,
+		'Must fail if missing user argument'
+	);
+	t.throws(
+		() => {
+			cop.getTCerts({count: '1', attr_names: 'name', encrypt_attrs: 'attr', validity_period: 'period'}, {});
+		},
+		/Argument "user" must be an instance of the class "User", but is found to be missing a method "getSigningIdentity/,
+		'Must fail if user argument is not a User object'
+	);
+	t.doesNotThrow(
+		() => {
+			cop.getTCerts({count: '1', attr_names: 'name', encrypt_attrs: 'attr', validity_period: 'period'}, { getName: function() { return 'dummy'; }, getSigningIdentity: function() { return 'dummy'; } });
+		},
+		null,
+		'Should pass the argument checking but would fail when the call tries to assemble the auth token'
+	);
+
+	t.end();
+});
+
+test('FabricCAServices: Test derivePrivateKey() function', function(t) {
+	var cop = new FabricCAServices('http://localhost:7054');
+
+	t.doesNotThrow(
+		() => {
+			cop.derivePrivateKey();
+		},
+			null,
+			'Should pass ....'
+		);
+
+	t.end();
+});
+
 test('FabricCAServices: Test _parseURL() function', function (t) {
 
 	var goodHost = 'www.example.com';
