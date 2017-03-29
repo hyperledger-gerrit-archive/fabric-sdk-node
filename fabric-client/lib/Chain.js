@@ -26,6 +26,7 @@ var path = require('path');
 var Peer = require('./Peer.js');
 var Orderer = require('./Orderer.js');
 var Packager = require('./Packager.js');
+var Block = require('./Block.js');
 var settle = require('promise-settle');
 var grpc = require('grpc');
 var logger = utils.getLogger('Chain.js');
@@ -49,7 +50,6 @@ var _abProto = grpc.load(__dirname + '/protos/orderer/ab.proto').orderer;
 var _mspConfigProto = grpc.load(__dirname + '/protos/msp/mspconfig.proto').msp;
 var _timestampProto = grpc.load(__dirname + '/protos/google/protobuf/timestamp.proto').google.protobuf;
 var _identityProto = grpc.load(path.join(__dirname, '/protos/identity.proto')).msp;
-
 
 
 /**
@@ -1045,7 +1045,7 @@ var Chain = class {
 					}
 					if(response.response) {
 						logger.debug('queryBlockByHash - response status %d:', response.response.status);
-						var block = _commonProto.Block.decode(response.response.payload);
+						var block = new Block(response.response.payload);
 						logger.debug('queryBlockByHash - looking at block :: %s',block.header.number);
 						return Promise.resolve(block);
 					}
@@ -1107,7 +1107,7 @@ var Chain = class {
 					}
 					if(response.response) {
 						logger.debug('queryBlock - response status %d:', response.response.status);
-						var block = _commonProto.Block.decode(response.response.payload);
+						var block = new Block(response.response.payload);
 						logger.debug('queryBlockByHash - looking at block :: %s',block.header.number);
 						return Promise.resolve(block);
 					}
