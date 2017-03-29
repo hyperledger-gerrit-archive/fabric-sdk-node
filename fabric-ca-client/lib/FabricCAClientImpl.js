@@ -121,6 +121,10 @@ var FabricCAServices = class {
 		var self = this;
 
 		return new Promise(function (resolve, reject) {
+			if (typeof req === 'undefined' || req === null) {
+				logger.error('enroll() missing required argument "request"');
+				return reject(new Error('Missing required argument "request"'));
+			}
 			if (!req.enrollmentID) {
 				logger.error('Invalid enroll request, missing enrollmentID');
 				return reject(new Error('req.enrollmentID is not set'));
@@ -300,19 +304,19 @@ var FabricCAClient = class {
 			};
 		} else {
 			this._tlsOptions = connect_opts.tlsOptions;
-			if (this._tlsOptions.verify==='undefined'){
+			if (typeof this._tlsOptions.verify === 'undefined') {
 				this._tlsOptions.verify = true;
 			}
-			if (this._tlsOptions.trustedRoots==='undefined'){
+			if (typeof this._tlsOptions.trustedRoots === 'undefined') {
 				this._tlsOptions.trustedRoots = [];
 			}
-		}
+		};
 		this._baseAPI = '/api/v1/cfssl/';
 
 		this._cryptoPrimitives = cryptoPrimitives;
 
 		logger.info('Successfully constructed Fabric CA client from options - %j', connect_opts);
-	}
+	};
 
 	/**
 	 * @typedef {Object} KeyValueAttribute
@@ -573,7 +577,7 @@ var FabricCAClient = class {
 
 		});
 
-	}
+	};
 
 	/**
 	 * Convert a PEM encoded certificate to DER format
