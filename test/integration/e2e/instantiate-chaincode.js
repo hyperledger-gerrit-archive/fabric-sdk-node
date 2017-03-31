@@ -39,7 +39,6 @@ test('\n\n***** End-to-end flow: instantiate chaincode *****', (t) => {
 		else {
 			t.fail('Failed to instantiate chaincode ');
 			t.end();
-
 		}
 	}, (err) => {
 		t.fail('Failed to instantiate chaincode in peers of organization "org1". ' + err.stack ? err.stack : err);
