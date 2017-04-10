@@ -29,7 +29,6 @@ var util = require('util');
 
 var hfc = require('fabric-client');
 var utils = require('fabric-client/lib/utils.js');
-var EventHub = require('fabric-client/lib/EventHub.js');
 var testUtil = require('../unit/util.js');
 var logger = utils.getLogger('upgrade-chaincode');
 
@@ -119,7 +118,7 @@ test('\n\n **** E R R O R  T E S T I N G on upgrade call', (t) => {
 		return chain.sendUpgradeProposal(request);
 
 	}).then((results) => {
-		checkResults(results, 'same version exists', t);
+		checkResults(results, 'version already exists for chaincode', t);
 
 		return Promise.resolve(true);
 
@@ -145,7 +144,7 @@ test('\n\n **** E R R O R  T E S T I N G on upgrade call', (t) => {
 		return chain.sendUpgradeProposal(request);
 
 	}).then((results) => {
-		checkResults(results, 'chaincode not found', t);
+		checkResults(results, 'could not find chaincode with name', t);
 
 		return Promise.resolve(true);
 
