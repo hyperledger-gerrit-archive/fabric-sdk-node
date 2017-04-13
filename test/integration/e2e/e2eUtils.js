@@ -43,7 +43,7 @@ var the_user = null;
 
 function installChaincode(org, chaincode_path, version, t) {
 	var client = new hfc();
-	hfc.setConfigSetting('request-timeout', 30000);
+	hfc.setConfigSetting('request-timeout', 120000);
 	var chain = client.newChain(testUtil.END2END.channel);
 
 	var caRootsPath = ORGS.orderer.tls_cacerts;
