@@ -102,7 +102,7 @@ var test_input = {
 				end_points : ['orderer:7050'],
 				kafka_brokers : ['orderer:8888']
 			}],
-			polcies : {
+			policies : {
 				readers : {threshold : 'ANY'},
 				writers : {threshold : 'ALL'},
 				admins  : {threshold : 'MAJORITY'}

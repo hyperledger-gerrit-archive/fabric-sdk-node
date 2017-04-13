@@ -162,6 +162,7 @@ var ChannelConfig = class {
 		this.buildConfigValue('ConsensusType', proto_oderer_group);
 		this.buildConfigValue('BatchSize', proto_oderer_group);
 		this.buildConfigValue('BatchTimeout', proto_oderer_group);
+		this.buildConfigValue('CreationPolicy', proto_oderer_group);
 
 		if(Array.isArray(this.channel.orderers.organizations)){
 			this.buildConfigGroups(proto_oderer_group.getGroups(), this.channel.orderers.organizations, false);
@@ -171,7 +172,7 @@ var ChannelConfig = class {
 		}
 
 		if(this.channel.orderers.policies) {
-			this.buildConfigPolicies(proto_oderer_group.getPoliies(), this.channel.orderers.policies);
+			this.buildConfigPolicies(proto_oderer_group.getPolicies(), this.channel.orderers.policies);
 		}
 
 		proto_oderer_group.setModPolicy(this.buildConfigModPolicy(this.channel.orderers.mod_policy));
@@ -354,7 +355,7 @@ var ChannelConfig = class {
 		case 'CreationPolicy':
 			var proto_creation_policy = new _ordererConfigurationProto.CreationPolicy();
 			if(value) {
-				proto_creation_policy.getPolicy(value); //string
+				proto_creation_policy.setPolicy(value); //string
 				proto_config_value.setValue(proto_creation_policy.toBuffer());
 			}
 			break;
@@ -416,13 +417,15 @@ var ChannelConfig = class {
 
 		// IMPLICIT_META policy type
 		let threshold = policy.threshold;
+		let sub_policy = policy.sub_policy;
+		if(!sub_policy) sub_policy = name;//sub policy name will be the same name as parent to simplify the configuration
 		if(threshold) {
 			logger.debug('buildConfigPolicy - found threshold ::%s',threshold);
 			//should be one of ALL, ANY, MAJORITY
 			var rule = ImplicitMetaPolicy_Rule[threshold];
 			if (!(typeof rule === 'undefined' || rule === null)) {
 				var proto_implicit = new _policiesProto.ImplicitMetaPolicy();
-				proto_implicit.setSubPolicy(name); //sub policy name will be the same name as parent to simplify the configuration
+				proto_implicit.setSubPolicy(sub_policy);
 				proto_implicit.setRule(rule);
 				proto_policy.setType(_policiesProto.Policy.PolicyType.IMPLICIT_META);
 				proto_policy.setPolicy(proto_implicit.toBuffer());
@@ -452,7 +455,7 @@ var ChannelConfig = class {
 
 	buildConfigModPolicy(mod_policy) {
 		if (typeof mod_policy === 'undefined' || rule === null) {
-			return 'admins'; //default for now
+			return 'Admins'; //default for now
 		}
 		return mod_policy;
 	}
