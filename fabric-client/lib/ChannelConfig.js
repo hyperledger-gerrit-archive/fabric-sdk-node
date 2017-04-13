@@ -376,10 +376,9 @@ var ChannelConfig = class {
 			break;
 		case 'BlockDataHashingStructure':
 			var proto_blockdata_hashing_structure = new _commonConfigurationProto.BlockDataHashingStructure();
-			if(value) {
-				proto_blockdata_hashing_structure.setWidth(convert(value,config_name)); //uint32
-				proto_config_value.setValue(proto_blockdata_hashing_structure.toBuffer());
-			}
+			if(!value) value = 4294967295;
+			proto_blockdata_hashing_structure.setWidth(convert(value,config_name)); //uint32
+			proto_config_value.setValue(proto_blockdata_hashing_structure.toBuffer());
 			break;
 		default:
 //			logger.debug('loadConfigValue - %s   - value: %s', group_name, config_value.value.value);
@@ -438,7 +437,7 @@ var ChannelConfig = class {
 		}
 
 		// SIGNATURE policy type
-		let n_of = policy.n_of_signature;
+		let n_of = policy.signature;
 		if(n_of) {
 			logger.debug('buildConfigPolicy - found n_of_signature ::%j',n_of);
 			var proto_signature_policy_bytes = Policy.buildPolicy(this._msps_array, n_of);
