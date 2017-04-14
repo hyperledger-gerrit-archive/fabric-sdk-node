@@ -432,3 +432,10 @@ module.exports.readFile = function(path) {
 		});
 	});
 };
+
+module.exports.timeStampToDate = function(time_stamp) {
+	var millis = time_stamp.seconds * 1000 + time_stamp.nanos / 1000000;
+	var	date = new Date(millis);
+
+	return date;
+};

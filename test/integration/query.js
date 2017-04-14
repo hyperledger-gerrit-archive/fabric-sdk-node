@@ -142,6 +142,9 @@ test('  ---->>>>> Query chain working <<<<<-----', function(t) {
 		t.equal(block.header.number.toString(),'1','checking query results are correct that we got a transaction block back');
 		t.equal(block.data.data[0].payload.data.actions[0].payload.action.endorsements[0].endorser.Mspid,'Org1MSP','checking query results are correct that we got a transaction block back with correct endorsement MSP id');
 		logger.info('%j',block);
+		let header_time_stamp = block.data.data[0].payload.header.channel_header.timestamp;
+		let header_time_stamp_date = hfc.getSdkUtils().timeStampToDate(header_time_stamp);
+		t.comment('The channel header timestamp converted to date is :: '+ header_time_stamp_date);
 		chain.setPrimaryPeer(peer0);
 
 		tx_id = utils.getConfigSetting('E2E_TX_ID', 'notfound');
@@ -436,7 +439,7 @@ test('  ---->>>>> Query Installed Chaincodes working <<<<<-----', function(t) {
 				if (found) {
 					t.pass('queryInstalledChaincodes - found match for e2e');
 				} else {
-					t.fail('queryInstalledChaincodes - did not find match for e2e');
+					t.fail('queryInstalledChaincodes - did not find match for name:'+e2e.chaincodeId + ' version:'+ e2e.chaincodeVersion + ' path:'+ testUtil.CHAINCODE_PATH);
 					t.end();
 				}
 			},
@@ -490,7 +493,7 @@ test('  ---->>>>> Query Instantiated Chaincodes working <<<<<-----', function(t)
 					t.pass('queryInstantiatedChaincodes - found match for e2e');
 					t.end();
 				} else {
-					t.fail('queryInstantiatedChaincodes - did not find match for e2e');
+					t.fail('queryInstantiatedChaincodes - did not find match for name:'+e2e.chaincodeId + ' version:'+ e2e.chaincodeVersion + ' path:'+ testUtil.CHAINCODE_PATH);
 					t.end();
 				}
 			},
