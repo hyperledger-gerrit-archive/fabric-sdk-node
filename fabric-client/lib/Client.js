@@ -1094,6 +1094,14 @@ var Client = class {
 
 		return sdkUtils.getConfigSetting(name, default_value);
 	}
+
+	/**
+	 * Convenience method to get a reference to the SDK utilities
+	 * @returns {utils} 
+	 */
+	static getSdkUtils() {
+		return sdkUtils;
+	}
 };
 
 function readFile(path) {
