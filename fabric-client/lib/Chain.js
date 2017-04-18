@@ -1182,7 +1182,7 @@ var Chain = class {
 		var tx_id = Chain.buildTransactionID(nonce, userContext);
 		var request = {
 			targets: [self.getPrimaryPeer()],
-			chaincodeId : 'lccc',
+			chaincodeId : 'lscc',
 			chainId: self._name,
 			txId: tx_id,
 			nonce: nonce,
@@ -1370,7 +1370,7 @@ var Chain = class {
 		let lcccSpec = {
 			type: _ccProto.ChaincodeSpec.Type.GOLANG,
 			chaincode_id: {
-				name: 'lccc'
+				name: 'lscc'
 			},
 			input: {
 				args: [
@@ -1387,7 +1387,7 @@ var Chain = class {
 			request.chainId,
 			request.txId,
 			null,
-			'lccc'
+			'lscc'
 		);
 		header = Chain._buildHeader(userContext.getIdentity(), channelHeader, request.nonce);
 		proposal = Chain._buildProposal(lcccSpec, header);
