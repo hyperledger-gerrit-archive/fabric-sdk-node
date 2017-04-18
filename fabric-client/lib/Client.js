@@ -351,7 +351,7 @@ var Client = class {
 		var tx_id = Chain.buildTransactionID(nonce, userContext);
 		var request = {
 			targets: [peer],
-			chaincodeId : 'lccc',
+			chaincodeId : 'lscc',
 			chainId: 'mychannel',
 			txId: tx_id,
 			nonce: nonce,
@@ -480,7 +480,7 @@ var Client = class {
 			let lcccSpec = {
 				type: _ccProto.ChaincodeSpec.Type.GOLANG,
 				chaincode_id: {
-					name: 'lccc'
+					name: 'lscc'
 				},
 				input: {
 					args: [Buffer.from('install', 'utf8'), chaincodeDeploymentSpec.toBuffer()]
@@ -495,7 +495,7 @@ var Client = class {
 				'', //install does not target a channel
 				txId,
 				null,
-				'lccc'
+				'lscc'
 			);
 			header = Chain._buildHeader(userContext.getIdentity(), channelHeader, request.nonce);
 			proposal = Chain._buildProposal(lcccSpec, header);
