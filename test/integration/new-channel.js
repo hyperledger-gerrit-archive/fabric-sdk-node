@@ -180,11 +180,11 @@ test('\n\n***** SDK Built config update  create flow  *****\n\n', function(t) {
 		client.addMSP( loadMSPConfig('Org2MSP', 'peer', 'peerOrg2'));
 
 		// have the SDK build the config update object
-		config_update = client.buildChannelConfigUpdate(test_input);
+		config_update = client.buildChannelConfig(test_input);
 		t.pass('Successfully built config update');
 
 		// sign the config
-		var signature = client.signChannelConfigUpdate(config_update);
+		var signature = client.signChannelConfig(config_update);
 		t.pass('Successfully signed config update');
 
 		// collect all signatures
