@@ -361,6 +361,42 @@ var Chain = class {
 	}
 
 	/**
+	 * Build an configuration update envelope that is the channel configuration definition
+	 * from the provide MSP's, the Channel definition input parameters, and the current
+	 * configuration as read from this channel.
+	 * The result of the build will need to be signed and then may be used to update this
+	 * channel.
+	 * @param {Object} A JSON object that represents the configuration settings to be changed.
+	 * @param {MSP[]} A list of MSPs that may represent new or updates to existing MSPs
+	 * @return {byte[]} A Promise for a byte buffer object that is the byte array representation 
+	 *                  of the Protobuf common.ConfigUpdate
+	 * @see /protos/common/configtx.proto
+	 */
+	buildChannelConfigUpdate(config_definition, new_msps) {
+		logger.debug('buildChannelConfigUpdate - start');
+		// need to do the following steps
+		//  - get the current config block from the orderer
+		//    -- find the current MSP's and save those away for later use
+		//    -- build a object version hierarchy -- will be used to build the readset and to set the version numbers of the writeset
+		//  - build a list of MSP's, first pulling in those just read and then adding and replacing those passed in , user may have added updated MSP's
+		//  - build the config update object
+		//    -- using the version hierarchy build a protobuf ConfigGroup for the ConfigUpdate.readset
+		//    -- using the config_definition and the newly built list of MSP's build a protobuf ConfigGroup for the ConfigUpdate.writeset
+		var self = this;
+
+		return self.initialize()
+		.then( function(result) {
+			logger.debug('buildChannelConfigUpdate - finished with the initialization, look at msps and version hierarchy');
+		}).catch(function(err) {
+			logger.error('Failed buildChannelConfigUpdate. :: %s', err.stack ? err.stack : err);
+			return Promise.reject(err);
+		});
+		var channel_config = new ChannelConfig(this._msps);
+		var proto_channel_config = channel_config.build(config_definition);
+		return proto_channel_config.toBuffer();
+	}
+
+	/**
 	 * Sends a join channel proposal to one or more endorsing peers
 	 * Will get the genesis block from the defined orderer to be used
 	 * in the proposal.
@@ -720,6 +756,7 @@ var Chain = class {
 		config_items.orderers = [];
 		config_items['kafka-brokers'] = [];
 		config_items.settings = {};
+		config_items.versions = {};
 		this.loadConfigGroup(config_items, group, 'base', null, true, true);
 		this._msp_manager.loadMSPs(config_items.msps);
 		this._anchor_peers = config_items.anchor_peers;
@@ -743,6 +780,10 @@ var Chain = class {
 			logger.debug('loadConfigGroup - %s - END groups', name);
 			return;
 		}
+
+		config_items[name] = {};
+		config_items[name].version = group.value.version;
+
 		var groups = null;
 		if(top) {
 			groups = group.groups;

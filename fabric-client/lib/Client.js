@@ -206,17 +206,31 @@ var Client = class {
 	}
 
 	/**
+	 * Build an configuration update envelope for the provided channel based on
+	 * configuration definition provided and from the MSP's added to this client.
+	 * The result of the build must be signed and then may be used to update
+	 * the channel.
+	 * @param {Object} A JSON object that has the following attributes...TODO fill out
+	 * @param {Chain} The Chain instance that represents the channel. An Orderer must assigned
+	 *                to this chain to retrieve the current concurrent configuration.
+	 * @return {byte[]} A Promise for a byte buffer object that is the byte array representation of the
+	 *                  Protobuf common.ConfigUpdate
+	 * @see /protos/common/configtx.proto
+	 */
+	buildChannelConfigUpdate(config_definition, chain) {
+		return chain.buildChannelConfigUpdate(config_definition, this._msps);
+	}
+
+	/**
 	 * Build an configuration envelope that is the channel configuration definition from the
-	 * provide MSPManager and Channel definition input paramaters. The result of the build
-	 * may be used to create a channel.
-	 * @param {MSPManager} The MSP Manager that is managing all the MSPs referrenced in the
-	 *                     channel configuration definition.
+	 * MSP's added to this client and Channel definition input parameters.
+	 * The result of the build may be used to create a channel.
 	 * @param {Object} A JSON object that has the following attributes...TODO fill out
 	 * @return {byte[]} A byte buffer object that is the byte array representation of the
 	 *                  Protobuf common.ConfigUpdate
 	 * @see /protos/common/configtx.proto
 	 */
-	buildChannelConfigUpdate(config_definition) {
+	buildChannelConfig(config_definition) {
 		var channel_config = new ChannelConfig(this._msps);
 		var proto_channel_config = channel_config.build(config_definition);
 		return proto_channel_config.toBuffer();
@@ -227,7 +241,7 @@ var Client = class {
 	 * @param {byte[]} config_update - The Configuration Update in byte form
 	 * @return {ConfigSignature} - The signature of the current on the config_update
 	 */
-	signChannelConfigUpdate(config_update) {
+	signChannelConfig(config_update) {
 		logger.debug('signChannelConfigUpdate - start');
 		if (typeof config_update === 'undefined' || config_update === null) {
 			throw new Error('Channel configuration update parameter is required.');
