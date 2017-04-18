@@ -23,6 +23,7 @@ var net = require('net');
 var util = require('util');
 var os = require('os');
 var path = require('path');
+var ChannelConfig = require('./ChannelConfig.js');
 var Peer = require('./Peer.js');
 var Orderer = require('./Orderer.js');
 var Packager = require('./Packager.js');
@@ -135,8 +136,8 @@ var Chain = class {
 		.then(
 			function(config_envelope) {
 				logger.debug('initialize - got config envelope from getChannelConfig :: %j',config_envelope);
-				self.loadConfigEnvelope(config_envelope);
-				return Promise.resolve(true);
+				var config_items = self.loadConfigEnvelope(config_envelope);
+				return Promise.resolve(config_items);
 			}
 		)
 		.catch(
@@ -368,25 +369,36 @@ var Chain = class {
 	 * channel.
 	 * @param {Object} A JSON object that represents the configuration settings to be changed.
 	 * @param {MSP[]} A list of MSPs that may represent new or updates to existing MSPs
-	 * @return {byte[]} A Promise for a byte buffer object that is the byte array representation 
+	 * @return {byte[]} A Promise for a byte buffer object that is the byte array representation
 	 *                  of the Protobuf common.ConfigUpdate
 	 * @see /protos/common/configtx.proto
 	 */
-	buildChannelConfigUpdate(config_definition, new_msps) {
+	buildChannelConfigUpdate(config_definition, client_msps) {
 		logger.debug('buildChannelConfigUpdate - start');
-		// need to do the following steps
-		//  - get the current config block from the orderer
-		//    -- find the current MSP's and save those away for later use
-		//    -- build a object version hierarchy -- will be used to build the readset and to set the version numbers of the writeset
-		//  - build a list of MSP's, first pulling in those just read and then adding and replacing those passed in , user may have added updated MSP's
-		//  - build the config update object
-		//    -- using the version hierarchy build a protobuf ConfigGroup for the ConfigUpdate.readset
-		//    -- using the config_definition and the newly built list of MSP's build a protobuf ConfigGroup for the ConfigUpdate.writeset
 		var self = this;
 
 		return self.initialize()
-		.then( function(result) {
-			logger.debug('buildChannelConfigUpdate - finished with the initialization, look at msps and version hierarchy');
+		.then( function(config_items) {
+			logger.debug('buildChannelConfigUpdate -  version hierarchy  :: %j',config_items.versions);
+			// get all the msps from the current configuration
+			var update_msps = new Map();
+			var msps = self._msp_manager.getMSPs();
+			if(msps) {
+				var keys = Object.keys(msps);
+				for(let key in keys) {
+					let mspid = keys[key];
+					logger.debug('buildChannelConfigUpdate - did not find this config msp in the new msps ::%s',mspid);
+					update_msps.set(mspid, msps[mspid]);
+				}
+			}
+			// overlay or add any the user wanted to add
+			for(let id in client_msps.keys()) {
+				update_msps.set(key, client_msps.get(id));
+			}
+			// build the config update protobuf
+			var channel_config = new ChannelConfig(update_msps);
+			var proto_channel_config = channel_config.build(config_definition, config_items.versions);
+			return Promise.resolve( proto_channel_config.toBuffer());
 		}).catch(function(err) {
 			logger.error('Failed buildChannelConfigUpdate. :: %s', err.stack ? err.stack : err);
 			return Promise.reject(err);
@@ -730,11 +742,16 @@ var Chain = class {
 		config_items.orderers = [];
 		config_items['kafka-brokers'] = [];
 		config_items.settings = {};
-		this.loadConfigGroup(config_items, read_group, 'read_set', null, true, false);
+		config_items.versions = {};
+		config_items.versions.read_group = {};
+		config_items.versions.write_group = {};
+
+		this.loadConfigGroup(config_items, config_items.versions.read_group, read_group, 'read_set', null, true, false);
 		// do the write_set second so they update anything in the read set
-		this.loadConfigGroup(config_items, write_group, 'write_set', null, true, false);
+		this.loadConfigGroup(config_items, config_items.versions.write_group, write_group, 'write_set', null, true, false);
 		this._msp_manager.loadMSPs(config_items.msps);
 		this._anchor_peers =config_items.anchor_peers;
+
 		//TODO should we create orderers and endorsing peers
 		return config_items;
 	}
@@ -757,9 +774,12 @@ var Chain = class {
 		config_items['kafka-brokers'] = [];
 		config_items.settings = {};
 		config_items.versions = {};
-		this.loadConfigGroup(config_items, group, 'base', null, true, true);
+		config_items.versions.channel = {};
+
+		this.loadConfigGroup(config_items, config_items.versions.channel, group, 'base', null, true, true);
 		this._msp_manager.loadMSPs(config_items.msps);
 		this._anchor_peers = config_items.anchor_peers;
+
 		//TODO should we create orderers and endorsing peers
 		return config_items;
 	}
@@ -773,7 +793,7 @@ var Chain = class {
 	 * @param {bool} - top - to handle the  differences in the structure of groups
 	 * @see /protos/common/configtx.proto
 	 */
-	loadConfigGroup(config_items, group, name, org, top) {
+	loadConfigGroup(config_items, versions, group, name, org, top) {
 		logger.debug('loadConfigGroup - %s - START Org:%s', name, org);
 		if(!group) {
 			logger.debug('loadConfigGroup - %s - no groups', name);
@@ -781,26 +801,27 @@ var Chain = class {
 			return;
 		}
 
-		config_items[name] = {};
-		config_items[name].version = group.value.version;
-
 		var groups = null;
 		if(top) {
 			groups = group.groups;
+			versions.version = group.version;
 		}
 		else {
 			groups = group.value.groups;
+			versions.version = group.value.version;
 		}
 		if(groups) {
 			let keys = Object.keys(groups.map);
+			versions.groups = {};
 			if(keys.length == 0) {
 				logger.debug('loadConfigGroup - %s - no groups', name);
 			}
 			for(let i =0; i < keys.length; i++) {
 				let key = keys[i];
 				logger.debug('loadConfigGroup - %s - found config group ==> %s', name, key);
+				versions.groups[key] = {};
 				// The Application group is where config settings are that we want to find
-				this.loadConfigGroup(config_items, groups.map[key], name+'.'+key, key, false);
+				this.loadConfigGroup(config_items, versions.groups[key], groups.map[key], name+'.'+key, key, false);
 			}
 		}
 		else {
@@ -816,11 +837,13 @@ var Chain = class {
 			values = group.value.values;
 		}
 		if(values) {
+			versions.values = {};
 			let keys = Object.keys(values.map);
 			for(let i =0; i < keys.length; i++) {
 				let key = keys[i];
+				versions.values[key] = {};
 				var config_value = values.map[key];
-				this.loadConfigValue(config_items, config_value, name, org);
+				this.loadConfigValue(config_items, versions.values[key], config_value, name, org);
 			}
 		}
 		else {
@@ -837,11 +860,13 @@ var Chain = class {
 			policies = group.value.policies;
 		}
 		if(policies) {
+			versions.policies = {};
 			let keys = Object.keys(policies.map);
 			for(let i =0; i < keys.length; i++) {
 				let key = keys[i];
+				versions.policies[key] = {};
 				var config_policy = policies.map[key];
-				this.loadConfigPolicy(config_items, config_policy, name, org);
+				this.loadConfigPolicy(config_items, versions.policies[key], config_policy, name, org);
 			}
 		}
 		else {
@@ -859,10 +884,12 @@ var Chain = class {
 	 * @see /protos/orderer/configuration.proto
 	 * @see /protos/peer/configuration.proto
 	 */
-	loadConfigValue(config_items, config_value, group_name, org) {
+	loadConfigValue(config_items, versions, config_value, group_name, org) {
 		logger.debug('loadConfigValue - %s - START value name: %s', group_name, config_value.key);
 		logger.debug('loadConfigValue - %s   - version: %s', group_name, config_value.value.version);
 		logger.debug('loadConfigValue - %s   - mod_policy: %s', group_name, config_value.value.mod_policy);
+
+		versions.version = config_value.value.version;
 		try {
 			switch(config_value.key) {
 			case 'AnchorPeers':
@@ -953,10 +980,12 @@ var Chain = class {
 	 * utility method to load in a config policy
 	 * @see /protos/common/configtx.proto
 	 */
-	loadConfigPolicy(config_items, config_policy, group_name, org) {
+	loadConfigPolicy(config_items, versions, config_policy, group_name, org) {
 		logger.debug('loadConfigPolicy - %s - name: %s', group_name, config_policy.key);
 		logger.debug('loadConfigPolicy - %s - version: %s', group_name, config_policy.value.version);
 		logger.debug('loadConfigPolicy - %s - mod_policy: %s', group_name, config_policy.value.mod_policy);
+
+		versions.version = config_policy.value.version;
 		try {
 			switch(config_policy.value.policy.type) {
 			case _policiesProto.Policy.PolicyType.SIGNATURE:
