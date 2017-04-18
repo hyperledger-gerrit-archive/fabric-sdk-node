@@ -206,6 +206,28 @@ var Client = class {
 	}
 
 	/**
+	 * Build an configuration update envelope for the provided channel based on
+	 * configuration definition provided and from the MSP's added to this client.
+	 * The result of the build must be signed and then may be used to update
+	 * the channel.
+	 * @param {Object} A JSON object that has the following attributes...TODO fill out
+	 * @param {Chain} The Chain instance that represents the channel. An Orderer must assigned
+	 *                to this chain to retrieve the current concurrent configuration.
+	 * @return {byte[]} A Promise for a byte buffer object that is the byte array representation of the
+	 *                  Protobuf common.ConfigUpdate
+	 * @see /protos/common/configtx.proto
+	 */
+	buildChannelConfigUpdate(config_definition, chain) {
+		if (typeof config_definition === 'undefined' || config_definition === null) {
+			return Promise.reject( new Error('Channel config_definition parameter is required.'));
+		}
+		if(!(chain instanceof Chain)) {
+			return Promise.reject( new Error('The chain update parameter is requried.'));
+		}
+		return chain.buildChannelConfigUpdate(config_definition, this._msps);
+	}
+
+	/**
 	 * Build an configuration envelope that is the channel configuration definition from the
 	 * provide MSPManager and Channel definition input paramaters. The result of the build
 	 * may be used to create a channel.
@@ -256,60 +278,81 @@ var Client = class {
 	}
 
 	/**
-	 * Calls the orderer to start building the new chain.
+	 * Calls the orderer to start building the new channel.
 	 * Only one of the application instances needs to call this method.
 	 * Once the chain is successfully created, this and other application
 	 * instances only need to call Chain joinChannel() to participate on the channel.
 	 * @param {Object} request - An object containing the following field:
 	 *      <br>`name` : required - The name of the new channel
 	 *      <br>`orderer` : required - Orderer Object to create the channel
-	 *		<br>`envelope` : required - byte[] of the envelope object containing
-	 *                       all required settings to initialize this channel
+	 *		<br>`envelope` : optional - byte[] of the envelope object containing
+	 *                       all required settings to initialize this channel.
+	 *                       This envelope would have been created by the command
+	 *                       line tool "configtx".
+	 *      <br>`config` : optional {byte[]} Protobuf ConfigUpdate object built by the
+	 *                     buildChannelConfig() method of this class.
 	 *      <br>`signatures` : {ConfigSignature[]} the list of collected signatures
 	 *                          required by the channel create policy
-	 *      <br>`config_update` : {byte[]} Protobuf ConfigUpdate object
-	 * @returns {boolean} Whether the chain initialization process was successful.
+	 * @returns {Result} Result Object with status on the create process.
 	 */
 	createChannel(request) {
+		var have_envelope = false;
+		if(request && request.envelope) {
+			have_envelope = true;
+		}
+		return this._createOrUpdateChannel(request, have_envelope);
+	}
+
+	/**
+	 * Calls the orderer to update an existing channel.
+	 * Only one of the application instances needs to call this method.
+	 * @param {Object} request - An object containing the following field:
+	 *      <br>`name` : required - The name of the new channel
+	 *      <br>`orderer` : required - Orderer Object to create the channel
+	 *      <br>`signatures` : {ConfigSignature[]} the list of collected signatures
+	 *                          required by the channel create policy
+	 *      <br>`config` : {byte[]} Protobuf ConfigUpdate object built by the
+	 *                     buildChannelConfigUpdate() method of this class.
+	 * @returns {Result} Result Object with status on the update process.
+	 */
+	updateChannel(request) {
+		return this._createOrUpdateChannel(request, false);
+	}
+
+	/*
+	 * internal method to support create or update of a channel
+	 */
+	_createOrUpdateChannel(request, have_envelope) {
 		logger.debug('createChannel - start');
 		var errorMsg = null;
-		var need_envelope = false;
 
 		if(!request) {
 			errorMsg = 'Missing all required input request parameters for initialize channel';
 		}
 		else {
 			// Verify that a config envelope or config_update has been included in the request object
-			if (!request.envelope) {
-				if(request.config_update) {
-					// doing an update, also need the signatures
-					if(!request.signatures) {
-						errorMsg = 'Missing signatures request parameter for the new channel';
-					}
-					else if(!Array.isArray(request.signatures)) {
-						errorMsg = 'Signatures request parameter must be an array of signatures';
-					}
-					else {
-						need_envelope = true;
-					}
-					if(!request.txId) {
-						errorMsg = 'Missing txId request parameter for the new channel';
-					}
-					if(!request.nonce) {
-						errorMsg = 'Missing nonce request parameter for the new channel';
-					}
-				}
-				else {
-					errorMsg = 'Missing envelope request parameter containing the configuration of the new channel';
-				}
+			if (!request.config && !have_envelope) {
+				errorMsg = 'Missing config request parameter containing the configuration of the channel';
+			}
+			if(!request.signatures && !have_envelope) {
+				errorMsg = 'Missing signatures request parameter for the new channel';
+			}
+			else if(!Array.isArray(request.signatures ) && !have_envelope) {
+				errorMsg = 'Signatures request parameter must be an array of signatures';
+			}
+			if(!request.txId && !have_envelope) {
+				errorMsg = 'Missing txId request parameter';
+			}
+			if(!request.nonce && !have_envelope) {
+				errorMsg = 'Missing nonce request parameter';
 			}
 			// verify that we have an orderer configured
 			if(!request.orderer) {
-				errorMsg = 'Missing orderer request parameter for the initialize channel';
+				errorMsg = 'Missing orderer request parameter';
 			}
 			// verify that we have the name of the new channel
 			if(!request.name) {
-				errorMsg = 'Missing name request parameter for the new channel';
+				errorMsg = 'Missing name request parameter';
 			}
 		}
 
@@ -328,9 +371,14 @@ var Client = class {
 
 		var signature = null;
 		var payload = null;
-		if(need_envelope) {
+		if (have_envelope) {
+			var envelope = _commonProto.Envelope.decode(request.envelope);
+			signature = envelope.signature;
+			payload = envelope.payload;
+		}
+		else {
 			var proto_config_Update_envelope = new _configtxProto.ConfigUpdateEnvelope();
-			proto_config_Update_envelope.setConfigUpdate(request.config_update);
+			proto_config_Update_envelope.setConfigUpdate(request.config);
 			proto_config_Update_envelope.setSignatures(request.signatures);
 
 			var proto_channel_header = Chain._buildChannelHeader(
@@ -351,11 +399,6 @@ var Client = class {
 			signature = signature_bytes;
 			payload = payload_bytes;
 		}
-		else {
-			var envelope = _commonProto.Envelope.decode(request.envelope);
-			signature = envelope.signature;
-			payload = envelope.payload;
-		}
 
 		// building manually or will get protobuf errors on send
 		var out_envelope = {
@@ -368,16 +411,8 @@ var Client = class {
 		.then(
 			function(results) {
 				logger.debug('createChannel - good results from broadcast :: %j',results);
-				chain = self.newChain(chain_id);
-				chain.addOrderer(orderer);
-				if(need_envelope) chain.initialize(request.config_update);
-				return chain;
-			}
-		)
-		.then(
-			function(results) {
-				logger.debug('createChannel - good results from chain initialize :: %j',results);
-				return Promise.resolve(chain);
+
+				return Promise.resolve(results);
 			}
 		)
 		.catch(

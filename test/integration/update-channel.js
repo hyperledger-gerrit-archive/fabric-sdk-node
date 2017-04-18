@@ -40,7 +40,7 @@ if (process.argv.length > 2) {
 	channel_name = process.argv[2];
 }
 
-logger.info('\n\n >>>>>>  Will create new channel with name :: %s <<<<<<< \n\n',channel_name);
+logger.info('\n\n >>>>>>  Will update channel with name :: %s <<<<<<< \n\n',channel_name);
 //
 //Attempt to send a request to the orderer with the sendCreateChain method
 //
@@ -178,12 +178,16 @@ test('\n\n***** SDK Built config update  create flow  *****\n\n', function(t) {
 
 		client.addMSP( loadMSPConfig('Org2MSP', 'peer', 'peerOrg2'));
 
+		var chain = client.newChain(channel_name);
+		chain.addOrderer(orderer);
+
 		// have the SDK build the config update object
-		config_update = client.buildChannelConfigUpdate(test_input);
-		t.pass('Successfully built config update');
+		return client.buildChannelConfigUpdate(test_input, chain);
+	}).then((config_update) => {
+		t.pass('Successfully built config update for the update channel action');
 
 		// sign the config
-		var signature = client.signChannelConfigUpdate(config_update);
+		var signature = client.signChannelConfig(config_update);
 		t.pass('Successfully signed config update');
 
 		// collect all signatures
@@ -206,15 +210,15 @@ test('\n\n***** SDK Built config update  create flow  *****\n\n', function(t) {
 	})
 	.then((result) => {
 		logger.debug(' response ::%j',result);
-		t.pass('Successfully created the channel.');
+		t.pass('Successfully update the channel.');
 		if(result.status && result.status === 'SUCCESS') {
 			return sleep(5000);
 		} else {
-			t.fail('Failed to create the channel. ');
+			t.fail('Failed to update the channel. ');
 			t.end();
 		}
 	}, (err) => {
-		t.fail('Failed to create the channel: ' + err.stack ? err.stack : err);
+		t.fail('Failed to update the channel: ' + err.stack ? err.stack : err);
 		t.end();
 	})
 	.then((nothing) => {
