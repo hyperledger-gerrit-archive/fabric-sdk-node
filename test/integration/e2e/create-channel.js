@@ -86,27 +86,17 @@ test('\n\n***** End-to-end flow: create channel *****\n\n', function(t) {
 		t.fail('Failed to enroll user \'admin\'. ' + err);
 		t.end();
 	})
-	.then((chain) => {
-		logger.debug(' response ::%j',chain);
-
-		if (chain) {
-			var test_orderers = chain.getOrderers();
-			if(test_orderers) {
-				var test_orderer = test_orderers[0];
-				if(test_orderer === orderer) {
-					t.pass('Successfully created the channel.');
-				}
-				else {
-					t.fail('Chain did not have the orderer.');
-				}
-			}
+	.then((result) => {
+		logger.debug(' response ::%j',result);
+		t.pass('Successfully created the channel.');
+		if(result.status && result.status === 'SUCCESS') {
 			return sleep(5000);
 		} else {
 			t.fail('Failed to create the channel. ');
 			t.end();
 		}
 	}, (err) => {
-		t.fail('Failed to initialize the channel: ' + err.stack ? err.stack : err);
+		t.fail('Failed to create the channel: ' + err.stack ? err.stack : err);
 		t.end();
 	})
 	.then((nothing) => {
