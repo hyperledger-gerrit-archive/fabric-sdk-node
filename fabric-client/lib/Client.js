@@ -535,6 +535,8 @@ var Client = class {
 		}
 
 		this._stateStore = keyValueStore;
+		// userContext invalid on state store change, set to null
+		this._userContext = null;
 	}
 
 	/**
