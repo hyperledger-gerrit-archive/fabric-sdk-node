@@ -52,9 +52,10 @@ const ImplicitMetaPolicy_Rule = {ANY:0, ALL:1, MAJORITY:2};
  */
 var ChannelConfig = class {
 	/**
-	 * Construct an utility object that build a fabric channel configuration.
-	 * This will allow the building of a protobuf configurations
-	 * that will be based on the MSPs loaded here.
+	 * Construct an utility object that builds a fabric channel configuration.
+	 * This will allow the building of a protobuf ConfigUpdate object
+	 * that will be based on the MSPs loaded here using the simplified JSON
+	 * definition of a channel.
 	 * 	@param {Object[]} msps Array of Member Service Provider objects
 	 */
 	constructor(msps) {
@@ -376,10 +377,9 @@ var ChannelConfig = class {
 			break;
 		case 'BlockDataHashingStructure':
 			var proto_blockdata_hashing_structure = new _commonConfigurationProto.BlockDataHashingStructure();
-			if(value) {
-				proto_blockdata_hashing_structure.setWidth(convert(value,config_name)); //uint32
-				proto_config_value.setValue(proto_blockdata_hashing_structure.toBuffer());
-			}
+			if(!value) value = 4294967295;
+			proto_blockdata_hashing_structure.setWidth(convert(value,config_name)); //uint32
+			proto_config_value.setValue(proto_blockdata_hashing_structure.toBuffer());
 			break;
 		default:
 //			logger.debug('loadConfigValue - %s   - value: %s', group_name, config_value.value.value);
@@ -438,7 +438,7 @@ var ChannelConfig = class {
 		}
 
 		// SIGNATURE policy type
-		let n_of = policy.n_of_signature;
+		let n_of = policy.signature;
 		if(n_of) {
 			logger.debug('buildConfigPolicy - found n_of_signature ::%j',n_of);
 			var proto_signature_policy_bytes = Policy.buildPolicy(this._msps_array, n_of);

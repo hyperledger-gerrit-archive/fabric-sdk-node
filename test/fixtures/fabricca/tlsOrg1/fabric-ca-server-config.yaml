@@ -48,8 +48,8 @@ tls:
   # Enable TLS (default: false)
   enabled: true
   # TLS for the server's listening port
-  certfile: ../fabric-ca-server-config/peerOrg1-cert.pem
-  keyfile: ../fabric-ca-server-config/d8a5b3cac1b821f6e4b487ceaf1fd239cdcfc310894150908b90f05e9179556a_sk
+  certfile: ../fabric-ca-server-config/org1.example.com-cert.pem
+  keyfile: ../fabric-ca-server-config/43bd6bf17b36c0a63a751ec24f5a3e8afc41e843a5d50d2bedd3b53d3f59afb1_sk
 
 #############################################################################
 #  The CA section contains information related to the Certificate Authority

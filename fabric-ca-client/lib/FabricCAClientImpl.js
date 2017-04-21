@@ -670,30 +670,6 @@ var FabricCAClient = class {
 	}
 
 	/**
-	 * Convert a PEM encoded certificate to DER format
-	 * @param {string) pem PEM encoded public or private key
-	 * @returns {string} hex Hex-encoded DER bytes
-	 * @throws Will throw an error if the conversation fails
-	 */
-	static pemToDER(pem) {
-
-		//PEM format is essentially a nicely formatted base64 representation of DER encoding
-		//So we need to strip "BEGIN" / "END" header/footer and string line breaks
-		//Then we simply base64 decode it and convert to hex string
-		var contents = pem.toString().trim().split(/\r?\n/);
-		//check for BEGIN and END tags
-		if (!(contents[0].match(/\-\-\-\-\-\s*BEGIN ?([^-]+)?\-\-\-\-\-/) &&
-			contents[contents.length - 1].match(/\-\-\-\-\-\s*END ?([^-]+)?\-\-\-\-\-/))) {
-			throw new Error('Input parameter does not appear to be PEM-encoded.');
-		};
-		contents.shift(); //remove BEGIN
-		contents.pop(); //remove END
-		//base64 decode and encode as hex string
-		var hex = Buffer.from(contents.join(''), 'base64').toString('hex');
-		return hex;
-	}
-
-	/**
 	 * Validate the connection options
 	 * @throws Will throw an error if any of the required connection options are missing or invalid
 	 * @ignore
