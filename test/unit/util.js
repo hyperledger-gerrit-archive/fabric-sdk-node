@@ -145,6 +145,22 @@ function getAdmin(client, t, userOrg) {
 	}));
 }
 
+function getOrdererAdmin(client, t) {
+	var keyPath = path.join(__dirname, '../fixtures/channel/crypto-config/ordererOrganizations/example.com/users/Admin@example.com/keystore');
+	var keyPEM = Buffer.from(readAllFiles(keyPath)[0]).toString();
+	var certPath = path.join(__dirname, '../fixtures/channel/crypto-config/ordererOrganizations/example.com/users/Admin@example.com/signcerts');
+	var certPEM = readAllFiles(certPath)[0];
+
+	return Promise.resolve(client.createUser({
+		username: 'ordererAdmin',
+		mspid: 'OrdererMSP',
+		cryptoContent: {
+			privateKeyPEM: keyPEM.toString(),
+			signedCertPEM: certPEM.toString()
+		}
+	}));
+}
+
 function readFile(path) {
 	return new Promise((resolve, reject) => {
 		fs.readFile(path, (err, data) => {
@@ -167,6 +183,10 @@ function readAllFiles(dir) {
 	});
 	return certs;
 }
+
+module.exports.getOrderAdminSubmitter = function(client, test) {
+	return getOrdererAdmin(client, test);
+};
 
 module.exports.getSubmitter = function(client, test, peerOrgAdmin, org) {
 	if (arguments.length < 2) throw new Error('"client" and "test" are both required parameters');
