@@ -79,7 +79,7 @@ test('\n\n***** SDK Built config update  create flow  *****\n\n', function(t) {
 	}, {
 		role: {
 			name: 'admin',
-			mspId: 'Org1MSP'
+			mspId: 'OrdererMSP'
 		}
 	}];
 
@@ -100,13 +100,12 @@ test('\n\n***** SDK Built config update  create flow  *****\n\n', function(t) {
 	var test_input = {
 		channel : {
 			name : channel_name,
-			version : 3,
+			consortium : 'SampleConsortium',
 			settings : {
 				'batch-size' : {'max-message-count' : 10, 'absolute-max-bytes' : '99m',	'preferred-max-bytes' : '512k'},
 				'batch-timeout' : '10s',
 				'hashing-algorithm' : 'SHA256',
-				'consensus-type' : 'solo',
-				'creation-policy' : 'AcceptAllPolicy'
+				'consensus-type' : 'solo'
 			},
 			policies : {
 				Readers : {threshold : 'ANY'},
@@ -161,6 +160,16 @@ test('\n\n***** SDK Built config update  create flow  *****\n\n', function(t) {
 
 	var config = null;
 	var signatures = [];
+	
+	client.addMSP( e2eUtils.loadMSPConfig('OrdererMSP', '../../fixtures/channel/crypto-config/ordererOrganizations/example.com/msp/'));
+
+	client.addMSP( e2eUtils.loadMSPConfig('Org1MSP', '../../fixtures/channel/crypto-config/peerOrganizations/org1.example.com/msp/'));
+
+	client.addMSP( e2eUtils.loadMSPConfig('Org2MSP', '../../fixtures/channel/crypto-config/peerOrganizations/org2.example.com/msp/'));
+
+	// have the SDK build the config update object
+	config = client.buildChannelConfig(test_input);
+	t.pass('Successfully built config update');
 
 	// Acting as a client in org1 when creating the channel
 	var org = ORGS.org1.name;
@@ -173,24 +182,33 @@ test('\n\n***** SDK Built config update  create flow  *****\n\n', function(t) {
 
 		return testUtil.getSubmitter(client, t, 'org1');
 	}).then((admin) => {
-		t.pass('Successfully enrolled user \'admin\'');
-		the_user = admin;
+		t.pass('Successfully enrolled user \'admin\' for org1');
 
-		client.addMSP( e2eUtils.loadMSPConfig('OrdererMSP', '../../fixtures/channel/crypto-config/ordererOrganizations/example.com/msp/'));
+		// sign the config
+		var signature = client.signChannelConfig(config);
+		t.pass('Successfully signed config update');
+		// collect signature
+		signatures.push(signature);
 
-		client.addMSP( e2eUtils.loadMSPConfig('Org1MSP', '../../fixtures/channel/crypto-config/peerOrganizations/org1.example.com/msp/'));
-
-		client.addMSP( e2eUtils.loadMSPConfig('Org2MSP', '../../fixtures/channel/crypto-config/peerOrganizations/org2.example.com/msp/'));
-
-		// have the SDK build the config update object
-		config = client.buildChannelConfig(test_input);
-		t.pass('Successfully built config update');
+		return testUtil.getSubmitter(client, t, 'org2');
+	}).then((admin) => {
+		t.pass('Successfully enrolled user \'admin\' for org2');
 
 		// sign the config
 		var signature = client.signChannelConfig(config);
 		t.pass('Successfully signed config update');
 
-		// collect all signatures
+		// collect signature
+		signatures.push(signature);
+		return testUtil.getOrderAdminSubmitter(client, t);
+	}).then((admin) => {
+		t.pass('Successfully enrolled user \'admin\' for orderer');
+		the_user = admin;
+
+		// sign the config
+		var signature = client.signChannelConfig(config);
+		t.pass('Successfully signed config update');
+		// collect signature
 		signatures.push(signature);
 
 		// build up the create request
