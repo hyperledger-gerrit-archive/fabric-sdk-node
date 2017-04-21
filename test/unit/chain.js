@@ -1288,7 +1288,18 @@ test('\n\n** TEST ** verify verifyProposalResponse', function(t) {
 test('\n\n ** test related APIs for update channel **\n\n', function (t) {
 	var chain = client.newChain('testChain-update');
 
-	var p1= chain.buildChannelConfigUpdate(
+	var p1= chain.buildChannelConfig(
+	).then(function () {
+		t.fail('Should not have been able to resolve the promise');
+	}).catch(function (err) {
+		if (err.message.indexOf('Channel definition parameter is required') >= 0) {
+			t.pass('Successfully caught Channel config_definition parameter is required error');
+		} else {
+			t.fail('Failed to catch Channel config_definition parameter is required Error: ');
+			console.log(err.stack ? err.stack : err);
+		}
+	});
+	var p2= chain.buildChannelConfigUpdate(
 	).then(function () {
 		t.fail('Should not have been able to resolve the promise');
 	}).catch(function (err) {

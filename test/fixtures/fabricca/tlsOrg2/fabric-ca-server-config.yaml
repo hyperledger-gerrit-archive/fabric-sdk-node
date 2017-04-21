@@ -136,10 +136,11 @@ ldap:
    # The URL of the LDAP server
    url: ldap://<adminDN>:<adminPassword>@<host>:<port>/<base>
    tls:
-      certfiles: ldap-server-cert.pem				# Comma Separated (e.g. root.pem, root2.pem)
+      certfiles:
+        - ldap-server-cert.pem				# Comma Separated (e.g. root.pem, root2.pem)
       client:
-         certfile: ldap-client-cert.pem
-         keyfile: ldap-client-key.pem
+        certfile: ldap-client-cert.pem
+        keyfile: ldap-client-key.pem
 
 #############################################################################
 #  Affiliation section
