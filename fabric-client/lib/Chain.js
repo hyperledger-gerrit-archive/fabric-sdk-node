@@ -698,7 +698,7 @@ var Chain = class {
 				var payload = _commonProto.Payload.decode(envelope.payload);
 				var channel_header = _commonProto.ChannelHeader.decode(payload.header.channel_header);
 				if(channel_header.type != _commonProto.HeaderType.CONFIG) {
-					return Promise.reject(new Error('Block must be of type "CONFIG"'));
+					return Promise.reject(new Error(util.format('Block must be of type "CONFIG" (%s), but got "%s" instead', _commonProto.HeaderType.CONFIG, channel_header.type)));
 				}
 
 				var config_envelope = _configtxProto.ConfigEnvelope.decode(payload.data);
