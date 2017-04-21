@@ -97,12 +97,12 @@ test('\n\n***** SDK Built config update  create flow  *****\n\n', function(t) {
 	var test_input = {
 		channel : {
 			name : channel_name,
+			consortium : 'SampleConsortium',
 			settings : {
 				'batch-size' : {'max-message-count' : 10, 'absolute-max-bytes' : '99m',	'preferred-max-bytes' : '512k'},
 				'batch-timeout' : '10s',
 				'hashing-algorithm' : 'SHA256',
-				'consensus-type' : 'solo',
-				'creation-policy' : 'AcceptAllPolicy'
+				'consensus-type' : 'solo'
 			},
 			policies : {
 				Readers : {threshold : 'ANY'},

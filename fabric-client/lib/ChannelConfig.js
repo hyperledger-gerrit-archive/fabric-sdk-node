@@ -246,15 +246,25 @@ var ChannelConfig = class {
 
 		this.buildConfigValue('HashingAlgorithm', 'hashing-algorithm', write_set_group, version_key + '.values');
 		this.buildConfigValue('BlockDataHashingStructure', 'block-data-hashing-structure', write_set_group, version_key + '.values');
+		this.buildConfigValue('Consortium', 'consortium', write_set_group, version_key + '.values');
+
+		var proto_consortium = new _commonConfigurationProto.Consortium();
+		proto_consortium.setName(this._channel.consortium);
+		logger.debug('buildWriteSetGroup - proto_consortium :: %j',proto_consortium.encodeJSON());
+		let proto_config_value = new _configtxProto.ConfigValue();
+		proto_config_value.setVersion(this.getVersion(version_key + '.values.Consortium', true));
+		proto_config_value.setModPolicy(this.buildConfigModPolicy());
+		proto_config_value.setValue(proto_consortium.toBuffer());
+		write_set_group.getValues().set('Consortium', proto_config_value);
 
 		var proto_orderer_addresses = new _commonConfigurationProto.OrdererAddresses();
 		proto_orderer_addresses.setAddresses(this._orderer_addresses);
 		logger.debug('buildWriteSetGroup - proto_orderer_addresses :: %j',proto_orderer_addresses.encodeJSON());
-		var proto_config_value = new _configtxProto.ConfigValue();
-		proto_config_value.setVersion(this.getVersion(version_key + '.values.OrdererAddresses', true));
-		proto_config_value.setModPolicy(this.buildConfigModPolicy());
-		proto_config_value.setValue(proto_orderer_addresses.toBuffer());
-		write_set_group.getValues().set('OrdererAddresses', proto_config_value);
+		let proto_orderer_config_value = new _configtxProto.ConfigValue();
+		proto_orderer_config_value.setVersion(this.getVersion(version_key + '.values.OrdererAddresses', true));
+		proto_orderer_config_value.setModPolicy(this.buildConfigModPolicy());
+		proto_orderer_config_value.setValue(proto_orderer_addresses.toBuffer());
+		write_set_group.getValues().set('OrdererAddresses', proto_orderer_config_value);
 
 		if(this._channel.policies) {
 			this.buildConfigPolicies(write_set_group.getPolicies(), this._channel.policies, version_key + '.policies');
@@ -274,7 +284,6 @@ var ChannelConfig = class {
 		this.buildConfigValue('ConsensusType', 'consensus-type', proto_oderer_group, version_key + '.values');
 		this.buildConfigValue('BatchSize', 'batch-size', proto_oderer_group, version_key + '.values');
 		this.buildConfigValue('BatchTimeout', 'batch-timeout', proto_oderer_group, version_key + '.values');
-		this.buildConfigValue('CreationPolicy', 'creation-policy', proto_oderer_group, version_key + '.values');
 
 		if(Array.isArray(this._channel.orderers.organizations)){
 			this.buildConfigGroups(proto_oderer_group.getGroups(), this._channel.orderers.organizations, false, version_key + '.groups');
@@ -296,7 +305,8 @@ var ChannelConfig = class {
 	buildApplicationConfigGroup(version_key) {
 		logger.debug('buildApplicationConfigGroup - start - %s',version_key);
 		var proto_application_group = new _configtxProto.ConfigGroup();
-		proto_application_group.setVersion(this.getVersion(version_key, true));
+		//proto_application_group.setVersion(this.getVersion(version_key, true));
+		proto_application_group.setVersion(1);
 
 		// no values
 
@@ -469,20 +479,6 @@ var ChannelConfig = class {
 			if(value) {
 				proto_channel_restrictions.setMaxCount(convert(value,config_name)); //unit64
 				proto_config_value.setValue(proto_channel_restrictions.toBuffer());
-			}
-			break;
-		case 'CreationPolicy':
-			var proto_creation_policy = new _ordererConfigurationProto.CreationPolicy();
-			if(value) {
-				proto_creation_policy.setPolicy(value); //string
-				proto_config_value.setValue(proto_creation_policy.toBuffer());
-			}
-			break;
-		case 'ChainCreationPolicyNames':
-			var proto_chain_creation_policy_names = new _ordererConfigurationProto.ChainCreationPolicyNames();
-			if(value  && Array.isArray(value)) {
-				proto_chain_creation_policy_names.setNames(value); //string - already a string array
-				proto_config_value.setValue(proto_chain_creation_policy_names.toBuffer());
 			}
 			break;
 		case 'HashingAlgorithm':
