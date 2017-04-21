@@ -176,11 +176,13 @@ function decodeConfigEnvelope(config_envelope_bytes) {
 	logger.debug('decodeConfigEnvelope - decode complete for config envelope - start config update');
 	config_envelope.last_update = {};
 	var proto_last_update = proto_config_envelope.getLastUpdate();//this is a common.Envelope
-	config_envelope.last_update.payload = {};
-	var proto_payload = _commonProto.Payload.decode(proto_last_update.getPayload().toBuffer());
-	config_envelope.last_update.payload.header = decodeHeader(proto_payload.getHeader());
-	config_envelope.last_update.payload.data = decodeConfigUpdateEnvelope(proto_payload.getData().toBuffer());
-	config_envelope.last_update.signature = proto_last_update.getSignature().toBuffer();//leave as bytes
+	if (proto_last_update !== null) { // the orderer's genesis block may not have this field
+		config_envelope.last_update.payload = {};
+		var proto_payload = _commonProto.Payload.decode(proto_last_update.getPayload().toBuffer());
+		config_envelope.last_update.payload.header = decodeHeader(proto_payload.getHeader());
+		config_envelope.last_update.payload.data = decodeConfigUpdateEnvelope(proto_payload.getData().toBuffer());
+		config_envelope.last_update.signature = proto_last_update.getSignature().toBuffer();//leave as bytes
+	}
 
 	return config_envelope;
 };
