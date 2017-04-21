@@ -48,8 +48,8 @@ tls:
   # Enable TLS (default: false)
   enabled: true
   # TLS for the server's listening port
-  certfile: ca-cert.pem
-  keyfile: ca-key.pem
+  certfile: /etc/hyperledger/fabric-ca-server-config/org2.example.com-cert.pem
+  keyfile: /etc/hyperledger/fabric-ca-server-config/464d550fe9bf9e7d8976cdf59d1a5d472598f54c058c3546317c5c5fb0ddfd6e_sk
 
 #############################################################################
 #  The CA section contains information related to the Certificate Authority
@@ -136,10 +136,11 @@ ldap:
    # The URL of the LDAP server
    url: ldap://<adminDN>:<adminPassword>@<host>:<port>/<base>
    tls:
-      certfiles: ldap-server-cert.pem				# Comma Separated (e.g. root.pem, root2.pem)
+      certfiles:
+        - ldap-server-cert.pem				# Comma Separated (e.g. root.pem, root2.pem)
       client:
-         certfile: ldap-client-cert.pem
-         keyfile: ldap-client-key.pem
+        certfile: ldap-client-cert.pem
+        keyfile: ldap-client-key.pem
 
 #############################################################################
 #  Affiliation section
