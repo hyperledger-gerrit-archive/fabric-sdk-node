@@ -26,6 +26,10 @@ var Client = require('fabric-client');
 var util = require('util');
 var fs = require('fs');
 var path = require('path');
+var grpc = require('grpc');
+
+var _commonProto = grpc.load(path.join(__dirname, '../../../fabric-client/lib/protos/common/common.proto')).common;
+var _configtxProto = grpc.load(path.join(__dirname, '../../../fabric-client/lib/protos/common/configtx.proto')).common;
 
 var testUtil = require('../../unit/util.js');
 var e2eUtils = require('./e2eUtils.js');
@@ -79,7 +83,7 @@ test('\n\n***** SDK Built config update  create flow  *****\n\n', function(t) {
 	}, {
 		role: {
 			name: 'admin',
-			mspId: 'Org1MSP'
+			mspId: 'OrdererMSP'
 		}
 	}];
 
@@ -100,13 +104,12 @@ test('\n\n***** SDK Built config update  create flow  *****\n\n', function(t) {
 	var test_input = {
 		channel : {
 			name : channel_name,
-			version : 3,
+			consortium : 'SampleConsortium',
 			settings : {
 				'batch-size' : {'max-message-count' : 10, 'absolute-max-bytes' : '99m',	'preferred-max-bytes' : '512k'},
 				'batch-timeout' : '10s',
 				'hashing-algorithm' : 'SHA256',
-				'consensus-type' : 'solo',
-				'creation-policy' : 'AcceptAllPolicy'
+				'consensus-type' : 'solo'
 			},
 			policies : {
 				Readers : {threshold : 'ANY'},
@@ -161,6 +164,22 @@ test('\n\n***** SDK Built config update  create flow  *****\n\n', function(t) {
 
 	var config = null;
 	var signatures = [];
+	
+	client.addMSP( e2eUtils.loadMSPConfig('OrdererMSP', '../../fixtures/channel/crypto-config/ordererOrganizations/example.com/msp/'));
+
+	client.addMSP( e2eUtils.loadMSPConfig('Org1MSP', '../../fixtures/channel/crypto-config/peerOrganizations/org1.example.com/msp/'));
+
+	client.addMSP( e2eUtils.loadMSPConfig('Org2MSP', '../../fixtures/channel/crypto-config/peerOrganizations/org2.example.com/msp/'));
+
+	// have the SDK build the config update object
+	// config = client.buildChannelConfig(test_input);
+	// t.pass('Successfully built config update');
+
+	data = fs.readFileSync(path.join(__dirname, '../../fixtures/channel/mychannel.tx'));
+	var envelope = _commonProto.Envelope.decode(data);
+	var payload = _commonProto.Payload.decode(envelope.getPayload().toBuffer());
+	var configtx = _configtxProto.ConfigUpdateEnvelope.decode(payload.getData().toBuffer());
+	config = configtx.getConfigUpdate().toBuffer();
 
 	// Acting as a client in org1 when creating the channel
 	var org = ORGS.org1.name;
@@ -171,26 +190,39 @@ test('\n\n***** SDK Built config update  create flow  *****\n\n', function(t) {
 	}).then((store) => {
 		client.setStateStore(store);
 
-		return testUtil.getSubmitter(client, t, 'org1');
+		return testUtil.getSubmitter(client, t, true, 'org1');
 	}).then((admin) => {
-		t.pass('Successfully enrolled user \'admin\'');
-		the_user = admin;
+		t.pass('Successfully enrolled user \'admin\' for org1');
 
-		client.addMSP( e2eUtils.loadMSPConfig('OrdererMSP', '../../fixtures/channel/crypto-config/ordererOrganizations/example.com/msp/'));
+		// sign the config
+		var signature = client.signChannelConfig(config);
+		t.pass('Successfully signed config update');
+		// collect signature
+		signatures.push(signature);
 
-		client.addMSP( e2eUtils.loadMSPConfig('Org1MSP', '../../fixtures/channel/crypto-config/peerOrganizations/org1.example.com/msp/'));
-
-		client.addMSP( e2eUtils.loadMSPConfig('Org2MSP', '../../fixtures/channel/crypto-config/peerOrganizations/org2.example.com/msp/'));
-
-		// have the SDK build the config update object
-		config = client.buildChannelConfig(test_input);
-		t.pass('Successfully built config update');
+		client._userContext = null;
+		return testUtil.getSubmitter(client, t, true, 'org2');
+	}).then((admin) => {
+		t.pass('Successfully enrolled user \'admin\' for org2');
 
 		// sign the config
 		var signature = client.signChannelConfig(config);
 		t.pass('Successfully signed config update');
 
-		// collect all signatures
+		// collect signature
+		signatures.push(signature);
+
+		client._userContext = null;
+		return testUtil.getOrderAdminSubmitter(client, t);
+	}).then((admin) => {
+		t.pass('Successfully enrolled user \'admin\' for orderer');
+		the_user = admin;
+
+		// sign the config
+		var signature = client.signChannelConfig(config);
+		t.pass('Successfully signed config update');
+		// collect signature
+		signatures.push(signature);
 		signatures.push(signature);
 
 		// build up the create request
