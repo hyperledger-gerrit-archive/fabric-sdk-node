@@ -366,7 +366,55 @@ var Chain = class {
 	}
 
 	/**
-	 * Build an configuration update envelope that is the channel configuration definition
+	 * Build a configuration envelope that is the channel configuration definition
+	 * from the provide MSP's, the Channel definition input parameters, and the current
+	 * configuration as read from the system channel.
+	 * The result of the build will need to be signed and then may be used to create a new
+	 * channel.
+	 * @param {Object} A JSON object that represents the configuration settings to be changed.
+	 * @param {MSP[]} A list of MSPs that may represent new or updates to existing MSPs
+	 * @return {byte[]} A Promise for a byte buffer object that is the byte array representation
+	 *                  of the Protobuf common.ConfigUpdate
+	 * @see /protos/common/configtx.proto
+	 */
+	buildChannelConfig(config_definition, msps) {
+		logger.debug('\n***\nbuildChannelConfig - start\n***\n');
+		if (typeof config_definition === 'undefined' || config_definition === null) {
+			return Promise.reject(new Error('Channel definition parameter is required.'));
+		}
+
+		// force the fetch to be against the system channel
+		this._name = Constants.SYSTEM_CHANNEL_NAME;
+		var self = this;
+
+		return self.getChannelConfig()
+		.then( function(config_envelope) {
+
+			return self.loadConfigEnvelope(config_envelope);
+		}).then( function(config_items) {
+			logger.debug('buildChannelConfig -  version hierarchy  :: %j',config_items.versions);
+			// get all the msps from the current configuration and from existing configuration
+			var updated_msps = Chain._combineMSPs(self._msp_manager.getMSPs(), msps);
+
+			// build the config update protobuf
+			var channel_config = new ChannelConfig(updated_msps);
+			// build a create config which has the minimal readset
+			var proto_channel_config = channel_config.build(config_definition, null);
+
+			return proto_channel_config.toBuffer();
+		}).catch(function(err) {
+			logger.error('Failed buildChannelConfig. :: %s', err.stack ? err.stack : err);
+			if(err instanceof Error) {
+				throw err;
+			}
+			else {
+				throw new Error(err);
+			}
+		});
+	}
+
+	/**
+	 * Build a configuration update envelope that is the channel configuration definition
 	 * from the provide MSP's, the Channel definition input parameters, and the current
 	 * configuration as read from this channel.
 	 * The result of the build will need to be signed and then may be used to update this
@@ -377,7 +425,7 @@ var Chain = class {
 	 *                  of the Protobuf common.ConfigUpdate
 	 * @see /protos/common/configtx.proto
 	 */
-	buildChannelConfigUpdate(config_definition, client_msps) {
+	buildChannelConfigUpdate(config_definition, msps) {
 		logger.debug('buildChannelConfigUpdate - start');
 		if (typeof config_definition === 'undefined' || config_definition === null) {
 			return Promise.reject(new Error('Channel definition update parameter is required.'));
@@ -389,21 +437,8 @@ var Chain = class {
 		.then( function(config_items) {
 			logger.debug('buildChannelConfigUpdate -  version hierarchy  :: %j',config_items.versions);
 			// get all the msps from the current configuration
-			var update_msps = new Map();
-			var msps = self._msp_manager.getMSPs();
-			if(msps) {
-				var keys = Object.keys(msps);
-				for(let key in keys) {
-					let mspid = keys[key];
-					logger.debug('buildChannelConfigUpdate - did not find this config msp in the new msps ::%s',mspid);
-					update_msps.set(mspid, msps[mspid]);
-				}
-			}
-			// overlay or add any the user wanted to add
-			for(let id in client_msps.keys()) {
-				update_msps.set(key, client_msps.get(id));
-			}
-			// build the config update protobuf
+			var updated_msps = Chain._combineMSPs(self._msp_manager.getMSPs(), msps);
+
 			var channel_config = new ChannelConfig(update_msps);
 			var proto_channel_config = channel_config.build(config_definition, config_items.versions);
 			return Promise.resolve( proto_channel_config.toBuffer());
@@ -411,56 +446,41 @@ var Chain = class {
 			logger.error('Failed buildChannelConfigUpdate. :: %s', err.stack ? err.stack : err);
 			return Promise.reject(err);
 		});
-		var channel_config = new ChannelConfig(this._msps);
-		var proto_channel_config = channel_config.build(config_definition);
+		var channel_config = new ChannelConfig(updated_msps);
+		var proto_channel_config = channel_config.build(config_definition, config_items.versions);
 
 		return proto_channel_config.toBuffer();
 	}
 
 	/**
-	 * Sends a join channel proposal to one or more endorsing peers
-	 * Will get the genesis block from the defined orderer to be used
-	 * in the proposal.
+	 * Will get the genesis block from the defined orderer that may be
+	 * used in a join request
 	 * @param {Object} request - An object containing the following fields:
-	 *		<br>`targets` : required - An array of `Peer` objects that will join
-	 *                      this channel
 	 *		<br>`txId` : required - String of the transaction id
 	 *		<br>`nonce` : required - Integer of the once time number
-	 * @returns {Promise} A Promise for a `ProposalResponse`
+	 *
+	 * @returns {Promise} A Promise for a protobuf `Block`
 	 * @see /protos/peer/proposal_response.proto
 	 */
-	joinChannel(request) {
-		logger.debug('joinChannel - start');
+	getGenesisBlock(request) {
+		logger.debug('getGenesisBlock - start');
 		var errorMsg = null;
 
 		// verify that we have an orderer configured
 		if(!this.getOrderers()[0]) {
-			errorMsg = 'Missing orderer object for the join channel proposal';
+			errorMsg = 'Missing orderer assigned to this channel for the getGenesisBlock request';
 		}
-
-		// verify that we have targets (Peers) to join this channel
-		// defined by the caller
-		else if(!request) {
-			errorMsg = 'Missing all required input request parameters';
-		}
-
-		// verify that a Peer(s) has been selected to join this channel
-		else if (!request.targets) {
-			errorMsg = 'Missing targets input parameter with the peer objects for the join channel proposal';
-		}
-
 		// verify that we have transaction id
 		else if(!request.txId) {
 			errorMsg = 'Missing txId input parameter with the required transaction identifier';
 		}
-
 		// verify that we have the nonce
 		else if(!request.nonce) {
 			errorMsg = 'Missing nonce input parameter with the required single use number';
 		}
 
 		if(errorMsg) {
-			logger.error('joinChannel - error '+ errorMsg);
+			logger.error('getGenesisBlock - error '+ errorMsg);
 			return Promise.reject(new Error(errorMsg));
 		}
 
@@ -513,48 +533,88 @@ var Chain = class {
 			payload : seekPayloadBytes
 		};
 
-		return orderer.sendDeliver(envelope)
+		return orderer.sendDeliver(envelope);
+	}
+
+	/**
+	 * Sends a join channel proposal to one or more endorsing peers
+	 * Will get the genesis block from the defined orderer to be used
+	 * in the proposal.
+	 * @param {Object} request - An object containing the following fields:
+	 *   <br>`targets` : required - An array of `Peer` objects that will join
+	 *                   this channel
+	 *   <br>`block` : the genesis block of the channel
+	 *                 see getGenesisBlock() method
+	 *   <br>`txId` : required - String of the transaction id
+	 *   <br>`nonce` : required - Integer of the once time number
+	 * @returns {Promise} A Promise for a `ProposalResponse`
+	 * @see /protos/peer/proposal_response.proto
+	 */
+	joinChannel(request) {
+		logger.debug('joinChannel - start');
+		var errorMsg = null;
+
+		// verify that we have targets (Peers) to join this channel
+		// defined by the caller
+		if(!request) {
+			errorMsg = 'Missing all required input request parameters';
+		}
+
+		// verify that a Peer(s) has been selected to join this channel
+		else if (!request.targets) {
+			errorMsg = 'Missing targets input parameter with the peer objects for the join channel proposal';
+		}
+
+		// verify that we have transaction id
+		else if(!request.txId) {
+			errorMsg = 'Missing txId input parameter with the required transaction identifier';
+		}
+
+		// verify that we have the nonce
+		else if(!request.nonce) {
+			errorMsg = 'Missing nonce input parameter with the required single use number';
+		}
+
+		else if(!request.block) {
+			errorMsg = 'Missing block input parameter with the required genesis block';
+		}
+
+		if(errorMsg) {
+			logger.error('joinChannel - error '+ errorMsg);
+			return Promise.reject(new Error(errorMsg));
+		}
+
+		var self = this;
+		var userContext = this._clientContext.getUserContext();
+		var chaincodeInput = new _ccProto.ChaincodeInput();
+		var args = [];
+		args.push(Buffer.from('JoinChain', 'utf8'));
+		args.push(request.block.toBuffer());
+
+		chaincodeInput.setArgs(args);
+
+		var chaincodeID = new _ccProto.ChaincodeID();
+		chaincodeID.setName('cscc');
+
+		var chaincodeSpec = new _ccProto.ChaincodeSpec();
+		chaincodeSpec.setType(_ccProto.ChaincodeSpec.Type.GOLANG);
+		chaincodeSpec.setChaincodeId(chaincodeID);
+		chaincodeSpec.setInput(chaincodeInput);
+
+		var channelHeader = Chain._buildChannelHeader(
+			_commonProto.HeaderType.ENDORSER_TRANSACTION,
+			'',
+			request.txId,
+			null, //no epoch
+			'cscc'
+		);
+
+		var header = Chain._buildHeader(userContext.getIdentity(), channelHeader, request.nonce);
+		var proposal = Chain._buildProposal(chaincodeSpec, header);
+		var signed_proposal = Chain._signProposal(userContext.getSigningIdentity(), proposal);
+
+		return Chain._sendPeersProposal(request.targets, signed_proposal)
 		.then(
-			function(block) {
-				logger.debug('joinChannel - good results from seek block '); // :: %j',results);
-				// verify that we have the genesis block
-				if(block) {
-					logger.debug('joinChannel - found genesis block');
-				}
-				else {
-					logger.error('joinChannel - did not find genesis block');
-					return Promise.reject(new Error('Join Channel failed, no genesis block found'));
-				}
-				var chaincodeInput = new _ccProto.ChaincodeInput();
-				var args = [];
-				args.push(Buffer.from('JoinChain', 'utf8'));
-				args.push(block.toBuffer());
-
-				chaincodeInput.setArgs(args);
-
-				var chaincodeID = new _ccProto.ChaincodeID();
-				chaincodeID.setName('cscc');
-
-				var chaincodeSpec = new _ccProto.ChaincodeSpec();
-				chaincodeSpec.setType(_ccProto.ChaincodeSpec.Type.GOLANG);
-				chaincodeSpec.setChaincodeId(chaincodeID);
-				chaincodeSpec.setInput(chaincodeInput);
-
-				var channelHeader = Chain._buildChannelHeader(
-					_commonProto.HeaderType.ENDORSER_TRANSACTION,
-					'',
-					request.txId,
-					null, //no epoch
-					'cscc'
-				);
-
-				var header = Chain._buildHeader(userContext.getIdentity(), channelHeader, request.nonce);
-				var proposal = Chain._buildProposal(chaincodeSpec, header);
-				var signed_proposal = Chain._signProposal(userContext.getSigningIdentity(), proposal);
-
-				return Chain._sendPeersProposal(request.targets, signed_proposal);
-			}
-		).then(
 			function(responses) {
 				return Promise.resolve(responses);
 			}
@@ -946,15 +1006,9 @@ var Chain = class {
 				config_items.settings['ChannelRestrictions'] = channel_restrictions;
 				logger.debug('loadConfigValue - %s    - ChannelRestrictions max_count value :: %s', group_name, channel_restrictions.max_count);
 				break;
-			case 'CreationPolicy':
-				var creation_policy = _ordererConfigurationProto.CreationPolicy.decode(config_value.value.value);
-				config_items.settings['CreationPolicy'] = creation_policy;
-				logger.debug('loadConfigValue - %s   - CreationPolicy policy value :: %s', group_name, creation_policy.policy);
-				break;
-			case 'ChainCreationPolicyNames':
-				var chain_creation_policy_names = _ordererConfigurationProto.ChainCreationPolicyNames.decode(config_value.value.value);
-				config_items.settings['ChainCreationPolicyNames'] = chain_creation_policy_names;
-				logger.debug('loadConfigValue - %s   - ChainCreationPolicyNames names value :: %s', group_name, chain_creation_policy_names.names);
+			case 'ChannelCreationPolicy':
+				var creation_policy = _policiesProto.Policy.decode(config_value.value.value);
+				this.loadPolicy(config_items, versions, config_value.key, creation_policy, group_name, org);
 				break;
 			case 'HashingAlgorithm':
 				var hashing_algorithm_name = _commonConfigurationProto.HashingAlgorithm.decode(config_value.value.value);
@@ -1005,24 +1059,42 @@ var Chain = class {
 		logger.debug('loadConfigPolicy - %s   - mod_policy: %s', group_name, config_policy.value.mod_policy);
 
 		versions.version = config_policy.value.version;
+		this.loadPolicy(config_items, versions, config_policy.key, config_policy.value.policy, group_name, org);
+	}
+
+	loadPolicy(config_items, versions, key, policy, group_name, org) {
 		try {
-			switch(config_policy.value.policy.type) {
+			switch(policy.type) {
 			case _policiesProto.Policy.PolicyType.SIGNATURE:
-				let signature_policy = _policiesProto.SignaturePolicyEnvelope.decode(config_policy.value.policy.policy);
-				logger.debug('loadConfigPolicy - %s - policy SIGNATURE :: %s',group_name, signature_policy.encodeJSON());
+				let signature_policy = _policiesProto.SignaturePolicyEnvelope.decode(policy.policy);
+				logger.debug('loadPolicy - %s - policy SIGNATURE :: %s %s',group_name, signature_policy.encodeJSON(),this.decodeSignaturePolicy(signature_policy.getIdentities()));
 				break;
 			case _policiesProto.Policy.PolicyType.IMPLICIT_META:
-				let implicit_policy = _policiesProto.ImplicitMetaPolicy.decode(config_policy.value.policy.policy);
-				logger.debug('loadConfigPolicy - %s - policy IMPLICIT_META :: %s %s',group_name, implicit_policy.getRule(),implicit_policy.getSubPolicy());
+				let implicit_policy = _policiesProto.ImplicitMetaPolicy.decode(policy.policy);
+				let rule = ImplicitMetaPolicy_Rule[implicit_policy.getRule()];
+				logger.debug('loadPolicy - %s - policy IMPLICIT_META :: %s %s',group_name, rule, implicit_policy.getSubPolicy());
 				break;
 			default:
-				logger.error('loadConfigPolicy - Unknown policy type :: %s',config_policy.value.policy.type);
-				throw new Error('Unknown Policy type ::' +config_policy.value.policy.type);
+				logger.error('loadPolicy - Unknown policy type :: %s',policy.type);
+				throw new Error('Unknown Policy type ::' +policy.type);
 			}
 		}
 		catch(err) {
-			logger.debug('loadConfigPolicy - %s - name: %s - unable to parse policy %s', group_name, config_policy.key, err);
+			logger.debug('loadPolicy - %s - name: %s - unable to parse policy %s', group_name, key, err);
 		}
+	}
+
+	decodeSignaturePolicy(identities) {
+		var results = [];
+		for(let i in identities) {
+			let identity = identities[i];
+			switch(identity.getPrincipalClassification()) {
+			case _mspPrincipalProto.MSPPrincipal.Classification.ROLE:
+				let principal = _mspPrincipalProto.MSPRole.decode(identity.getPrincipal());
+				results.push(principal.encodeJSON());
+			}
+		}
+		return results;
 	}
 
 	/**
@@ -1923,6 +1995,28 @@ var Chain = class {
 		return Policy.buildPolicy(this.getMSPManager().getMSPs(), policy);
 	}
 
+	//internal utility method to combine MSPs
+	static _combineMSPs(current, configuration) {
+		var results = new Map();
+		this._arrayToMap(results, current);
+		// do these second to replace any of the same name
+		this._arrayToMap(results, configuration);
+
+		return results;
+	}
+	// internal utility method to add msps to a map
+	static _arrayToMap(map, msps) {
+		if(msps) {
+			var keys = Object.keys(msps);
+			for(let key in keys) {
+				let id = keys[key];
+				let msp = msps[id];
+				let mspid = msp.getId();
+				logger.debug('buildChannelConfig - add msp ::%s',mspid);
+				map.set(mspid, msp);
+			}
+		}
+	}
 	// internal utility method to return one Promise when sending a proposal to many peers
 	/**
 	 * @private
@@ -2143,7 +2237,6 @@ var Chain = class {
 		case 'java':
 			return _ccProto.ChaincodeSpec.Type.JAVA;
 		}
-
 	}
 
 	/**
