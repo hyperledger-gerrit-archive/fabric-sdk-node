@@ -100,10 +100,10 @@ var peer0 = new Peer(
 		'ssl-target-name-override': ORGS[org].peer1['server-hostname']
 	});
 var peer1 = new Peer(
-	ORGS[org].peer2.requests,
+	ORGS['org2'].peer1.requests,
 	{
 		pem: Buffer.from(data).toString(),
-		'ssl-target-name-override': ORGS[org].peer2['server-hostname']
+		'ssl-target-name-override': ORGS['org2'].peer1['server-hostname']
 	});
 
 chain.addPeer(peer0);
