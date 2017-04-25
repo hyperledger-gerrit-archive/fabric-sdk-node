@@ -1,0 +1,7 @@
+Verified+1: Hyperledger Jobbuilder <jobbuilder@jenkins.hyperledger.org>
+Code-Review+2: Yacov Manevich <yacovm@il.ibm.com>
+Submitted-by: Yacov Manevich <yacovm@il.ibm.com>
+Submitted-at: Tue, 25 Apr 2017 19:43:59 +0000
+Reviewed-on: http://gerrit.hyperledger.org/r/8499
+Project: fabric-sdk-node
+Branch: refs/heads/master
