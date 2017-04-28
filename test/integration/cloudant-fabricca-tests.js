@@ -84,7 +84,7 @@ test('Use FabricCAServices wih a Cloudant CouchDB KeyValueStore', function(t) {
 					process.exit(1);
 				}
 				t.comment('Initialize the CA server connection and KeyValueStore');
-				return new FabricCAServices(fabricCAEndpoint, tlsOptions/*cryptoSettings*/, kvs/*KVSImplClass*/, {name: dbname, url: cloudantUrl});
+				return new FabricCAServices(fabricCAEndpoint, 'ca-' + userOrg, tlsOptions/*cryptoSettings*/, kvs/*KVSImplClass*/, {name: dbname, url: cloudantUrl});
 			},
 			function(err) {
 				t.fail('Error initializing Cloudant KeyValueStore. Exiting.');

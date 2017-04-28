@@ -53,6 +53,8 @@ var _mspConfigProto = grpc.load(__dirname + '/protos/msp/mspconfig.proto').msp;
 var _timestampProto = grpc.load(__dirname + '/protos/google/protobuf/timestamp.proto').google.protobuf;
 var _identityProto = grpc.load(path.join(__dirname, '/protos/identity.proto')).msp;
 
+var Long = require('long');
+
 /**
  * The class representing a chain with which the client SDK interacts.
  *
@@ -632,7 +634,7 @@ var Chain = class {
 
 				logger.debug('getChannelConfig - latest block is block number %s',block.header.number);
 				// get the last config block number
-				var metadata = _commonProto.Metadata.decode(block.metadata.metadata[1]);
+				var metadata = _commonProto.Metadata.decode(block.metadata.metadata[_commonProto.BlockMetadataIndex.LAST_CONFIG]);
 				var last_config = _commonProto.LastConfig.decode(metadata.value);
 				logger.debug('getChannelConfig - latest block has config block of %s',last_config.index);
 
@@ -642,13 +644,13 @@ var Chain = class {
 				// now build the seek info to get the block called out
 				// as the latest config block
 				var seekSpecifiedStart = new _abProto.SeekSpecified();
-				seekSpecifiedStart.setNumber(last_config.index);
+				seekSpecifiedStart.setNumber(0);
 				var seekStart = new _abProto.SeekPosition();
 				seekStart.setSpecified(seekSpecifiedStart);
 
 				//   build stop
 				var seekSpecifiedStop = new _abProto.SeekSpecified();
-				seekSpecifiedStop.setNumber(last_config.index);
+				seekSpecifiedStop.setNumber(0);
 				var seekStop = new _abProto.SeekPosition();
 				seekStop.setSpecified(seekSpecifiedStop);
 
@@ -698,7 +700,7 @@ var Chain = class {
 				var payload = _commonProto.Payload.decode(envelope.payload);
 				var channel_header = _commonProto.ChannelHeader.decode(payload.header.channel_header);
 				if(channel_header.type != _commonProto.HeaderType.CONFIG) {
-					return Promise.reject(new Error('Block must be of type "CONFIG"'));
+					return Promise.reject(new Error(util.format('Block must be of type "CONFIG" (%s), but got "%s" instead', _commonProto.HeaderType.CONFIG, channel_header.type)));
 				}
 
 				var config_envelope = _configtxProto.ConfigEnvelope.decode(payload.data);

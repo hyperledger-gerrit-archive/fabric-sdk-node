@@ -88,7 +88,7 @@ test('Use FabricCAServices with a CouchDB KeyValueStore', function(t) {
 				}
 				t.comment('Initialize the CA server connection and KeyValueStore');
 				t.comment('Test optional parameters passed into FabricCAServices of cryptoSettings and KVSImplClass');
-				return new FabricCAServices(fabricCAEndpoint, tlsOptions/*cryptoSettings*/,
+				return new FabricCAServices(fabricCAEndpoint, 'ca-' + userOrg, tlsOptions/*cryptoSettings*/,
 					kvs/*KVSImplClass*/, {name: dbname, url: keyValStorePath});
 			},
 			function(err) {
