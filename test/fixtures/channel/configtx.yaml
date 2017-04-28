@@ -9,12 +9,19 @@
 ################################################################################
 Profiles:
 
-    TwoOrgs:
+    TwoOrgsOrdererGenesis:
         Orderer:
             <<: *OrdererDefaults
             Organizations:
                 - *OrdererOrg
-        Application: 
+        Consortiums:
+            SampleConsortium:
+                Organizations:
+                    - *Org0
+                    - *Org1
+    TwoOrgsChannel:
+        Consortium: SampleConsortium
+        Application:
             <<: *ApplicationDefaults
             Organizations:
                 - *Org0
