@@ -109,10 +109,6 @@ test('\n\n ** Client.js Tests: getUserContext() method **\n\n', function (t) {
 
 test('\n\n ** Client.js Tests: user persistence and loading **\n\n', function (t) {
 
-	t.equals(client.getCryptoSuite(), null, 'Client getCryptoSuite should initially be null');
-	client.setCryptoSuite(utils.newCryptoSuite());
-	if (client.getCryptoSuite() != null) t.pass('Client getCryptoSuite should not be null after setCryptoSuite');
-
 	var response = client.getUserContext();
 	if (response === null)
 		t.pass('Client tests: getUserContext successful null user name.');

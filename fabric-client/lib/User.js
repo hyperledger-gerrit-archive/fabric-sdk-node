@@ -72,7 +72,7 @@ var User = class {
 		this._identity = null;
 		this._signingIdentity = null;
 		this._mspImpl = null;
-		this._kvsCryptoOpts = null;
+		this._cryptoSuite = null;
 	}
 
 	/**
@@ -132,6 +132,29 @@ var User = class {
 	}
 
 	/**
+	 * @param {object} setting This optional parameter is an object with the following optional properties:
+	 * - software {boolean}: Whether to load a software-based implementation (true) or HSM implementation (false)
+   	 *    default is true (for software based implementation), specific implementation module is specified
+	 *    in the setting 'crypto-suite-software'
+	 * - keysize {number}: The key size to use for the crypto suite instance. default is value of the setting 'crypto-keysize'
+	 * - algorithm {string}: Digital signature algorithm, currently supporting ECDSA only with value "EC"
+	 * - hash {string}: 'SHA2' or 'SHA3'
+	 * @param {function} KVSImplClass Optional. The built-in key store saves private keys. The key store may be backed by different
+	 * {@link KeyValueStore} implementations. If specified, the value of the argument must point to a module implementing the
+	 * KeyValueStore interface.
+	 * @param {object} opts Implementation-specific option object used in the constructor
+	 * returns a new instance of the CryptoSuite API implementation
+	 */
+	newCryptoSuite(setting, KVSImplClass, opts) {
+		this._cryptoSuite = sdkUtils.newCryptoSuite(setting, KVSImplClass, opts);
+		return this._cryptoSuite;
+	}
+
+	getCryptoSuite() {
+		return this._cryptoSuite;
+	}
+
+	/**
 	 * Set the enrollment object for this User instance
 	 * @param {Key} privateKey the private key object
 	 * @param {string} certificate the PEM-encoded string of certificate
@@ -150,7 +173,7 @@ var User = class {
 	 *   - kvsOpts: {object}: an options object specific to the implementation in KVSImplClass
 	 * @returns {Promise} Promise for successful completion of creating the user's signing Identity
 	 */
-	setEnrollment(privateKey, certificate, mspId, opts) {
+	setEnrollment(privateKey, certificate, mspId) {
 		if (typeof privateKey === 'undefined' || privateKey === null || privateKey === '') {
 			throw new Error('Invalid parameter. Must have a valid private key.');
 		}
@@ -162,13 +185,13 @@ var User = class {
 		if (typeof mspId === 'undefined' || mspId === null || mspId === '') {
 			throw new Error('Invalid parameter. Must have a valid mspId.');
 		}
-		logger.debug('setEnrollment opts: %s', JSON.stringify(opts));
-		this._kvsCryptoOpts = opts;
+
+		if (!this._cryptoSuite) {
+			this._cryptoSuite = sdkUtils.newCryptoSuite();
+		}
 		this._mspImpl = new LocalMSP({
 			id: mspId,
-			cryptoSuite: this._kvsCryptoOpts ? sdkUtils.newCryptoSuite(
-				this._kvsCryptoOpts.cryptoSettings, this._kvsCryptoOpts.KVSImplClass, this._kvsCryptoOpts.kvsOpts) :
-				sdkUtils.newCryptoSuite()
+			cryptoSuite: this._cryptoSuite
 		});
 
 		return this._mspImpl.cryptoSuite.importKey(certificate)
@@ -224,17 +247,17 @@ var User = class {
 		this._roles = state.roles;
 		this._affiliation = state.affiliation;
 		this._enrollmentSecret = state.enrollmentSecret;
-		this._kvsCryptoOpts = state.kvsCryptoOpts;
+		var opts = state.opts;
 
 		if (typeof state.mspid === 'undefined' || state.mspid === null || state.mspid === '') {
 			throw new Error('Failed to find "mspid" in the deserialized state object for the user. Likely due to an outdated state store.');
 		}
 
+		this._cryptoSuite = sdkUtils.newCryptoSuite(opts);
+
 		this._mspImpl = new LocalMSP({
 			id: state.mspid,
-			cryptoSuite: this._kvsCryptoOpts ? sdkUtils.newCryptoSuite(
-				this._kvsCryptoOpts.cryptoSettings, this._kvsCryptoOpts.KVSImplClass, this._kvsCryptoOpts.kvsOpts) :
-				sdkUtils.newCryptoSuite()
+			cryptoSuite: this._cryptoSuite
 		});
 
 		var self = this;
@@ -285,12 +308,17 @@ var User = class {
 			};
 		}
 
+		var opts = '';
+		if (this._cryptoSuite && this._cryptoSuite._storeConfig && this._cryptoSuite._storeConfig.opts) {
+			opts = this._cryptoSuite._storeConfig.opts;
+		}
+
 		var state = {
 			name: this._name,
 			mspid: this._mspImpl ? this._mspImpl.getId() : 'null',
 			roles: this._roles,
 			affiliation: this._affiliation,
-			kvsCryptoOpts: this._kvsCryptoOpts,
+			opts: opts,
 			enrollmentSecret: this._enrollmentSecret,
 			enrollment: serializedEnrollment
 		};

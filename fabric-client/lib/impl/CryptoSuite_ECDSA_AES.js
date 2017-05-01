@@ -56,6 +56,7 @@ var CryptoSuite_ECDSA_AES = class extends api.CryptoSuite {
 	 * @param {string} hash Optional. Hash algorithm, supported values are "SHA2" and "SHA3"
 	 */
 	constructor(keySize, opts, KVSImplClass, hash) {
+		logger.debug('constructor, keySize: '+keySize+', opts: '+opts);
 		super();
 
 		if (keySize !== 256 && keySize !== 384) {

@@ -107,6 +107,7 @@ test('\n\n ** createUser happy path - CouchDB **\n\n', function (t) {
 	var sgnCert =  path.join(__dirname, caImport.orgs[userOrg].cryptoContent.signedCert);
 
 	var client = new Client();
+	var cryptoSuite;
 	couchdbUtil.destroy(dbname, keyValStorePath)
 	.then((status) => {
 		t.comment(tag+'Cleanup of existing ' + dbname + ' returned '+status);
@@ -158,6 +159,7 @@ test('\n\n ** createUser happy path - Cloudant  **\n\n', function (t) {
 	var sgnCert =  path.join(__dirname, caImport.orgs[userOrg].cryptoContent.signedCert);
 
 	var client = new Client();
+	var cryptoSuite;
 	couchdbUtil.destroy(dbname, cloudantUrl)
 	.then((status) => {
 		t.comment(tag+'Cleanup of existing ' + dbname + ' returned '+status);

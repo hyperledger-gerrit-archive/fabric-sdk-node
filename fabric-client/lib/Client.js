@@ -62,8 +62,6 @@ var Client = class {
 		logger.debug('const - new Client');
 		this._chains = {};
 		this._stateStore = null;
-		// TODO, assuming a single CrytoSuite implementation per SDK instance for now
-		// change this to be per Client or per Chain
 		this._cryptoSuite = null;
 		this._userContext = null;
 		// keep a collection of MSP's
@@ -71,14 +69,6 @@ var Client = class {
 
 		// Is in dev mode or network mode
 		this._devMode = false;
-	}
-
-	setCryptoSuite(cryptoSuite) {
-		this._cryptoSuite = cryptoSuite;
-	}
-
-	getCryptoSuite() {
-		return this._cryptoSuite;
 	}
 
 	/**
@@ -965,6 +955,8 @@ var Client = class {
 	 * <br>---- or
 	 * <br>---- privateKeyPEM {string} - the PEM string - required when no file system is available
 	 * <br>---- signedCertPEM {string} - the PEM string - required when no file system is available
+	 * <br>
+	 * <br>- keyStoreOpts {object} opts Implementation-specific option object used in the CryptoSuite constructor
 	 *
 	 */
 	createUser(opts) {
@@ -991,12 +983,13 @@ var Client = class {
 		} else {
 			return Promise.reject(new Error('Client.createUser parameter \'opts cryptoContent\' is required.'));
 		}
-		if (this._cryptoSuite == null) {
+
+		if (opts.keyStoreOpts || this._cryptoSuite == null) {
 			this._cryptoSuite = opts.keyStoreOpts ? sdkUtils.newCryptoSuite(opts.keyStoreOpts) : sdkUtils.newCryptoSuite();
 		}
 		var self = this;
 		return new Promise((resolve, reject) => {
-			logger.info('loading submitter from files');
+			logger.info('loading user from files');
 			// need to load private key and pre-enrolled certificate from files based on the MSP
 			// root MSP config directory structure:
 			// <config>
@@ -1028,7 +1021,8 @@ var Client = class {
 			}).then((data) => {
 				logger.debug('then signedCertPEM data');
 				member = new User(opts.username);
-				return member.setEnrollment(importedKey, data.toString(), opts.mspid, { kvsOpts: self._cryptoSuite._storeConfig.opts });
+				member._cryptoSuite = self._cryptoSuite;
+				return member.setEnrollment(importedKey, data.toString(), opts.mspid);
 			}).then(() => {
 				logger.debug('then setUserContext');
 				return self.setUserContext(member);
