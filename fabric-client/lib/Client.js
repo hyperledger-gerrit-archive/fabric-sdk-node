@@ -267,9 +267,34 @@ var Client = class {
 	}
 
 	/**
+	 * Extracts the protobuf 'ConfigUpdate' object out of the 'ConfigEnvelope' that is produced
+	 * by the ConfigTX tool. This allows it to be signed.
+	 * @param {byte[]} The bytes of the ConfigEnvelope protopuf
+	 * @returns {byte[]} The bytes of the ConfigUpdate protobuf
+	 */
+	extractConfigUpdate(config_envelope) {
+		logger.debug('extractConfigUpdate - start');
+		try {
+			var envelope = _commonProto.Envelope.decode(config_envelope);
+			var payload = _commonProto.Payload.decode(envelope.getPayload().toBuffer());
+			var configtx = _configtxProto.ConfigUpdateEnvelope.decode(payload.getData().toBuffer());
+			return configtx.getConfigUpdate().toBuffer();
+		}
+		catch(err) {
+			if(err instanceof Error) {
+				logger.error('Problem with extracting the config update object :: %s', err.stack ? err.stack : err);
+				throw err;
+			}
+			else {
+				logger.error('Problem with extracting the config update object :: %s',err);
+				throw new Error(err);
+			}
+		}
+	}
+	/**
 	 * Sign a configuration
 	 * @param {byte[]} config - The Configuration Update in byte form
-	 * @return {ConfigSignature} - The signature of the current on the config
+	 * @return {ConfigSignature} - The signature of the current user on the config bytes
 	 */
 	signChannelConfig(config) {
 		logger.debug('signChannelConfigUpdate - start');
