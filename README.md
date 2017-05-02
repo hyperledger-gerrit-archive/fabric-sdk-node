@@ -49,6 +49,7 @@ You can build the docker images in your native host (Mac, Ubuntu, Windows, etc.)
   * run `make couchdb` to build couchdb
 * go to fabric-sdk-node/test/fixtures
   * run `docker-compose up --force-recreate` to launch the network
+  * or run `docker-compose up --force-recreate -d` to launch the network in background
 * Now you are ready to run the tests:
   * Clear out your previous key value stores that may have cached user enrollment certificates (`rm -rf /tmp/hfc-*`, `rm -rf ~/.hfc-key-store`, `rm $GOPATH/src/github.com/hyperledger/fabric-sdk-node/test/fixtures/fabricca/tlsOrg1/fabric-ca-server.db`, `rm $GOPATH/src/github.com/hyperledger/fabric-sdk-node/test/fixtures/fabricca/tlsOrg2/fabric-ca-server.db`)
   * run 'gulp test' to execute the entire test suite (535+ test cases), or you can run them individually
