@@ -135,29 +135,17 @@ var _client = new hfc();
 test('\n\n** utils.newCryptoSuite tests **\n\n', (t) => {
 	testutil.resetDefaults();
 
-	let config = { path: keyValStorePath };
-
-	let cs = utils.newCryptoSuite({keysize: 384, algorithm: 'EC'}, config);
+	let cs = utils.newCryptoSuite({keysize: 384, algorithm: 'EC'});
 	t.equal(cs instanceof CryptoSuite_ECDSA_AES, true, 'Should return an instance of CryptoSuite_ECDSA_AES');
 	t.equal(cs._keySize, 384, 'Returned instance should have keysize of 384');
-	t.equal(cs._storeConfig.opts, config, util.format('Returned instance should have store config opts of %j', config));
-	t.equal(typeof cs._storeConfig.superClass, 'function', 'Returned instance should have store config superClass');
 
-	cs = utils.newCryptoSuite({keysize: 384}, config);
+	cs = utils.newCryptoSuite({keysize: 384});
 	t.equal(cs instanceof CryptoSuite_ECDSA_AES, true, 'Default test: should return an instance of CryptoSuite_ECDSA_AES');
 	t.equal(cs._keySize, 384, 'Returned instance should have keysize of 384');
-	t.equal(cs._storeConfig.opts, config, util.format('Returned instance should have store config opts of %j', config));
 
-	cs = utils.newCryptoSuite({algorithm: 'EC'}, config);
-	t.equal(cs instanceof CryptoSuite_ECDSA_AES, true, 'Should return an instance of CryptoSuite_ECDSA_AES');
-	t.equal(cs._keySize, 256, 'Returned instance should have keysize of 256');
-	t.equal(cs._storeConfig.opts, config, util.format('Returned instance should have store config opts of %j', config));
-
-	let defaultKVSPath = path.join(os.homedir(), '.hfc-key-store');
 	cs = utils.newCryptoSuite({algorithm: 'EC'});
 	t.equal(cs instanceof CryptoSuite_ECDSA_AES, true, 'Should return an instance of CryptoSuite_ECDSA_AES');
 	t.equal(cs._keySize, 256, 'Returned instance should have keysize of 256');
-	t.equal(cs._storeConfig.opts.path, defaultKVSPath, util.format('Returned instance should have store config opts.path of %s', defaultKVSPath));
 
 	// each app instance is expected to use either HSM or software-based key management, as such this question
 	// is answered with a config setting rather than controlled on a case-by-case basis
@@ -169,101 +157,11 @@ test('\n\n** utils.newCryptoSuite tests **\n\n', (t) => {
 		/Error:.*\/usr\/local\/lib/,
 		'Should attempt to load the bccsp_pkcs11 module and fail because of the dummy library path'
 	);
-
-	utils.setConfigSetting('crypto-hsm', false);
-	t.doesNotThrow(
-		() => {
-			cs = utils.newCryptoSuite({lib: '/usr/local/lib', slot: 0, pin: '1234' });
-			cs._getKeyStore()
-			.then((store) => {
-				t.fail('Should not have been able to get a valid key store because of invalid store config');
-			}).catch((err) => {
-				t.pass('Successfully rejected _getKeyStore() due to invalid config');
-			});
-		},
-		null,
-		'Load the CryptoSuite_ECDSA_AES module and pass in an invalid config object'
-	);
-
-	// make sure the "software: true" setting overrides the config setting
-	utils.setConfigSetting('crypto-hsm', true);
-	cs = utils.newCryptoSuite({software: true, algorithm: 'EC', keysize: 256}, CouchDBKeyValueStore, { name: 'test_db', url: 'http://dummyUrl' });
-	cs._getKeyStore()
-	.then(() => {
-		t.fail('Should not have been able to get a valid key store because the url was invalid');
-		t.end();
-	}).catch((err) => {
-		if (err.message.indexOf('Error creating test_db database to store membership data: Error: getaddrinfo ENOTFOUND dummyurl') >= 0) {
-			t.pass('Successfully loaded CryptoKeyStore based on CouchDBKeyValueStore, but rejected _getKeyStore() because the url was invalid');
-		} else {
-			t.fail(err);
-		}
-
-		t.end();
-	});
-});
-
-test('\n\n ** CryptoSuite_ECDSA_AES - constructor tests **\n\n', function (t) {
-	cleanupFileKeyValueStore(keyValStorePath);
-
-	var keyValueStore = null;
-	let cs;
-
-	utils.setConfigSetting('crypto-hsm', false);
-
-	cs = new CryptoSuite_ECDSA_AES(256, { name: 'test_db', url: 'http://dummyUrl'}, CouchDBKeyValueStore);
-	cs._getKeyStore()
-	.then(() => {
-		t.fail('Should not have been able to get a valid key store because the url was invalid');
-	}).catch((err) => {
-		if (err.message.indexOf('Error creating test_db database to store membership data: Error: getaddrinfo ENOTFOUND dummyurl') >= 0) {
-			t.pass('Successfully rejected _getKeyStore() because the url was invalid');
-		} else {
-			t.fail(err);
-		}
-
-		t.doesNotThrow(
-			() => {
-				cs = utils.newCryptoSuite(keyValStorePath);
-			},
-			null,
-			'CryptoSuite_ECDSA_AES constructor tests: pass in a string as kvs path'
-		);
-
-		return cs._getKeyStore();
-	}).then(() => {
-		t.fail('Should not have been able to obtain a proper key store due to invalid config');
-	}).catch(() => {
-		t.pass('Successfully rejected attempt to obtain a proper key store');
-
-		utils.setConfigSetting('key-value-store', 'fabric-client/lib/impl/FileKeyValueStore.js');
-
-		let cs1 = utils.newCryptoSuite({
-			path: keyValStorePath
-		});
-
-		return cs1._getKeyStore();
-	}).then((store) => {
-		t.notEqual(store, null, 'Crypto Key Store successfully initialized by CryptoSuite_ECDSA_AES');
-		t.equal(typeof store.getKey, 'function', 'Crypto key store much have the "getKey()" function');
-		t.equal(typeof store.putKey, 'function', 'Crypto key store much have the "putKey()" function');
-
-		let cs2 = new CryptoSuite_ECDSA_AES(256, {path: keyValStorePath});
-		return cs2._getKeyStore();
-	}).then((store) => {
-		t.notEqual(store, null, 'Crypto Key Store successfully initialized by CryptoSuite_ECDSA_AES');
-		t.equal(typeof store.getKey, 'function', 'Crypto key store much have the "getKey()" function');
-		t.equal(typeof store.putKey, 'function', 'Crypto key store much have the "putKey()" function');
-		t.end();
-	}).catch((err) => {
-		t.fail(err.stack ? err.stack : err);
-		t.end();
-	});
+	t.end();
 });
 
 test('\n\n ** CryptoSuite_ECDSA_AES - function tests **\n\n', function (t) {
 	testutil.resetDefaults();
-	utils.setConfigSetting('key-value-store', 'fabric-ca-client/lib/impl/FileKeyValueStore.js');//force for 'gulp test'
 
 	var cryptoUtils = utils.newCryptoSuite();
 
@@ -285,7 +183,9 @@ test('\n\n ** CryptoSuite_ECDSA_AES - function tests **\n\n', function (t) {
 
     //reset to default key size
 	utils.setConfigSetting('crypto-keysize', 256);
+	utils.setConfigSetting('key-value-store','fabric-client/lib/impl/FileKeyValueStore.js');//force for gulp test
 	cryptoUtils = utils.newCryptoSuite();
+	cryptoUtils.setCryptoKeyStore(utils.newCryptoKeyStore());
 
 	cryptoUtils.generateKey()
 	.then(function (key) {
