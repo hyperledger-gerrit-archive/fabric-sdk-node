@@ -18,6 +18,7 @@
 
 var api = require('./api.js');
 var utils = require('./utils.js');
+var LocalMSP = require('./msp/LocalMSP.js');
 var util = require('util');
 var path = require('path');
 var http = require('http');
@@ -65,7 +66,13 @@ var FabricCAServices = class {
 		} else {
 			this.cryptoPrimitives = utils.newCryptoSuite();
 		}
-
+		//need to set LocalMSP on cryptPrimitives for generateKey
+		var mspImpl = new LocalMSP({
+			id: 'null',
+			cryptoSuite: this.cryptoPrimitives,
+			storeConfig: this.cryptoPrimitives.getStoreConfig()
+		});
+		this.cryptoPrimitives.setLocalMSP(mspImpl);
 
 		this._fabricCAClient = new FabricCAClient({
 			caname: caName,

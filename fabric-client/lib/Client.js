@@ -27,7 +27,6 @@ var Packager = require('./Packager.js');
 var Peer = require('./Peer.js');
 var Orderer = require('./Orderer.js');
 var MSP = require('./msp/msp.js');
-var MSPManager = require('./msp/msp-manager.js');
 var logger = sdkUtils.getLogger('Client.js');
 var util = require('util');
 var path = require('path');
@@ -73,7 +72,7 @@ var Client = class {
 	}
 
 	/**
- 	 * Returns a new instance of the CryptoSuite API implementation
+	 * Returns a new instance of the CryptoSuite API implementation
 	 *
 	 * @param {object} setting This optional parameter is an object with the following optional properties:
 	 * - software {boolean}: Whether to load a software-based implementation (true) or HSM implementation (false)

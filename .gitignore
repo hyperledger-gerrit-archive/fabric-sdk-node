@@ -10,6 +10,8 @@ fabric-ca-client/lib/Config.js
 fabric-ca-client/lib/Remote.js
 fabric-ca-client/lib/hash.js
 fabric-ca-client/lib/impl/*
+fabric-ca-client/msp/msp.js
+fabric-ca-client/msp/LocalMSP.js
 npm-shrinkwrap.json
 npm-debug.log
 tmp

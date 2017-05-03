@@ -27,13 +27,11 @@ var KEYUTIL = jsrsa.KEYUTIL;
 var util = require('util');
 var BN = require('bn.js');
 var Signature = require('elliptic/lib/elliptic/ec/signature.js');
-var path = require('path');
-const os = require('os');
 
 var hashPrimitives = require('../hash.js');
 var utils = require('../utils');
 var ECDSAKey = require('./ecdsa/key.js');
-var CKS = require('./CryptoKeyStore.js');
+
 
 var logger = utils.getLogger('crypto_ecdsa_aes');
 
@@ -62,40 +60,32 @@ var CryptoSuite_ECDSA_AES = class extends api.CryptoSuite {
 		if (keySize !== 256 && keySize !== 384) {
 			throw new Error('Illegal key size: ' + keySize + ' - this crypto suite only supports key sizes 256 or 384');
 		}
-
 		if (typeof hash === 'string' && hash !== null && hash !== '') {
 			this._hashAlgo = hash;
 		} else {
 			this._hashAlgo = utils.getConfigSetting('crypto-hash-algo');
 		}
-
-		if (typeof opts === 'undefined' || opts === null) {
-			opts = {
-				path: CryptoSuite_ECDSA_AES.getDefaultKeyStorePath()
-			};
-		}
-
-		var superClass;
+		this._keySize = keySize;
 
 		if (typeof KVSImplClass !== 'undefined' && KVSImplClass !== null) {
 			if (typeof KVSImplClass !== 'function') {
 				throw new Error('Super class for the key store must be a module.');
-			} else {
-				superClass = KVSImplClass;
 			}
-		} else {
-			// no super class specified, use the default key value store implementation
-			superClass = require(utils.getConfigSetting('key-value-store'));
-			logger.debug('constructor, no super class specified, config: '+utils.getConfigSetting('key-value-store'));
 		}
-
-		this._keySize = keySize;
-		this._store = null;
 		this._storeConfig = {
-			superClass: superClass,
+			KVSImplClass: KVSImplClass,
 			opts: opts
 		};
 		this._initialize();
+
+	}
+
+	getStoreConfig() {
+		return this._storeConfig;
+	}
+
+	setLocalMSP(localMSP) {
+		this._localMSP = localMSP;
 	}
 
 	_initialize() {
@@ -141,8 +131,10 @@ var CryptoSuite_ECDSA_AES = class extends api.CryptoSuite {
 	/**
 	 * This is an implementation of {@link module:api.CryptoSuite#generateKey}
 	 * Returns an instance of {@link module.api.Key} representing the private key, which also
-	 * encapsulates the public key. It'll also save the private key in the KeyValueStore
+	 * encapsulates the public key. It'll also save the private key in the KeyValueStore.
 	 *
+	 * @param {object} opts Optional.
+	 * *    <br>`ephemeral`: {boolean} Optional. If not set, defaults to saving the key. If true, will not save the key.
 	 * @returns {Key} Promise of an instance of {@link module:ECDSA_KEY} containing the private key and the public key
 	 */
 	generateKey(opts) {
@@ -154,18 +146,23 @@ var CryptoSuite_ECDSA_AES = class extends api.CryptoSuite {
 			// unless "opts.ephemeral" is explicitly set to "true", default to saving the key
 			var key = new ECDSAKey(pair.prvKeyObj);
 
+			//to do here - no keystore - CryptoKeyStore
 			var self = this;
 			return new Promise((resolve, reject) => {
-				self._getKeyStore()
-				.then ((store) => {
-					logger.debug('generateKey, store.setValue');
-					return store.putKey(key)
-						.then(() => {
-							return resolve(key);
-						}).catch((err) => {
-							reject(err);
-						});
-				});
+				if (self._localMSP) {
+					self._localMSP._getKeyStore()
+					.then ((store) => {
+						logger.debug('generateKey, store.setValue');
+						return store.putKey(key)
+							.then(() => {
+								return resolve(key);
+							}).catch((err) => {
+								reject(err);
+							});
+					});
+				}
+				logger.info('generateKey - key not stored because LocalMSP is not set');
+				return resolve(key);
 			});
 		}
 	}
@@ -231,14 +228,19 @@ var CryptoSuite_ECDSA_AES = class extends api.CryptoSuite {
 				return Promise.reject(error);
 			}
 			return new Promise((resolve, reject) => {
-				return self._getKeyStore()
-					.then ((store) => {
-						return store.putKey(theKey);
-					}).then(() => {
-						return resolve(theKey);
-					}).catch((err) => {
-						reject(err);
-					});
+				if (self._localMSP) {
+					return self._localMSP._getKeyStore()
+						.then ((store) => {
+							return store.putKey(theKey);
+						}).then(() => {
+							return resolve(theKey);
+						}).catch((err) => {
+							reject(err);
+						});
+				} else {
+					logger.info('importKey - key not stored because LocalMSP is not set');
+					return resolve(theKey);
+				}
 			});
 		}
 	}
@@ -252,41 +254,24 @@ var CryptoSuite_ECDSA_AES = class extends api.CryptoSuite {
 		var store;
 
 		return new Promise((resolve, reject) => {
-			self._getKeyStore()
-			.then ((st) => {
-				store = st;
-				return store.getKey(ski);
-			}).then((key) => {
-				if (key instanceof ECDSAKey)
-					return resolve(key);
+			if (self._localMSP) {
+				self._localMSP._getKeyStore()
+				.then ((st) => {
+					store = st;
+					return store.getKey(ski);
+				}).then((key) => {
+					if (key instanceof ECDSAKey)
+						return resolve(key);
 
-				if (key !== null) {
-					var pubKey = KEYUTIL.getKey(key);
-					return resolve(new ECDSAKey(pubKey));
-				}
-			}).catch((err) => {
-				reject(err);
-			});
-		});
-	}
-
-	_getKeyStore() {
-		var self = this;
-		return new Promise((resolve, reject) => {
-			if (self._store === null) {
-				logger.info(util.format('This class requires a CryptoKeyStore to save keys, using the store: %j', self._storeConfig));
-
-				CKS(self._storeConfig.superClass, self._storeConfig.opts)
-				.then((ks) => {
-					logger.debug('_getKeyStore returning ks');
-					self._store = ks;
-					return resolve(self._store);
+					if (key !== null) {
+						var pubKey = KEYUTIL.getKey(key);
+						return resolve(new ECDSAKey(pubKey));
+					}
 				}).catch((err) => {
 					reject(err);
 				});
 			} else {
-				logger.debug('_getKeyStore resolving store');
-				return resolve(self._store);
+				reject(new Error('getKey failed because LocalMSP is not set'));
 			}
 		});
 	}
@@ -367,10 +352,6 @@ var CryptoSuite_ECDSA_AES = class extends api.CryptoSuite {
 	 */
 	decrypt(key, cipherText, opts) {
 		throw new Error('Not implemented yet');
-	}
-
-	static getDefaultKeyStorePath() {
-		return path.join(os.homedir(), '.hfc-key-store');
 	}
 };
 

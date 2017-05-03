@@ -24,7 +24,7 @@ var idModule = require('./msp/identity.js');
 var Identity = idModule.Identity;
 var SigningIdentity = idModule.SigningIdentity;
 var Signer = idModule.Signer;
-var LocalMSP = require('./msp/msp.js');
+var LocalMSP = require('./msp/LocalMSP.js');
 
 /**
  * The User class represents users that have been enrolled and represented by
@@ -176,8 +176,10 @@ var User = class {
 		}
 		this._mspImpl = new LocalMSP({
 			id: mspId,
-			cryptoSuite: this._cryptoSuite
+			cryptoSuite: this._cryptoSuite,
+			storeConfig: this._cryptoSuite.getStoreConfig()
 		});
+		this._cryptoSuite.setLocalMSP(this._mspImpl);
 
 		return this._mspImpl.cryptoSuite.importKey(certificate)
 		.then((pubKey) => {
@@ -243,8 +245,10 @@ var User = class {
 
 		this._mspImpl = new LocalMSP({
 			id: state.mspid,
-			cryptoSuite: this._cryptoSuite
+			cryptoSuite: this._cryptoSuite,
+			storeConfig: this._cryptoSuite.getStoreConfig()
 		});
+		this._cryptoSuite.setLocalMSP(this._mspImpl);
 
 		var self = this;
 		var pubKey;

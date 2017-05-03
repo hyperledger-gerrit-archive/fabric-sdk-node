@@ -13,7 +13,9 @@ const DEPS = [
 	'fabric-client/lib/impl/CryptoSuite_ECDSA_AES.js',
 	'fabric-client/lib/impl/ecdsa/*',
 	'fabric-client/lib/impl/CryptoKeyStore.js',
-	'fabric-client/lib/impl/FileKeyValueStore.js'
+	'fabric-client/lib/impl/FileKeyValueStore.js',
+	'fabric-client/lib/msp/msp.js',
+	'fabric-client/lib/msp/LocalMSP.js'
 ];
 
 gulp.task('ca', function() {
