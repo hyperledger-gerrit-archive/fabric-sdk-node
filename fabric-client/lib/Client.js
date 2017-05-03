@@ -27,10 +27,9 @@ var Packager = require('./Packager.js');
 var Peer = require('./Peer.js');
 var Orderer = require('./Orderer.js');
 var MSP = require('./msp/msp.js');
-var MSPManager = require('./msp/msp-manager.js');
+
 var logger = sdkUtils.getLogger('Client.js');
 var util = require('util');
-var path = require('path');
 var fs = require('fs-extra');
 var Constants = require('./Constants.js');
 
@@ -73,7 +72,7 @@ var Client = class {
 	}
 
 	/**
- 	 * Returns a new instance of the CryptoSuite API implementation
+	 * Returns a new instance of the CryptoSuite API implementation
 	 *
 	 * @param {object} setting This optional parameter is an object with the following optional properties:
 	 * - software {boolean}: Whether to load a software-based implementation (true) or HSM implementation (false)
@@ -82,14 +81,10 @@ var Client = class {
 	 * - keysize {number}: The key size to use for the crypto suite instance. default is value of the setting 'crypto-keysize'
 	 * - algorithm {string}: Digital signature algorithm, currently supporting ECDSA only with value "EC"
 	 * - hash {string}: 'SHA2' or 'SHA3'
-	 * @param {function} KVSImplClass Optional. The built-in key store saves private keys. The key store may be backed by different
-	 * {@link KeyValueStore} implementations. If specified, the value of the argument must point to a module implementing the
-	 * KeyValueStore interface.
-	 * @param {object} opts Implementation-specific option object used in the constructor
 	 * returns a new instance of the CryptoSuite API implementation
 	 */
-	newCryptoSuite(setting, KVSImplClass, opts) {
-		this._cryptoSuite = sdkUtils.newCryptoSuite(setting, KVSImplClass, opts);
+	newCryptoSuite(setting) {
+		this._cryptoSuite = sdkUtils.newCryptoSuite(setting);
 		return this._cryptoSuite;
 	}
 
@@ -99,6 +94,19 @@ var Client = class {
 
 	getCryptoSuite() {
 		return this._cryptoSuite;
+	}
+
+	/**
+	 * Returns a new instance of the CryptoKeyStore
+	 *
+	 * @param {function} KVSImplClass Optional. The built-in key store saves private keys. The key store may be backed by different
+	 * {@link KeyValueStore} implementations. If specified, the value of the argument must point to a module implementing the
+	 * KeyValueStore interface.
+	 * @param {object} opts Implementation-specific option object used in the constructor
+	 * returns a new instance of the CryptoKeystore
+	 */
+	newCryptoKeyStore (KVSImplClass, opts) {
+		return sdkUtils.newCryptoKeyStore(KVSImplClass, opts);
 	}
 
 	/**
