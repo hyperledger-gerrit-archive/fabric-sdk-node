@@ -23,27 +23,35 @@ var _test = require('tape-promise');
 var test = _test(tape);
 var e2eUtils = require('./e2eUtils.js');
 var testUtil = require('../../unit/util.js');
+var utils = require('fabric-client/lib/utils.js');
 
 testUtil.setupChaincodeDeploy();
 
 test('\n\n***** U P G R A D E flow: chaincode install *****\n\n', (t) => {
-	e2eUtils.installChaincode('org1', testUtil.CHAINCODE_UPGRADE_PATH, 'v1', t)
-	.then(() => {
-		t.pass('Successfully installed chaincode in peers of organization "org1"');
-		return e2eUtils.installChaincode('org2', testUtil.CHAINCODE_UPGRADE_PATH, 'v1', t);
-	}, (err) => {
-		t.fail('Failed to install chaincode in peers of organization "org1". ' + err.stack ? err.stack : err);
+	if(testUtil.determineConfigSource(false) === 'sdk') {
+		e2eUtils.installChaincode('org1', testUtil.CHAINCODE_UPGRADE_PATH, 'v1', t)
+		.then(() => {
+			t.pass('Successfully installed chaincode in peers of organization "org1"');
+			return e2eUtils.installChaincode('org2', testUtil.CHAINCODE_UPGRADE_PATH, 'v1', t);
+		}, (err) => {
+			t.fail('Failed to install chaincode in peers of organization "org1". ' + err.stack ? err.stack : err);
+			t.end();
+		}).then(() => {
+			t.pass('Successfully installed chaincode in peers of organization "org2"');
+			t.end();
+		}, (err) => {
+			t.fail('Failed to install chaincode in peers of organization "org2". ' + err.stack ? err.stack : err);
+			t.end();
+		}).catch((err) => {
+			t.fail('Test failed due to unexpected reasons. ' + err.stack ? err.stack : err);
+			t.end();
+		});
+	}
+	else {
+		t.pass('No need to install chaincode');
 		t.end();
-	}).then(() => {
-		t.pass('Successfully installed chaincode in peers of organization "org2"');
-		t.end();
-	}, (err) => {
-		t.fail('Failed to install chaincode in peers of organization "org2". ' + err.stack ? err.stack : err);
-		t.end();
-	}).catch((err) => {
-		t.fail('Test failed due to unexpected reasons. ' + err.stack ? err.stack : err);
-		t.end();
-	});
+	}
+
 });
 
 test('\n\n***** U P G R A D E flow: upgrade chaincode *****', (t) => {

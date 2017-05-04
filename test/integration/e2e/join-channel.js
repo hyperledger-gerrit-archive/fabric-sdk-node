@@ -91,7 +91,7 @@ function joinChannel(org, t) {
 	// Create and configure the test chain
 	//
 	var client = new hfc();
-	var chain = client.newChain(testUtil.END2END.channel);
+	var chain = client.newChain(testUtil.determineChannelName());
 
 	var orgName = ORGS[org].name;
 
@@ -200,7 +200,7 @@ function joinChannel(org, t) {
 						var payload = _commonProto.Payload.decode(envelope.payload);
 						var channel_header = _commonProto.ChannelHeader.decode(payload.header.channel_header);
 
-						if (channel_header.channel_id === testUtil.END2END.channel) {
+						if (channel_header.channel_id === testUtil.determineChannelName()) {
 							t.pass('The new channel has been successfully joined on peer '+ eh.ep._endpoint.addr);
 							resolve();
 						}

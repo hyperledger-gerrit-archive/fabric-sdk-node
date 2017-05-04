@@ -44,7 +44,7 @@ function installChaincode(org, chaincode_path, version, t) {
 	hfc.setConfigSetting('request-timeout', 60000);
 
 	var client = new hfc();
-	var chain = client.newChain(testUtil.END2END.channel);
+	var chain = client.newChain(testUtil.determineChannelName());
 
 	var caRootsPath = ORGS.orderer.tls_cacerts;
 	let data = fs.readFileSync(path.join(__dirname, caRootsPath));
@@ -163,7 +163,7 @@ function instantiateChaincode(userOrg, chaincode_path, version, upgrade, t){
 	})(t, eventhubs, t.end);
 
 	var client = new hfc();
-	var chain = client.newChain(e2e.channel);
+	var chain = client.newChain(testUtil.determineChannelName());
 
 	var caRootsPath = ORGS.orderer.tls_cacerts;
 	let data = fs.readFileSync(path.join(__dirname, caRootsPath));
@@ -248,7 +248,7 @@ function instantiateChaincode(userOrg, chaincode_path, version, upgrade, t){
 			chaincodeVersion: version,
 			fcn: 'init',
 			args: ['a', '100', 'b', '200'],
-			chainId: e2e.channel,
+			chainId:  testUtil.determineChannelName(),
 			txId: tx_id,
 			nonce: nonce,
 			// use this to demonstrate the following policy:
@@ -401,7 +401,7 @@ function invokeChaincode(userOrg, version, t){
 	// than the one that instantiated the chaincode, although either org
 	// should work properly
 	var client = new hfc();
-	var chain = client.newChain(e2e.channel);
+	var chain = client.newChain(testUtil.determineChannelName());
 
 	var caRootsPath = ORGS.orderer.tls_cacerts;
 	let data = fs.readFileSync(path.join(__dirname, caRootsPath));
@@ -475,7 +475,7 @@ function invokeChaincode(userOrg, version, t){
 			chaincodeVersion : version,
 			fcn: 'invoke',
 			args: ['move', 'a', 'b','100'],
-			chainId: e2e.channel,
+			chainId: testUtil.determineChannelName(),
 			txId: tx_id,
 			nonce: nonce
 		};
@@ -603,13 +603,14 @@ module.exports.invokeChaincode = invokeChaincode;
 
 function queryChaincode(org, version, value, t){
 	hfc.setConfigSetting('request-timeout', 60000);
+	// determine the channel name
 
 	// this is a transaction, will just use org's identity to
 	// submit the request. intentionally we are using a different org
 	// than the one that submitted the "move" transaction, although either org
 	// should work properly
 	var client = new hfc();
-	var chain = client.newChain(e2e.channel);
+	var chain = client.newChain(testUtil.determineChannelName());
 
 	var orgName = ORGS[org].name;
 
@@ -646,7 +647,7 @@ function queryChaincode(org, version, value, t){
 		var request = {
 			chaincodeId : e2e.chaincodeId,
 			chaincodeVersion : version,
-			chainId: e2e.channel,
+			chainId: testUtil.determineChannelName(),
 			txId: tx_id,
 			nonce: nonce,
 			fcn: 'invoke',

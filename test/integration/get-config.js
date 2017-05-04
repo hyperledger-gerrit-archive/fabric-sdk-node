@@ -50,7 +50,7 @@ var _ccEventProto = grpc.load(__dirname + '/../../fabric-client/lib/protos/peer/
 
 var client = new hfc();
 // IMPORTANT ------>>>>> MUST RUN e2e/create-channel.js FIRST
-var chain = client.newChain(testUtil.END2END.channel);
+var chain = client.newChain(testUtil.determineChannelName());
 hfc.addConfigFile(path.join(__dirname, 'e2e', 'config.json'));
 var ORGS = hfc.getConfigSetting('test-network');
 

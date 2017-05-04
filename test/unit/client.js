@@ -262,6 +262,16 @@ test('\n\n ** testing query calls fail without correct parameters on client **\n
 		}
 	});
 
+	var p1a = client.queryInstalledChaincodes({}).then(function () {
+		t.fail('Should not have been able to resolve the promise because of missing request parameter');
+	}).catch(function (err) {
+		if (err.message.indexOf('Channel name is required') >= 0) {
+			t.pass('Successfully caught missing request error');
+		} else {
+			t.fail('Failed to catch the missing request error. Error: ' + err.stack ? err.stack : err);
+		}
+	});
+
 	var p2 = client.queryChannels().then(function () {
 		t.fail('Should not have been able to resolve the promise because of missing request parameter');
 	}).catch(function (err) {
@@ -272,7 +282,7 @@ test('\n\n ** testing query calls fail without correct parameters on client **\n
 		}
 	});
 
-	Promise.all([p1, p2])
+	Promise.all([p1, p1a, p2])
 	.then(
 		function (data) {
 			t.end();

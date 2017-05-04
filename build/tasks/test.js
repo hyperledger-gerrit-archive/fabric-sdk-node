@@ -29,13 +29,15 @@ gulp.task('test', ['lint', 'pre-test'], function() {
 		'test/integration/orderer-chain-tests.js',
 		'test/integration/cloudant-fabricca-tests.js',
 		'test/integration/couchdb-fabricca-tests.js',
-		'test/integration/e2e.js',
+		'test/integration/e2e.js', // will run the end to end test with an SDK built ConfigUpdate object
 		'test/integration/install.js',
 		'test/integration/events.js',
 		'test/integration/query.js',
 		'test/integration/upgrade.js',
 		'test/integration/new-chain.js',
-		'test/integration/get-config.js'
+		'test/integration/get-config.js',
+		'test/integration/configtx-e2e.js', // will run the end to end test with a configtx ConfigUpdate object
+		'!test/integration/envelope-e2e.js'  // will run the end to end test with a configtx full ConfigEnvelope
 	])
 	.pipe(tape({
 		reporter: tapColorize()

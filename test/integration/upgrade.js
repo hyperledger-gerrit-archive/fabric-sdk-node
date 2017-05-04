@@ -52,7 +52,7 @@ test('\n\n **** E R R O R  T E S T I N G on upgrade call', (t) => {
 	var version = 'v1';
 	var org = 'org1';
 	var client = new hfc();
-	var chain = client.newChain(e2e.channel);
+	var chain = client.newChain(testUtil.determineChannelName());
 	chain.addOrderer(
 		client.newOrderer(
 			ORGS.orderer.url,
@@ -108,7 +108,7 @@ test('\n\n **** E R R O R  T E S T I N G on upgrade call', (t) => {
 			chaincodePath: testUtil.CHAINCODE_UPGRADE_PATH,
 			chaincodeId : e2e.chaincodeId,
 			chaincodeVersion : version,
-			chainId: e2e.channel,
+			chainId: testUtil.determineChannelName(),
 			fcn: 'init',
 			args: ['a', '500', 'b', '600'],
 			txId: tx_id,
@@ -136,7 +136,7 @@ test('\n\n **** E R R O R  T E S T I N G on upgrade call', (t) => {
 			chaincodeVersion: version,
 			fcn: 'init',
 			args: ['a', '500', 'b', '600'],
-			chainId: e2e.channel,
+			chainId: testUtil.determineChannelName(),
 			txId: tx_id,
 			nonce: nonce
 		};
@@ -159,7 +159,7 @@ test('\n\n **** E R R O R  T E S T I N G on upgrade call', (t) => {
 			chaincodeVersion: 'v333333333',
 			fcn: 'init',
 			args: ['a', '500', 'b', '600'],
-			chainId: e2e.channel,
+			chainId: testUtil.determineChannelName(),
 			txId: tx_id,
 			nonce: nonce
 		};

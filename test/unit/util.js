@@ -22,6 +22,9 @@ var util = require('util');
 var jsrsa = require('jsrsasign');
 var KEYUTIL = jsrsa.KEYUTIL;
 
+var utils = require('fabric-client/lib/utils.js');
+var logger = utils.getLogger('TEST UTIL');
+
 var hfc = require('fabric-client');
 var copService = require('fabric-ca-client/lib/FabricCAClientImpl.js');
 var User = require('fabric-client/lib/User.js');
@@ -33,7 +36,9 @@ module.exports.CHAINCODE_PATH = 'github.com/example_cc';
 module.exports.CHAINCODE_UPGRADE_PATH = 'github.com/example_cc1';
 module.exports.CHAINCODE_MARBLES_PATH = 'github.com/marbles_cc';
 module.exports.END2END = {
-	channel: 'mychannel',
+	sdk: 'mychannelSDK',
+	configtx : 'mychannel',
+	envelope : 'mychannelE',
 	chaincodeId: 'end2end',
 	chaincodeVersion: 'v0'
 };
@@ -215,4 +220,76 @@ module.exports.getSubmitter = function(client, test, peerOrgAdmin, org) {
 	} else {
 		return getMember('admin', 'adminpw', client, test, userOrg);
 	}
+};
+
+module.exports.determineChannelName = function(saveit) {
+	var channel_name = 'notfound';
+	// test may have been called with the channel=<name> parameter, if so always use it
+	for(var i=2;i<process.argv.length;i++) {
+		if (process.argv[i].indexOf('channel=') === 0) {
+			channel_name = process.argv[i].split('=')[1];
+			logger.info('determineChannelName - using the argument value of :: %s', channel_name);
+		}
+	}
+	// channel name will then be based off what the source is
+	if (channel_name === 'notfound') {
+		var source = module.exports.determineConfigSource();
+		switch ( source) {
+		case 'sdk':
+			channel_name = module.exports.END2END.sdk;
+			break;
+		case 'configtx':
+			channel_name = module.exports.END2END.configtx;
+			break;
+		case 'envelope':
+			channel_name = module.exports.END2END.envelope;
+			break;
+		default:
+			channel_name = module.exports.END2END.sdk;
+		}
+		logger.info('determineChannelName not found "E2E_CHANNEL_NAME", using :: %s :: %s', channel_name, source);
+	}
+	else {
+		logger.info('determineChannelName found "E2E_CHANNEL_NAME", using :: %s', channel_name);
+	}
+
+	return channel_name;
+};
+
+module.exports.determineConfigSource = function (next) {
+	logger.info('determineConfigSource - start next:%s',next);
+	var source = utils.getConfigSetting('E2E_CONFIG_SOURCE', 'notfound');
+	if(source === 'notfound') {
+		for(var i=2;i<process.argv.length;i++) {
+			if (process.argv[i].indexOf('config_source=') === 0) {
+				let temp = process.argv[i].split('=')[1];
+				source = temp.toLowerCase();
+				next = false; // so if we find it then always use this one
+			}
+		}
+	}
+	logger.info('determineConfigSource - source:%s',source);
+
+	if(next) {
+		switch ( source) {
+		case 'notfound':
+			source = 'sdk';
+			break;
+		case 'sdk':
+			source = 'configtx';
+			break;
+		case 'configtx':
+			source = 'envelope';
+			break;
+		case 'envelope':
+			source = 'sdk'; //start over
+			break;
+		default:
+			source = 'sdk';
+		}
+	}
+	utils.setConfigSetting('E2E_CONFIG_SOURCE', source);
+	logger.info('determineConfigSource - out source:%s',source);
+
+	return source;
 };

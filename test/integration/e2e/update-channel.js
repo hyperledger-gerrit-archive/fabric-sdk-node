@@ -40,7 +40,7 @@ test('\n\n***** U P D A T E C H A N N E L flow: update channel *****\n\n', (t) =
 	//
 	// Create and configure the test chain
 	//
-	var channel_name = 'mychannel';
+	var channel_name = testUtil.determineChannelName();
 	var client = new Client();
 
 	var caRootsPath = ORGS.orderer.tls_cacerts;

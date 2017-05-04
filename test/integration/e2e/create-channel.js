@@ -32,6 +32,8 @@ var _commonProto = grpc.load(path.join(__dirname, '../../../fabric-client/lib/pr
 var _configtxProto = grpc.load(path.join(__dirname, '../../../fabric-client/lib/protos/common/configtx.proto')).common;
 
 var testUtil = require('../../unit/util.js');
+var e2e = testUtil.END2END;
+
 var e2eUtils = require('./e2eUtils.js');
 
 var the_user = null;
@@ -39,19 +41,28 @@ var the_user = null;
 Client.addConfigFile(path.join(__dirname, './config.json'));
 var ORGS = Client.getConfigSetting('test-network');
 
-var channel_name = 'mychannel';
-// can use "channel=<name>" to control the channel name from command line
-if (process.argv.length > 2) {
-	if (process.argv[2].indexOf('channel=') === 0) {
-		channel_name = process.argv[2].split('=')[1];
-	}
-}
-
-logger.info('\n\n >>>>>>  Will create new channel with name :: %s <<<<<<< \n\n',channel_name);
 //
 //Attempt to send a request to the orderer with the sendCreateChain method
 //
-test('\n\n***** SDK Built config update  create flow  *****\n\n', function(t) {
+test('\n\n***** Create Channel flow  *****\n\n', function(t) {
+
+// can use "config_source=<name>" to control which channel configuration source to use
+//  -- When 'sdk' the NodeSDK will build the configuration based
+//     on the JSON obect included within this test case. This will be required
+//     to be signed.
+//  -- When 'configtx' there must be a file produced by the 'configtx' tool
+//     that contains the configuration envelope. The NodeSDK will then be used
+//     to get the config_update object out of the envelope. This will be required
+//     to be signed.
+//  -- When 'envelope' there must be a file produced by the 'configtx' tool
+//     that contains the configuration envelope. The NodeSDK will then send
+//     this binary as is with no signing.
+	var config_source = testUtil.determineConfigSource(true);
+	//may use "channel=<name>" parameter to the end2end tests to control the channel name from command line
+	// or it will be based off the configsource default names in util.js END2END
+	var channel_name = testUtil.determineChannelName(true);
+	logger.info('\n\n >>>>>>  Will create new channel with name :: %s <<<<<<< \n\n',channel_name);
+
 	//
 	// Create and configure the test chain
 	//
@@ -251,19 +262,30 @@ test('\n\n***** SDK Built config update  create flow  *****\n\n', function(t) {
 	}).then((admin) =>{
 		t.pass('Successfully enrolled user \'admin\' for orderer');
 
-		// use this when the config comes from the configtx tool
-//		data = fs.readFileSync(path.join(__dirname, '../../fixtures/channel/mychannel.tx'));
-//		var envelope = _commonProto.Envelope.decode(data);
-//		var payload = _commonProto.Payload.decode(envelope.getPayload().toBuffer());
-//		var configtx = _configtxProto.ConfigUpdateEnvelope.decode(payload.getData().toBuffer());
-//		config = configtx.getConfigUpdate().toBuffer();
-//
-//		logger.debug('\n***\n dump the configtx config \n***\n');
-//		var chain = client.newChain('test');
-//		chain.loadConfigUpdate(config);
+		if(config_source === 'configtx') {
+			logger.info('\n\n***** Get the configtx config update configuration  *****\n\n');
+			// use the config update created by the configtx tool
+			let envelope_bytes = fs.readFileSync(path.join(__dirname, '../../fixtures/channel/mychannel.tx'));
+			var configtx_bytes = client.extractChannelConfig(envelope_bytes);
+			t.pass('Successfull extracted the config update from the configtx envelope');
 
-		 //have the SDK build the config update object
-		 return client.buildChannelConfig(test_input3, orderer, msps);
+			logger.debug('\n***\n see what is in the configtx config \n***\n');
+			var chain = client.newChain('test');
+			chain.loadConfigUpdate(configtx_bytes);
+
+			return configtx_bytes;
+		}
+		else if(config_source === 'envelope')  {
+			logger.info('\n\n***** Get the configtx envelope configuration  *****\n\n');
+			let envelope_bytes = fs.readFileSync(path.join(__dirname, '../../fixtures/channel/mychannelE.tx'));
+			return envelope_bytes;
+		}
+		else {
+			logger.info('\n\n***** Get the SDK built configuration  *****\n\n');
+			 //have the SDK build the config update object
+			 return client.buildChannelConfig(test_input3, orderer, msps);
+		}
+
 	}).then((config_bytes) => {
 		logger.debug('\n***\n built config \n***\n');
 		t.pass('Successfully built config update');
@@ -330,13 +352,19 @@ test('\n\n***** SDK Built config update  create flow  *****\n\n', function(t) {
 		let nonce = utils.getNonce();
 		let tx_id = Client.buildTransactionID(nonce, the_user);
 		var request = {
-			config: config,
-			signatures : signatures,
 			name : channel_name,
 			orderer : orderer,
 			txId  : tx_id,
 			nonce : nonce
 		};
+
+		if(config_source === 'envelope') {
+			request.envelope = config;
+		}
+		else {
+			request.config = config;
+			config.signatures = signatures;
+		}
 
 		// send to create request to orderer
 		return client.createChannel(request);

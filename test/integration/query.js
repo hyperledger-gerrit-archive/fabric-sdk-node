@@ -40,7 +40,7 @@ var Peer = require('fabric-client/lib/Peer.js');
 var Orderer = require('fabric-client/lib/Orderer.js');
 
 var client = new hfc();
-var chain_id = testUtil.END2END.channel;
+var chain_id = testUtil.determineChannelName();
 var chain = client.newChain(chain_id);
 hfc.addConfigFile(path.join(__dirname, 'e2e', 'config.json'));
 var ORGS = hfc.getConfigSetting('test-network');
@@ -156,7 +156,7 @@ test('  ---->>>>> Query chain working <<<<<-----', function(t) {
 		}
 	}).then((processed_transaction) => {
 		logger.info(' processed_transaction :: %j',processed_transaction);
-		t.equals('mychannel', processed_transaction.transactionEnvelope.payload.header.channel_header.channel_id,
+		t.equals(chain.getName(), processed_transaction.transactionEnvelope.payload.header.channel_header.channel_id,
 			'test for header channel name');
 		t.equals('Org2MSP', processed_transaction.transactionEnvelope.payload.header.signature_header.creator.Mspid,
 			'test for header channel mspid in identity');
@@ -374,7 +374,7 @@ test('  ---->>>>> Query Installed Chaincodes working <<<<<-----', function(t) {
 			function(admin) {
 				t.pass('Successfully enrolled user \'admin\'');
 				// send query
-				return client.queryInstalledChaincodes(peer0);
+				return client.queryInstalledChaincodes(peer0, testUtil.determineChannelName() );
 			},
 			function(err) {
 				t.fail('Failed to enroll user: ' + err.stack ? err.stack : err);
@@ -495,16 +495,18 @@ test('  ---->>>>> Query Channels working <<<<<-----', function(t) {
 		).then(
 			function(response) {
 				t.comment('<<< channels >>>');
-				for (let i=0; i<response.channels.length; i++) {
+				var found = false;
+				if(response.channels) for (let i=0; i<response.channels.length; i++) {
 					t.comment('channel id: '+response.channels[i].channel_id);
+					if (response.channels[i].channel_id === chain_id) {
+						t.pass('queryChannels matches e2e ');
+						found = true;
+					}
 				}
-				if (response.channels[0].channel_id === chain_id) {
-					t.pass('queryChannels matches e2e');
-					t.end();
-				} else {
-					t.fail('queryChannels does not match e2e');
-					t.end();
+				if(!found) {
+					t.fail('queryChannels does not match e2e ::'+ chain_id);
 				}
+				t.end();
 			},
 			function(err) {
 				t.fail('Failed to send queryChannels due to error: ' + err.stack ? err.stack : err);
