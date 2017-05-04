@@ -73,7 +73,7 @@ test('End-to-end flow of chaincode instantiate, transaction invocation, and quer
 
 				// send proposal to endorser
 				var request = {
-					targets: [hfc.getPeer('grpc://localhost:7051'), hfc.getPeer('grpc://localhost:7056')],
+					targets: [hfc.getPeer('grpc://localhost:7051'), hfc.getPeer('grpc://localhost:8051')],
 					chaincodePath: testUtil.CHAINCODE_MARBLES_PATH,
 					chaincodeId: chaincode_id,
 					fcn: 'init',
@@ -161,7 +161,7 @@ test('End-to-end flow of chaincode instantiate, transaction invocation, and quer
 				nonce = hfc.getNonce();
 				// send proposal to endorser
 				var request = {
-					targets: [hfc.getPeer('grpc://localhost:7051'), hfc.getPeer('grpc://localhost:7056')],
+					targets: [hfc.getPeer('grpc://localhost:7051'), hfc.getPeer('grpc://localhost:8051')],
 					chaincodeId : chaincode_id,
 					fcn: 'init_marble',
 					args: ['marble1','blue','35','tom'],
@@ -254,7 +254,7 @@ test('End-to-end flow of chaincode instantiate, transaction invocation, and quer
 				nonce = hfc.getNonce();
 				// send proposal to endorser
 				var request = {
-					targets: [hfc.getPeer('grpc://localhost:7051'), hfc.getPeer('grpc://localhost:7056')],
+					targets: [hfc.getPeer('grpc://localhost:7051'), hfc.getPeer('grpc://localhost:8051')],
 					chaincodeId : chaincode_id,
 					fcn: 'set_owner',
 					args: ['marble1','jerry'],

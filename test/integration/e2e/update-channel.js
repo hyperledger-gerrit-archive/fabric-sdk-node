@@ -124,7 +124,7 @@ test('\n\n***** U P D A T E C H A N N E L flow: update channel *****\n\n', (t) =
 			peers : {
 				organizations : [{
 					mspid : 'Org1MSP',
-					'anchor-peers' : ['peer0:7051', 'peer1:7056'],
+					'anchor-peers' : ['peer0:7051', 'peer1:8051'],
 					policies : {
 						Readers : {signature : ACCEPT_ALL},
 						Writers : {signature : ACCEPT_ALL},
@@ -132,7 +132,7 @@ test('\n\n***** U P D A T E C H A N N E L flow: update channel *****\n\n', (t) =
 					}
 				},{
 					mspid : 'Org2MSP',
-					'anchor-peers' : ['peer2:8051', 'peer3:8056'],
+					'anchor-peers' : ['peer2:9051', 'peer3:10051'],
 					policies : {
 						Readers : {signature : ACCEPT_ALL},
 						Writers : {signature : ACCEPT_ALL},

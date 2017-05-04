@@ -130,9 +130,9 @@ function getMember(username, password, client, t, userOrg) {
 }
 
 function getAdmin(client, t, userOrg) {
-	var keyPath = path.join(__dirname, util.format('../fixtures/channel/crypto-config/peerOrganizations/%s.example.com/users/Admin@%s.example.com/keystore', userOrg, userOrg));
+	var keyPath = path.join(__dirname, util.format('../fixtures/channel/crypto-config/peerOrganizations/%s.example.com/users/Admin@%s.example.com/msp/keystore', userOrg, userOrg));
 	var keyPEM = Buffer.from(readAllFiles(keyPath)[0]).toString();
-	var certPath = path.join(__dirname, util.format('../fixtures/channel/crypto-config/peerOrganizations/%s.example.com/users/Admin@%s.example.com/signcerts', userOrg, userOrg));
+	var certPath = path.join(__dirname, util.format('../fixtures/channel/crypto-config/peerOrganizations/%s.example.com/users/Admin@%s.example.com/msp/signcerts', userOrg, userOrg));
 	var certPEM = readAllFiles(certPath)[0];
 
 	return Promise.resolve(client.createUser({
@@ -146,9 +146,9 @@ function getAdmin(client, t, userOrg) {
 }
 
 function getOrdererAdmin(client, t) {
-	var keyPath = path.join(__dirname, '../fixtures/channel/crypto-config/ordererOrganizations/example.com/users/Admin@example.com/keystore');
+	var keyPath = path.join(__dirname, '../fixtures/channel/crypto-config/ordererOrganizations/example.com/users/Admin@example.com/msp/keystore');
 	var keyPEM = Buffer.from(readAllFiles(keyPath)[0]).toString();
-	var certPath = path.join(__dirname, '../fixtures/channel/crypto-config/ordererOrganizations/example.com/users/Admin@example.com/signcerts');
+	var certPath = path.join(__dirname, '../fixtures/channel/crypto-config/ordererOrganizations/example.com/users/Admin@example.com/msp/signcerts');
 	var certPEM = readAllFiles(certPath)[0];
 
 	return Promise.resolve(client.createUser({

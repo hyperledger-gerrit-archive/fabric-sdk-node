@@ -146,7 +146,7 @@ test('\n\n***** SDK Built config update  create flow  *****\n\n', function(t) {
 					}
 				},{
 					mspid : 'Org2MSP',
-					'anchor-peers' : ['peer2:8051'],
+					'anchor-peers' : ['peer2:9051'],
 					policies : {
 						Readers : {signature : ACCEPT_ALL},
 						Writers : {signature : ACCEPT_ALL},
@@ -188,7 +188,7 @@ test('\n\n***** SDK Built config update  create flow  *****\n\n', function(t) {
 				},{
 					id : 'Org2MSP',
 					msp : { mspid : 'Org2MSP'},
-					'anchor-peers' : ['peer2:8051'],
+					'anchor-peers' : ['peer2:9051'],
 					policies : {
 
 					}
