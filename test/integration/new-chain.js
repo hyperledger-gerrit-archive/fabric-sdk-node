@@ -72,8 +72,6 @@ hfc.setConfigSetting('hfc-logging', '{"debug":"console"}');
 
 var keyValStorePath = testUtil.KVS;
 var the_user = null;
-var tx_id = null;
-var nonce = null;
 
 //
 //Orderer via member send chain create
