@@ -333,30 +333,7 @@ test('\n\n ** Chain joinChannel() tests **\n\n', function (t) {
 		}
 	});
 
-	var p5 = c.joinChannel({targets: 'targets' , txId : 'txId' }
-	).then(function () {
-		t.fail('Should not have been able to resolve the promise because of nonce request parameter');
-	}).catch(function (err) {
-		if (err.message.indexOf('Missing nonce') >= 0) {
-			t.pass('Successfully caught missing nonce request error');
-		} else {
-			t.fail('Failed to catch the missing nonce request error. Error: ');
-			logger.error(err.stack ? err.stack : err);
-		}
-	});
-
-	var p5a = c.getGenesisBlock({targets: 'targets' , txId : 'txId' }
-	).then(function () {
-		t.fail('Should not have been able to resolve the promise because of nonce request parameter');
-	}).catch(function (err) {
-		if (err.message.indexOf('Missing nonce') >= 0) {
-			t.pass('Successfully caught missing nonce request error');
-		} else {
-			t.fail('Failed to catch the missing nonce request error. Error: ');
-			logger.error(err.stack ? err.stack : err);
-		}
-	});
-	Promise.all([p1, p2, p3, p4, p4a, p5, p5a])
+	Promise.all([p1, p2, p3, p4, p4a])
 	.then(
 		function (data) {
 			t.end();
@@ -669,8 +646,7 @@ test('\n\n ** Chain sendInstantiateProposal() tests **\n\n', function (t) {
 		fcn: 'init',
 		args: ['a', '100', 'b', '200'],
 		chainId: 'blah',
-		txId: 'blah',
-		nonce: 'blah'
+		txId: 'blah'
 	}).then(function () {
 		t.fail('Should not have been able to resolve the promise because of missing "chaincodeVersion" parameter');
 	}).catch(function (err) {
@@ -689,8 +665,7 @@ test('\n\n ** Chain sendInstantiateProposal() tests **\n\n', function (t) {
 		chaincodeVersion: 'blah',
 		fcn: 'init',
 		args: ['a', '100', 'b', '200'],
-		txId: 'blah',
-		nonce: 'blah'
+		txId: 'blah'
 	}).then(function () {
 		t.fail('Should not have been able to resolve the promise because of missing "chainId" parameter');
 	}).catch(function (err) {
@@ -708,8 +683,7 @@ test('\n\n ** Chain sendInstantiateProposal() tests **\n\n', function (t) {
 		chainId: 'blah',
 		fcn: 'init',
 		args: ['a', '100', 'b', '200'],
-		txId: 'blah',
-		nonce: 'blah'
+		txId: 'blah'
 	}).then(function () {
 		t.fail('Should not have been able to resolve the promise because of missing "chaincodeId" parameter');
 	}).catch(function (err) {
@@ -728,8 +702,7 @@ test('\n\n ** Chain sendInstantiateProposal() tests **\n\n', function (t) {
 		chainId: 'blah',
 		fcn: 'init',
 		args: ['a', '100', 'b', '200'],
-		txId: 'blah',
-		nonce: 'blah'
+		txId: 'blah'
 	}).then(function () {
 		t.fail('Should not have been able to resolve the promise because of missing "peer" objects on chain');
 	}).catch(function (err) {
@@ -749,8 +722,7 @@ test('\n\n ** Chain sendInstantiateProposal() tests **\n\n', function (t) {
 		chaincodeVersion: 'blah',
 		chainId: 'blah',
 		fcn: 'init',
-		args: ['a', '100', 'b', '200'],
-		nonce: 'blah'
+		args: ['a', '100', 'b', '200']
 	}).then(function () {
 		t.fail('Should not have been able to resolve the promise because of missing "txId" parameter');
 	}).catch(function (err) {
@@ -758,25 +730,6 @@ test('\n\n ** Chain sendInstantiateProposal() tests **\n\n', function (t) {
 			t.pass('Successfully caught missing txId error');
 		} else {
 			t.fail('Failed to catch the missing txId error. Error: ' + err.stack ? err.stack : err);
-		}
-	});
-
-	var p6 = c.sendInstantiateProposal({
-		targets: [new Peer('grpc://localhost:7051')],
-		chaincodePath: 'blah',
-		chaincodeId: 'blah',
-		chaincodeVersion: 'blah',
-		chainId: 'blah',
-		fcn: 'init',
-		args: ['a', '100', 'b', '200'],
-		txId: 'blah'
-	}).then(function () {
-		t.fail('Should not have been able to resolve the promise because of missing "nonce" parameter');
-	}).catch(function (err) {
-		if (err.message.indexOf('Missing "nonce" parameter in the proposal request') >= 0) {
-			t.pass('Successfully caught missing nonce error');
-		} else {
-			t.fail('Failed to catch the missing nonce error. Error: ' + err.stack ? err.stack : err);
 		}
 	});
 
@@ -790,7 +743,7 @@ test('\n\n ** Chain sendInstantiateProposal() tests **\n\n', function (t) {
 		}
 	});
 
-	Promise.all([p1, p2, p3, p4, p6, p7])
+	Promise.all([p1, p2, p3, p4, p7])
 	.then(
 		function (data) {
 			t.end();
@@ -812,8 +765,7 @@ test('\n\n ** Chain sendTransactionProposal() tests **\n\n', function (t) {
 		chaincodeId : 'blah',
 		fcn: 'invoke',
 		chainId: 'blah',
-		txId: 'blah',
-		nonce: 'blah'
+		txId: 'blah'
 	}).then(function () {
 		t.fail('Should not have been able to resolve the promise because of missing "args" parameter');
 	}).catch(function (err) {
@@ -829,8 +781,7 @@ test('\n\n ** Chain sendTransactionProposal() tests **\n\n', function (t) {
 		chaincodeId: 'blah',
 		fcn: 'init',
 		args: ['a', '100', 'b', '200'],
-		txId: 'blah',
-		nonce: 'blah'
+		txId: 'blah'
 	}).then(function () {
 		t.fail('Should not have been able to resolve the promise because of missing "chainId" parameter');
 	}).catch(function (err) {
@@ -845,8 +796,7 @@ test('\n\n ** Chain sendTransactionProposal() tests **\n\n', function (t) {
 		chainId: 'blah',
 		fcn: 'init',
 		args: ['a', '100', 'b', '200'],
-		txId: 'blah',
-		nonce: 'blah'
+		txId: 'blah'
 	}).then(function () {
 		t.fail('Should not have been able to resolve the promise because of missing "chaincodeId" parameter');
 	}).catch(function (err) {
@@ -863,8 +813,7 @@ test('\n\n ** Chain sendTransactionProposal() tests **\n\n', function (t) {
 		chainId: 'blah',
 		fcn: 'init',
 		args: ['a', '100', 'b', '200'],
-		txId: 'blah',
-		nonce: 'blah'
+		txId: 'blah'
 	}).then(function () {
 		t.fail('Should not have been able to resolve the promise because of missing "peer" objects on chain');
 	}).catch(function (err) {
@@ -881,8 +830,7 @@ test('\n\n ** Chain sendTransactionProposal() tests **\n\n', function (t) {
 		chaincodeId: 'blah',
 		chainId: 'blah',
 		fcn: 'init',
-		args: ['a', '100', 'b', '200'],
-		nonce: 'blah'
+		args: ['a', '100', 'b', '200']
 	}).then(function () {
 		t.fail('Should not have been able to resolve the promise because of missing "txId" parameter');
 	}).catch(function (err) {
@@ -890,22 +838,6 @@ test('\n\n ** Chain sendTransactionProposal() tests **\n\n', function (t) {
 			t.pass('Successfully caught missing txId error');
 		} else {
 			t.fail('Failed to catch the missing txId error. Error: ' + err.stack ? err.stack : err);
-		}
-	});
-
-	var p6 = c.sendTransactionProposal({
-		chaincodeId: 'blah',
-		chainId: 'blah',
-		fcn: 'init',
-		args: ['a', '100', 'b', '200'],
-		txId: 'blah'
-	}).then(function () {
-		t.fail('Should not have been able to resolve the promise because of missing "nonce" parameter');
-	}).catch(function (err) {
-		if (err.message.indexOf('Missing "nonce" parameter in the proposal request') >= 0) {
-			t.pass('Successfully caught missing nonce error');
-		} else {
-			t.fail('Failed to catch the missing nonce error. Error: ' + err.stack ? err.stack : err);
 		}
 	});
 
@@ -919,7 +851,7 @@ test('\n\n ** Chain sendTransactionProposal() tests **\n\n', function (t) {
 		}
 	});
 
-	Promise.all([p1, p2, p3, p4, p5, p6, p7])
+	Promise.all([p1, p2, p3, p4, p5, p7])
 	.then(
 		function (data) {
 			t.end();
@@ -934,121 +866,18 @@ test('\n\n ** Chain sendTransactionProposal() tests **\n\n', function (t) {
 
 test('\n\n ** Client queryByChaincode() tests **\n\n', function (t) {
 	var c = client.newChain('any chain goes');
-	var peer = new Peer('grpc://localhost:7051');
-	c.addPeer(peer);
 
-	var p1 = c.queryByChaincode({
-		chaincodeId : 'blah',
-		fcn: 'invoke',
-		chainId: 'blah',
-		txId: 'blah',
-		nonce: 'blah'
-	}).then(function () {
-		t.fail('Should not have been able to resolve the promise because of missing "args" parameter in queryByChaincode');
-	}).catch(function (err) {
-		var msg = 'Missing "args" in Transaction proposal request';
-		if (err.message.indexOf(msg) >= 0 ) {
-			t.pass('Successfully caught error: '+msg);
-		} else {
-			t.fail('Failed to catch queryByChaincode error: '+msg+'. Error: ' + err.stack ? err.stack : err);
-		}
-	});
-
-	var p2 = c.queryByChaincode({
-		chaincodeId: 'blah',
-		fcn: 'init',
-		args: ['a', '100', 'b', '200'],
-		txId: 'blah',
-		nonce: 'blah'
-	}).then(function () {
-		t.fail('Should not have been able to resolve the promise because of missing "chainId" parameter in queryByChaincode');
-	}).catch(function (err) {
-		if (err.message.indexOf('Missing "chainId" parameter in the proposal request') >= 0) {
-			t.pass('Successfully caught missing chainId error');
-		} else {
-			t.fail('Failed to catch the queryByChaincode missing chainId error. Error: ' + err.stack ? err.stack : err);
-		}
-	});
-
-	var p3 = c.queryByChaincode({
-		chainId: 'blah',
-		fcn: 'init',
-		args: ['a', '100', 'b', '200'],
-		txId: 'blah',
-		nonce: 'blah'
-	}).then(function () {
-		t.fail('Should not have been able to resolve the promise because of missing "chaincodeId" parameter in queryByChaincode');
-	}).catch(function (err) {
-		if (err.message.indexOf('Missing "chaincodeId" parameter in the proposal request') >= 0) {
-			t.pass('Successfully caught missing chaincodeId error');
-		} else {
-			t.fail('Failed to catch the queryByChaincode missing chaincodeId error. Error: ' + err.stack ? err.stack : err);
-		}
-	});
-
-	c.removePeer(peer);
-	var p4 = c.queryByChaincode({
-		chaincodeId: 'blah',
-		chainId: 'blah',
-		fcn: 'init',
-		args: ['a', '100', 'b', '200'],
-		txId: 'blah',
-		nonce: 'blah'
-	}).then(function () {
-		t.fail('Should not have been able to resolve the promise because of missing "peers" on chain in queryByChaincode');
-	}).catch(function (err) {
-		var msg = 'Missing peer objects in Transaction proposal';
-		if (err.message.indexOf(msg) >= 0) {
-			t.pass('Successfully caught error: '+msg);
-		} else {
-			t.fail('Failed to catch queryByChaincode error: '+msg+'. Error: ' + err.stack ? err.stack : err);
-		}
-	});
-
-	c.addPeer(peer);
-	var p5 = c.queryByChaincode({
-		chaincodeId: 'blah',
-		chainId: 'blah',
-		fcn: 'init',
-		args: ['a', '100', 'b', '200'],
-		nonce: 'blah'
-	}).then(function () {
-		t.fail('Should not have been able to resolve the promise because of missing "txId" parameter in queryByChaincode');
-	}).catch(function (err) {
-		if (err.message.indexOf('Missing "txId" parameter in the proposal request') >= 0) {
-			t.pass('Successfully caught missing txId error');
-		} else {
-			t.fail('Failed to catch the queryByChaincode missing txId error. Error: ' + err.stack ? err.stack : err);
-		}
-	});
-
-	var p6 = c.queryByChaincode({
-		chaincodeId: 'blah',
-		chainId: 'blah',
-		fcn: 'init',
-		args: ['a', '100', 'b', '200'],
-		txId: 'blah'
-	}).then(function () {
-		t.fail('Should not have been able to resolve the promise because of missing "nonce" parameter in queryByChaincode');
-	}).catch(function (err) {
-		if (err.message.indexOf('Missing "nonce" parameter in the proposal request') >= 0) {
-			t.pass('Successfully caught missing nonce error');
-		} else {
-			t.fail('Failed to catch the queryByChaincode missing nonce error. Error: ' + err.stack ? err.stack : err);
-		}
-	});
-
-	var p7 = c.queryByChaincode().then(function () {
+	var p1 = c.queryByChaincode().then(function () {
 		t.fail('Should not have been able to resolve the promise because of missing request parameter in queryByChaincode');
 	}).catch(function (err) {
-		if (err.message.indexOf('Missing request object for this transaction proposal') >= 0) {
+		if (err.message.indexOf('Missing request object for this queryByChaincode') >= 0) {
 			t.pass('Successfully caught missing request error');
 		} else {
 			t.fail('Failed to catch the queryByChaincode missing request error. Error: ' + err.stack ? err.stack : err);
 		}
 	});
 
-	Promise.all([p1, p2, p3, p4, p5, p6, p7])
+	Promise.all([p1])
 	.then(
 		function (data) {
 			t.end();

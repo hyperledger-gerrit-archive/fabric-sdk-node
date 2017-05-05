@@ -24,7 +24,6 @@ var config = require('../config.json');
 var helper = require('./helper.js');
 var logger = helper.getLogger('Query');
 var tx_id = null;
-var nonce = null;
 var member = null;
 var queryChaincode = function(peer, channelName, chaincodeName,
 	chaincodeVersion, args, username, org) {
@@ -34,17 +33,12 @@ var queryChaincode = function(peer, channelName, chaincodeName,
 	var targets = helper.getTargets(peers, org);
 	helper.setupPeers(chain, peers, targets);
 	return helper.getRegisteredUsers(username, org).then((user) => {
-		member = user;
-		nonce = utils.getNonce();
-		tx_id = chain.buildTransactionID(nonce, member);
 		// send query
 		var request = {
 			targets: targets,
 			chaincodeId: chaincodeName,
 			chaincodeVersion: chaincodeVersion,
 			chainId: channelName,
-			txId: tx_id,
-			nonce: nonce,
 			fcn: config.functionName,
 			args: helper.getArgs(args)
 		};

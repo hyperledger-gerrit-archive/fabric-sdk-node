@@ -22,7 +22,6 @@ var Peer = require('fabric-client/lib/Peer.js');
 var EventHub = require('fabric-client/lib/EventHub.js');
 var user = null;
 var tx_id = null;
-var nonce = null;
 var config = require('../config.json');
 var helper = require('./helper.js');
 var logger = helper.getLogger('Join-Channel');
@@ -78,12 +77,10 @@ var joinChannel = function(channelName, peers, username, org) {
 	return helper.getRegisteredUsers(username, org).then((member) => {
 		logger.info('received member object for user : ' + username);
 		user = member;
-		nonce = utils.getNonce();
-		tx_id = chain.buildTransactionID(nonce, user);
+		tx_id = client.newTransactionID();
 		var request = {
 			targets: targets,
-			txId: tx_id,
-			nonce: nonce
+			txId: tx_id
 		};
 		var eventPromises = [];
 		eventhubs.forEach((eh) => {

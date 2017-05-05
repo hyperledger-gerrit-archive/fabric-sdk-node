@@ -34,13 +34,12 @@ var http = require('http');
 var hfc = require('fabric-client');
 var util = require('util');
 var testUtil = require('./util.js');
-
+var client = new hfc();
 var chain = hfc.newChain('testChain-e2e');
 var webUser;
 var chaincode_id = 'marblescc';
 var chain_id = '**TEST_CHAINID**';
 var tx_id = null;
-var nonce = null;
 
 var steps = [];
 if (process.argv.length > 2) {
@@ -59,7 +58,7 @@ chain.setKeyValueStore(hfc.newKeyValueStore({
 chain.setOrderer('grpc://localhost:7050');
 
 test('End-to-end flow of chaincode instantiate, transaction invocation, and query', function(t) {
-	var promise = testUtil.getSubmitter(chain, t);
+	var promise = testUtil.getSubmitter(client, t);
 
 	if (steps.length === 0 || steps.indexOf('step1') >= 0) {
 		logger.info('Executing step1');
@@ -68,8 +67,7 @@ test('End-to-end flow of chaincode instantiate, transaction invocation, and quer
 			function(admin) {
 				t.pass('Successfully enrolled user \'admin\'');
 				webUser = admin;
-				tx_id = hfc.buildTransactionID({length:12});
-				nonce = hfc.getNonce();
+				tx_id = client.newTransactionID();
 
 				// send proposal to endorser
 				var request = {
@@ -79,8 +77,7 @@ test('End-to-end flow of chaincode instantiate, transaction invocation, and quer
 					fcn: 'init',
 					args: ['1'],
 					chainId: chain_id,
-					txId: tx_id,
-					nonce: nonce
+					txId: tx_id
 				};
 
 				return admin.sendInstantiateProposal(request);
@@ -157,8 +154,7 @@ test('End-to-end flow of chaincode instantiate, transaction invocation, and quer
 			}
 		).then(
 			function() {
-				tx_id = hfc.buildTransactionID({length:12});
-				nonce = hfc.getNonce();
+				tx_id = client.newTransactionID();
 				// send proposal to endorser
 				var request = {
 					targets: [hfc.getPeer('grpc://localhost:7051'), hfc.getPeer('grpc://localhost:7056')],
@@ -166,8 +162,7 @@ test('End-to-end flow of chaincode instantiate, transaction invocation, and quer
 					fcn: 'init_marble',
 					args: ['marble1','blue','35','tom'],
 					chainId: chain_id,
-					txId: tx_id,
-					nonce: nonce
+					txId: tx_id
 				};
 				return webUser.sendTransactionProposal(request);
 			},
@@ -250,8 +245,7 @@ test('End-to-end flow of chaincode instantiate, transaction invocation, and quer
 			}
 		).then(
 			function() {
-				tx_id = hfc.buildTransactionID({length:12});
-				nonce = hfc.getNonce();
+				tx_id = client.newTransactionID();
 				// send proposal to endorser
 				var request = {
 					targets: [hfc.getPeer('grpc://localhost:7051'), hfc.getPeer('grpc://localhost:7056')],
@@ -259,8 +253,7 @@ test('End-to-end flow of chaincode instantiate, transaction invocation, and quer
 					fcn: 'set_owner',
 					args: ['marble1','jerry'],
 					chainId: chain_id,
-					txId: tx_id,
-					nonce: nonce
+					txId: tx_id
 				};
 				return webUser.sendTransactionProposal(request);
 			},

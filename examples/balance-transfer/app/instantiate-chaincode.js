@@ -27,7 +27,6 @@ var logger = helper.getLogger('instantiate-chaincode');
 hfc.addConfigFile(path.join(__dirname, 'network-config.json'));
 var ORGS = hfc.getConfigSetting('network-config');
 var tx_id = null;
-var nonce = null;
 var member = null;
 var eventhubs = [];
 var allEventhubs = [];
@@ -72,8 +71,7 @@ var instantiateChaincode = function(peers, channelName, chaincodeName,
 		logger.error('Failed to enroll user \'' + username + '\'. ' + err);
 		throw new Error('Failed to enroll user \'' + username + '\'. ' + err);
 	}).then((success) => {
-		nonce = utils.getNonce();
-		tx_id = chain.buildTransactionID(nonce, member);
+		tx_id = client.newTransactionID();
 		// send proposal to endorser
 		var request = {
 			targets: targets,
@@ -83,8 +81,7 @@ var instantiateChaincode = function(peers, channelName, chaincodeName,
 			fcn: functionName,
 			args: helper.getArgs(args),
 			chainId: channelName,
-			txId: tx_id,
-			nonce: nonce
+			txId: tx_id
 		};
 		return chain.sendInstantiateProposal(request);
 	}, (err) => {

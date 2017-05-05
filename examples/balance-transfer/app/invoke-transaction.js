@@ -27,7 +27,6 @@ var EventHub = require('fabric-client/lib/EventHub.js');
 hfc.addConfigFile(path.join(__dirname, 'network-config.json'));
 var ORGS = hfc.getConfigSetting('network-config');
 var tx_id = null;
-var nonce = null;
 var member = null;
 var eventhubs = {};
 
@@ -76,8 +75,7 @@ var invokeChaincode = function(peers, channelName, chaincodeName,
 	});
 	return helper.getRegisteredUsers(username, org).then((user) => {
 		member = user;
-		nonce = utils.getNonce();
-		tx_id = chain.buildTransactionID(nonce, member);
+		tx_id = client.newTransactionID();
 		utils.setConfigSetting('E2E_TX_ID', tx_id);
 		logger.info('setConfigSetting("E2E_TX_ID") = %s', tx_id);
 		logger.debug(util.format('Sending transaction "%s"', tx_id));
@@ -89,8 +87,7 @@ var invokeChaincode = function(peers, channelName, chaincodeName,
 			fcn: config.invokeQueryFcnName,
 			args: helper.getArgs(args),
 			chainId: channelName,
-			txId: tx_id,
-			nonce: nonce
+			txId: tx_id
 		};
 		return chain.sendTransactionProposal(request);
 	}, (err) => {
