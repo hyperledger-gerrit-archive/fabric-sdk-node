@@ -27,6 +27,7 @@ var ChannelConfig = require('./ChannelConfig.js');
 var Peer = require('./Peer.js');
 var Orderer = require('./Orderer.js');
 var Block = require('./Block.js');
+var TransactionID = require('./TransactionID.js');
 var settle = require('promise-settle');
 var grpc = require('grpc');
 var logger = utils.getLogger('Chain.js');
@@ -458,8 +459,7 @@ var Chain = class {
 	 * Will get the genesis block from the defined orderer that may be
 	 * used in a join request
 	 * @param {Object} request - An object containing the following fields:
-	 *		<br>`txId` : required - String of the transaction id
-	 *		<br>`nonce` : required - Integer of the once time number
+	 *    <br>`txId` : required -  {@link TransactionID} object with the transaction id and nonce
 	 *
 	 * @returns {Promise} A Promise for a protobuf `Block`
 	 * @see /protos/peer/proposal_response.proto
@@ -475,10 +475,6 @@ var Chain = class {
 		// verify that we have transaction id
 		else if(!request.txId) {
 			errorMsg = 'Missing txId input parameter with the required transaction identifier';
-		}
-		// verify that we have the nonce
-		else if(!request.nonce) {
-			errorMsg = 'Missing nonce input parameter with the required single use number';
 		}
 
 		if(errorMsg) {
@@ -516,11 +512,11 @@ var Chain = class {
 		var seekInfoHeader = Chain._buildChannelHeader(
 			_commonProto.HeaderType.DELIVER_SEEK_INFO,
 			self._name,
-			request.txId,
+			request.txId.getTransactionID(),
 			self._initial_epoch
 		);
 
-		var seekHeader = Chain._buildHeader(userContext.getIdentity(), seekInfoHeader, request.nonce);
+		var seekHeader = Chain._buildHeader(userContext.getIdentity(), seekInfoHeader, request.txId.getNonce());
 		var seekPayload = new _commonProto.Payload();
 		seekPayload.setHeader(seekHeader);
 		seekPayload.setData(seekInfo.toBuffer());
@@ -547,8 +543,7 @@ var Chain = class {
 	 *                   this channel
 	 *   <br>`block` : the genesis block of the channel
 	 *                 see getGenesisBlock() method
-	 *   <br>`txId` : required - String of the transaction id
-	 *   <br>`nonce` : required - Integer of the once time number
+	 *   <br>`txId` : required -  {@link TransactionID} object with the transaction id and nonce
 	 * @returns {Promise} A Promise for a `ProposalResponse`
 	 * @see /protos/peer/proposal_response.proto
 	 */
@@ -572,11 +567,6 @@ var Chain = class {
 			errorMsg = 'Missing txId input parameter with the required transaction identifier';
 		}
 
-		// verify that we have the nonce
-		else if(!request.nonce) {
-			errorMsg = 'Missing nonce input parameter with the required single use number';
-		}
-
 		else if(!request.block) {
 			errorMsg = 'Missing block input parameter with the required genesis block';
 		}
@@ -596,7 +586,7 @@ var Chain = class {
 		chaincodeInput.setArgs(args);
 
 		var chaincodeID = new _ccProto.ChaincodeID();
-		chaincodeID.setName('cscc');
+		chaincodeID.setName(Constants.CSCC);
 
 		var chaincodeSpec = new _ccProto.ChaincodeSpec();
 		chaincodeSpec.setType(_ccProto.ChaincodeSpec.Type.GOLANG);
@@ -606,12 +596,12 @@ var Chain = class {
 		var channelHeader = Chain._buildChannelHeader(
 			_commonProto.HeaderType.ENDORSER_TRANSACTION,
 			'',
-			request.txId,
+			request.txId.getTransactionID(),
 			null, //no epoch
-			'cscc'
+			Constants.CSCC
 		);
 
-		var header = Chain._buildHeader(userContext.getIdentity(), channelHeader, request.nonce);
+		var header = Chain._buildHeader(userContext.getIdentity(), channelHeader, request.txId.getNonce());
 		var proposal = Chain._buildProposal(chaincodeSpec, header);
 		var signed_proposal = Chain._signProposal(userContext.getSigningIdentity(), proposal);
 
@@ -643,8 +633,7 @@ var Chain = class {
 		var orderer = self.getOrderers()[0];
 
 		userContext = this._clientContext.getUserContext();
-		var nonce = utils.getNonce();
-		var tx_id = Chain.buildTransactionID(nonce, userContext);
+		var txId = new TransactionID(userContext);
 
 		// seek the latest block
 		var seekSpecifiedStart = new _abProto.SeekNewest();
@@ -665,11 +654,11 @@ var Chain = class {
 		var seekInfoHeader = Chain._buildChannelHeader(
 			_commonProto.HeaderType.DELIVER_SEEK_INFO,
 			self._name,
-			tx_id,
+			txId.getTransactionID(),
 			self._initial_epoch
 		);
 
-		var seekHeader = Chain._buildHeader(userContext.getIdentity(), seekInfoHeader, nonce);
+		var seekHeader = Chain._buildHeader(userContext.getIdentity(), seekInfoHeader, txId.getNonce());
 		var seekPayload = new _commonProto.Payload();
 		seekPayload.setHeader(seekHeader);
 		seekPayload.setData(seekInfo.toBuffer());
@@ -703,8 +692,7 @@ var Chain = class {
 				var last_config = _commonProto.LastConfig.decode(metadata.value);
 				logger.debug('getChannelConfig - latest block has config block of %s',last_config.index);
 
-				var nonce = utils.getNonce();
-				var tx_id = Chain.buildTransactionID(nonce, userContext);
+				var txId = new TransactionID(userContext);
 
 				// now build the seek info to get the block called out
 				// as the latest config block
@@ -730,11 +718,11 @@ var Chain = class {
 				var seekInfoHeader = Chain._buildChannelHeader(
 					_commonProto.HeaderType.DELIVER_SEEK_INFO,
 					self._name,
-					tx_id,
+					txId.getTransactionID(),
 					self._initial_epoch
 				);
 
-				var seekHeader = Chain._buildHeader(userContext.getIdentity(), seekInfoHeader, nonce);
+				var seekHeader = Chain._buildHeader(userContext.getIdentity(), seekInfoHeader, txId.getNonce());
 				var seekPayload = new _commonProto.Payload();
 				seekPayload.setHeader(seekHeader);
 				seekPayload.setData(seekInfo.toBuffer());
@@ -883,15 +871,13 @@ var Chain = class {
 	queryInfo() {
 		logger.debug('queryInfo - start');
 		var self = this;
-		var nonce = utils.getNonce();
 		var userContext = this._clientContext.getUserContext();
-		var tx_id = Chain.buildTransactionID(nonce, userContext);
+		var txId = new TransactionID(userContext);
 		var request = {
 			targets: [self.getPrimaryPeer()],
-			chaincodeId : 'qscc',
+			chaincodeId : Constants.QSCC,
 			chainId: '',
-			txId: tx_id,
-			nonce: nonce,
+			txId: txId,
 			fcn : 'GetChainInfo',
 			args: [ self._name]
 		};
@@ -939,15 +925,13 @@ var Chain = class {
 			return Promise.reject( new Error('Blockhash bytes are required'));
 		}
 		var self = this;
-		var nonce = utils.getNonce();
 		var userContext = this._clientContext.getUserContext();
-		var tx_id = Chain.buildTransactionID(nonce, userContext);
+		var txId = new TransactionID(userContext);
 		var request = {
 			targets: [self.getPrimaryPeer()],
-			chaincodeId : 'qscc',
+			chaincodeId : Constants.QSCC,
 			chainId: '',
-			txId: tx_id,
-			nonce: nonce,
+			txId: txId,
 			fcn : 'GetBlockByHash',
 			args: [ self._name],
 			argbytes : blockHash
@@ -1000,15 +984,13 @@ var Chain = class {
 			return Promise.reject( new Error('Block number must be a postive integer'));
 		}
 		var self = this;
-		var nonce = utils.getNonce();
 		var userContext = self._clientContext.getUserContext();
-		var tx_id = Chain.buildTransactionID(nonce, userContext);
+		var txId = new TransactionID(userContext);
 		var request = {
 			targets: [self.getPrimaryPeer()],
-			chaincodeId : 'qscc',
+			chaincodeId : Constants.QSCC,
 			chainId: '',
-			txId: tx_id,
-			nonce: nonce,
+			txId: txId,
 			fcn : 'GetBlockByNumber',
 			args: [ self._name, block_number]
 		};
@@ -1048,7 +1030,7 @@ var Chain = class {
 	/**
 	 * Queries the ledger for Transaction by number.
 	 * This query will be made to the primary peer.
-	 * @param {number} transactionID
+	 * @param  {@link TransactionID} transactionID
 	 * @returns {object} Transaction information containing the transaction.
 	 */
 	queryTransaction(transactionID) {
@@ -1060,15 +1042,13 @@ var Chain = class {
 			return Promise.reject( new Error('Transaction id is required'));
 		}
 		var self = this;
-		var nonce = utils.getNonce();
 		var userContext = self._clientContext.getUserContext();
-		var tx_id = Chain.buildTransactionID(nonce, userContext);
+		var txId = new TransactionID(userContext);
 		var request = {
 			targets: [self.getPrimaryPeer()],
-			chaincodeId : 'qscc',
+			chaincodeId : Constants.QSCC,
 			chainId: '',
-			txId: tx_id,
-			nonce: nonce,
+			txId: txId,
 			fcn : 'GetTransactionByID',
 			args: [ self._name, transaction_id]
 		};
@@ -1111,15 +1091,13 @@ var Chain = class {
 	queryInstantiatedChaincodes() {
 		logger.debug('queryInstantiatedChaincodes - start');
 		var self = this;
-		var nonce = utils.getNonce();
 		var userContext = self._clientContext.getUserContext();
-		var tx_id = Chain.buildTransactionID(nonce, userContext);
+		var txId = new TransactionID(userContext);
 		var request = {
 			targets: [self.getPrimaryPeer()],
 			chaincodeId : Constants.LSCC,
 			chainId: self._name,
-			txId: tx_id,
-			nonce: nonce,
+			txId: txId,
 			fcn : 'getchaincodes',
 			args: []
 		};
@@ -1173,8 +1151,7 @@ var Chain = class {
 	 *		<br>`chaincodeId` : required - String of the name of the chaincode
 	 *		<br>`chaincodeVersion` : required - String of the version of the chaincode
 	 *		<br>`chainId` : required - String of the name of the chain
-	 *		<br>`txId` : required - String of the transaction id
-	 *		<br>`nonce` : required - Integer of the once time number
+	 *		<br>`txId` : required -  {@link TransactionID} object with the transaction id and nonce
 	 *		<br>`fcn` : optional - String of the function to be called on
 	 *                  the chaincode once instantiated (default 'init')
 	 *		<br>`args` : optional - String Array arguments specific to
@@ -1218,20 +1195,19 @@ var Chain = class {
 	 * Sends an upgrade proposal to one or more endorsing peers.
 	 *
 	 * @param {Object} request - An object containing the following fields:
-	 *		<br>`targets` : An array of endorsing {@link Peer} objects as the
-	 *                      targets of the request
-	 *		<br>`chaincodeType` : optional -- Type of chaincode ['golang', 'car', 'java']
-	 *                            (default 'golang')
-	 *		<br>`chaincodePath` : required - String of the path to location of
-	 *                            the source code of the chaincode
-	 *		<br>`chaincodeId` : required - String of the name of the chaincode
-	 *		<br>`chaincodeVersion` : required - String of the version of the chaincode
-	 *		<br>`chainId` : required - String of the name of the chain
-	 *		<br>`txId` : required - String of the transaction id
-	 *		<br>`nonce` : required - Integer of the once time number
-	 *		<br>`fcn` : optional - String of the function to be called on
-	 *                  the chaincode once instantiated (default 'init')
-	 *		<br>`args` : optional - String Array arguments specific to
+	 *   <br>`targets` : An array of endorsing {@link Peer} objects as the
+	 *                   targets of the request
+	 *   <br>`chaincodeType` : optional -- Type of chaincode ['golang', 'car', 'java']
+	 *                         (default 'golang')
+	 *   <br>`chaincodePath` : required - String of the path to location of
+	 *                         the source code of the chaincode
+	 *   <br>`chaincodeId` : required - String of the name of the chaincode
+	 *   <br>`chaincodeVersion` : required - String of the version of the chaincode
+	 *   <br>`chainId` : required - String of the name of the chain
+	 *   <br>`txId` : required -  {@link TransactionID} object with the transaction id and nonce
+	 *   <br>`fcn` : optional - String of the function to be called on
+	 *               the chaincode once instantiated (default 'init')
+	 *   <br>`args` : optional - String Array arguments specific to
 	 *                   the chaincode being instantiated
 	 * @returns {Promise} A Promise for a `ProposalResponse`
 	 * @see /protos/peer/proposal_response.proto
@@ -1319,11 +1295,11 @@ var Chain = class {
 		var channelHeader = Chain._buildChannelHeader(
 			_commonProto.HeaderType.ENDORSER_TRANSACTION,
 			request.chainId,
-			request.txId,
+			request.txId.getTransactionID(),
 			null,
 			Constants.LSCC
 		);
-		header = Chain._buildHeader(userContext.getIdentity(), channelHeader, request.nonce);
+		header = Chain._buildHeader(userContext.getIdentity(), channelHeader, request.txId.getNonce());
 		proposal = Chain._buildProposal(lcccSpec, header);
 		let signed_proposal = Chain._signProposal(userContext.getSigningIdentity(), proposal);
 
@@ -1340,12 +1316,10 @@ var Chain = class {
 	 *
 	 * @param {Object} request
 	 *		<br>`targets` : optional -- The peers that will receive this request,
-	 *		              when not provided the peers assigned to this channel will
-	 *		              be used.
+	 *				when not provided the peers assigned to this channel will be used.
 	 *		<br>`chaincodeId` : The id of the chaincode to perform the transaction proposal
 	 *		<br>`chainId` : required - String of the name of the chain
-	 *		<br>`txId` : required - String of the transaction id
-	 *		<br>`nonce` : required - Integer of the once time number
+	 *		<br>`txId` : required -  {@link TransactionID} object with the transaction id and nonce
 	 *		<br>`args` : an array of arguments specific to the chaincode 'invoke'
 	 * @returns {Promise} A Promise for a `ProposalResponse`
 	 */
@@ -1426,11 +1400,11 @@ var Chain = class {
 		var channelHeader = self._buildChannelHeader(
 			_commonProto.HeaderType.ENDORSER_TRANSACTION,
 			request.chainId,
-			request.txId,
+			request.txId.getTransactionID(),
 			null,
 			request.chaincodeId
 			);
-		header = Chain._buildHeader(userContext.getIdentity(), channelHeader, request.nonce);
+		header = Chain._buildHeader(userContext.getIdentity(), channelHeader, request.txId.getNonce());
 		proposal = self._buildProposal(invokeSpec, header);
 		let signed_proposal = self._signProposal(userContext.getSigningIdentity(), proposal);
 
@@ -1567,14 +1541,28 @@ var Chain = class {
 	 * @returns {Promise} A Promise for an array of byte array results from the chaincode on all Endorsing Peers
 	 */
 	queryByChaincode(request) {
-		logger.debug('Chain.sendQueryProposal - start');
-
-		return this.sendTransactionProposal(request)
+		logger.debug('queryByChaincodel - start');
+		if(!request) {
+			return Promise.reject(new Error('Missing request object for this queryByChaincode call.'));
+		}
+		var userContext = this._clientContext.getUserContext();
+		var txId = new TransactionID(userContext);
+		// make a new request object so we can add in the txId and changes the user's
+		var trans_request = {
+			targets : request.targets,
+			chaincodeId : request.chaincodeId,
+			chaincodeVersion : request.chaincodeVersion,
+			chainId : request.chainId,
+			fcn : request.fcn,
+			args : request.args,
+			txId : txId
+		};
+		return this.sendTransactionProposal(trans_request)
 		.then(
 			function(results) {
 				var responses = results[0];
 				var proposal = results[1];
-				logger.debug('Chain-queryByChaincode - results received');
+				logger.debug('queryByChaincode - results received');
 				if(responses && Array.isArray(responses)) {
 					var results = [];
 					for(let i = 0; i < responses.length; i++) {
@@ -1810,19 +1798,21 @@ var Chain = class {
 	/*
 	 * @private
 	 */
-	static _checkProposalRequest(request) {
+	static _checkProposalRequest(request, skip) {
 		var errorMsg = null;
 
 		if(request) {
-			var isQuery = (request.chaincodeId == 'qscc' || request.chaincodeId == 'cscc');
+			var isQuery = (
+				request.chaincodeId == Constants.QSCC ||
+				request.chaincodeId == Constants.CSCC ||
+				request.chaincodeId == Constants.LSCC
+			);
 			if(!request.chaincodeId) {
 				errorMsg = 'Missing "chaincodeId" parameter in the proposal request';
 			} else if(!request.chainId && !isQuery) {
 				errorMsg = 'Missing "chainId" parameter in the proposal request';
-			} else if(!request.txId) {
+			} else if(!request.txId && !skip) {
 				errorMsg = 'Missing "txId" parameter in the proposal request';
-			} else if(!request.nonce) {
-				errorMsg = 'Missing "nonce" parameter in the proposal request';
 			}
 		} else {
 			errorMsg = 'Missing input request object on the proposal request';
@@ -1845,25 +1835,6 @@ var Chain = class {
 		}
 		return errorMsg;
 	}
-
-	/**
-	* Utility method to build an unique transaction id
-	* based on a nonce and this chain's user.
-	* @param {int} nonce - a one time use number
-	* @param {User} userContext - the user context
-	* @returns {string} An unique string
-	*/
-	static buildTransactionID(nonce, userContext) {
-		logger.debug('buildTransactionID - start');
-		var creator_bytes = userContext.getIdentity().serialize();//same as signatureHeader.Creator
-		var nonce_bytes = nonce;//nonce is already in bytes
-		var trans_bytes = Buffer.concat([nonce_bytes, creator_bytes]);
-		var trans_hash = hashPrimitives.sha2_256(trans_bytes);
-		var transaction_id = Buffer.from(trans_hash).toString();
-		logger.debug('buildTransactionID - transaction_id %s',transaction_id);
-		return transaction_id;
-	}
-
 
 	//utility method to build a common chain header
 	static _buildChannelHeader(type, chain_id, tx_id, epoch, chaincode_id, time_stamp) {

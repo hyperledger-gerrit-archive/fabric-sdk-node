@@ -336,6 +336,19 @@ test('\n\n ** testing get and new orderer calls on client **\n\n', function (t) 
 	t.end();
 });
 
+test('\n\n ** testing get transaction ID call on client **\n\n', function (t) {
+	t.equals(typeof hfc, 'function');
+	var client = new Client();
+
+	t.throws(function() {
+		client.newTransactionID();
+	},
+	/This client instance must be assigned an user context/,
+	'Test This client instance must be assigned an user context');
+
+	t.end();
+});
+
 /*
  * This test assumes that there is a ./config directory from the running location
  * and that there is file called 'config.json'.
@@ -369,9 +382,7 @@ test('\n\n ** client installChaincode() tests **\n\n', function (t) {
 		chaincodeVersion: 'blah',
 		fcn: 'init',
 		args: ['a', '100', 'b', '200'],
-		chainId: 'blah',
-		txId: 'blah',
-		nonce: 'blah'
+		chainId: 'blah'
 	}).then(function () {
 		t.fail('Should not have been able to resolve the promise because of missing "chaincodePath" parameter');
 	}).catch(function (err) {
@@ -383,15 +394,13 @@ test('\n\n ** client installChaincode() tests **\n\n', function (t) {
 		}
 	});
 
-	var p1a = client.installChaincode({
+	var p2 = client.installChaincode({
 		targets: [peer],
 		chaincodeId: 'blahp1a',
 		chaincodePath: 'blah',
 		fcn: 'init',
 		args: ['a', '100', 'b', '200'],
-		chainId: 'blah',
-		txId: 'blah',
-		nonce: 'blah'
+		chainId: 'blah'
 	}).then(function () {
 		t.fail('Should not have been able to resolve the promise because of missing "chaincodeVersion" parameter');
 	}).catch(function (err) {
@@ -406,9 +415,7 @@ test('\n\n ** client installChaincode() tests **\n\n', function (t) {
 	var p3 = client.installChaincode({
 		targets: [peer],
 		chaincodePath: 'blahp3',
-		chaincodeVersion: 'blah',
-		txId: 'blah',
-		nonce: 'blah'
+		chaincodeVersion: 'blah'
 	}).then(function () {
 		t.fail('Should not have been able to resolve the promise because of missing "chaincodeId" parameter');
 	}).catch(function (err) {
@@ -422,9 +429,7 @@ test('\n\n ** client installChaincode() tests **\n\n', function (t) {
 	var p4 = client.installChaincode({
 		chaincodePath: 'blahp4',
 		chaincodeId: 'blah',
-		chaincodeVersion: 'blah',
-		txId: 'blah',
-		nonce: 'blah'
+		chaincodeVersion: 'blah'
 	}).then(function () {
 		t.fail('Should not have been able to resolve the promise because of missing "peer" objects on request');
 	}).catch(function (err) {
@@ -436,39 +441,7 @@ test('\n\n ** client installChaincode() tests **\n\n', function (t) {
 		}
 	});
 
-	var p5 = client.installChaincode({
-		targets: [peer],
-		chaincodePath: 'blahp5',
-		chaincodeId: 'blah',
-		chaincodeVersion: 'blah',
-		nonce: 'blah'
-	}).then(function () {
-		t.fail('Should not have been able to resolve the promise because of missing "txId" parameter');
-	}).catch(function (err) {
-		if (err.message.indexOf('Missing "txId" parameter in the proposal request') >= 0) {
-			t.pass('Successfully caught missing txId error');
-		} else {
-			t.fail('Failed to catch the missing txId error. Error: ' + err.stack ? err.stack : err);
-		}
-	});
-
-	var p6 = client.installChaincode({
-		targets: [peer],
-		chaincodePath: 'blahp6',
-		chaincodeId: 'blah',
-		chaincodeVersion: 'blah',
-		txId: 'blah'
-	}).then(function () {
-		t.fail('Should not have been able to resolve the promise because of missing "nonce" parameter');
-	}).catch(function (err) {
-		if (err.message.indexOf('Missing "nonce" parameter in the proposal request') >= 0) {
-			t.pass('Successfully caught missing nonce error');
-		} else {
-			t.fail('Failed to catch the missing nonce error. Error: ' + err.stack ? err.stack : err);
-		}
-	});
-
-	var p7 = client.installChaincode().then(function () {
+	var p5 = client.installChaincode().then(function () {
 		t.fail('Should not have been able to resolve the promise because of missing request parameter');
 	}).catch(function (err) {
 		if (err.message.indexOf('Missing input request object on install chaincode request') >= 0) {
@@ -478,7 +451,7 @@ test('\n\n ** client installChaincode() tests **\n\n', function (t) {
 		}
 	});
 
-	Promise.all([p1, p1a, p3, p4, p6, p7])
+	Promise.all([p1, p2, p3, p4, p5])
 	.then(
 		function (data) {
 			t.end();
@@ -520,7 +493,7 @@ test('\n\n ** Client createChannel() tests **\n\n', function (t) {
 		}
 	});
 
-	var p3 = c.createChannel({orderer : orderer, name : 'name', nonce : 'something', txId : '777', signatures : []}
+	var p3 = c.createChannel({orderer : orderer, name : 'name', txId : '777', signatures : []}
 	).then(function () {
 		t.fail('Should not have been able to resolve the promise because of envelope request parameter');
 	}).catch(function (err) {
@@ -544,7 +517,7 @@ test('\n\n ** Client createChannel() tests **\n\n', function (t) {
 		}
 	});
 
-	var p5 = c.createChannel({config : {}, orderer : orderer, name: 'name', txId : 'fff', nonce : 'fff'}
+	var p5 = c.createChannel({config : {}, orderer : orderer, name: 'name', txId : 'fff'}
 	).then(function () {
 		t.fail('Should not have been able to resolve the promise because of missing signatures request parameter');
 	}).catch(function (err) {
@@ -556,7 +529,7 @@ test('\n\n ** Client createChannel() tests **\n\n', function (t) {
 		}
 	});
 
-	var p6 = c.createChannel({config : {}, orderer : orderer, name: 'name', signatures : {}, txId : 'fff', nonce : 'fff'}
+	var p6 = c.createChannel({config : {}, orderer : orderer, name: 'name', signatures : {}, txId : 'fff'}
 	).then(function () {
 		t.fail('Should not have been able to resolve the promise because of missing signatures request parameter');
 	}).catch(function (err) {
@@ -568,7 +541,7 @@ test('\n\n ** Client createChannel() tests **\n\n', function (t) {
 		}
 	});
 
-	var p7 = c.createChannel({config : {}, orderer : orderer, name: 'name', signatures : [], nonce : 'fff'}
+	var p7 = c.createChannel({config : {}, orderer : orderer, name: 'name', signatures : []}
 	).then(function () {
 		t.fail('Should not have been able to resolve the promise because of missing txId request parameter');
 	}).catch(function (err) {
@@ -580,19 +553,7 @@ test('\n\n ** Client createChannel() tests **\n\n', function (t) {
 		}
 	});
 
-	var p8 = c.createChannel({config : {}, orderer : orderer, name: 'name', signatures : [], txId : 'fff'}
-	).then(function () {
-		t.fail('Should not have been able to resolve the promise because of missing nonce request parameter');
-	}).catch(function (err) {
-		if (err.message.indexOf('Missing nonce') >= 0) {
-			t.pass('Successfully caught request parameter must have nonce error');
-		} else {
-			t.fail('Failed to catch request parameter must have nonce error. Error: ');
-			console.log(err.stack ? err.stack : err);
-		}
-	});
-
-	Promise.all([p1, p2, p3, p4, p5, p6, p7, p8])
+	Promise.all([p1, p2, p3, p4, p5, p6, p7])
 	.then(
 		function (data) {
 			t.end();
@@ -977,7 +938,7 @@ test('\n\n ** test related APIs for create channel **\n\n', function (t) {
 			console.log(err.stack ? err.stack : err);
 		}
 	});
-	var p3a= client.updateChannel({config : 'a', txId : 'a', nonce : 'a', orderer : 'a', name : 'a' }
+	var p3a= client.updateChannel({config : 'a', txId : 'a', orderer : 'a', name : 'a' }
 	).then(function () {
 		t.fail('Should not have been able to resolve the promise');
 	}).catch(function (err) {
@@ -989,7 +950,7 @@ test('\n\n ** test related APIs for create channel **\n\n', function (t) {
 			console.log(err.stack ? err.stack : err);
 		}
 	});
-	var p3b= client.updateChannel({config : 'a', signatures : 'a', txId : 'a', nonce : 'a', orderer : 'a', name : 'a'}
+	var p3b= client.updateChannel({config : 'a', signatures : 'a', txId : 'a', orderer : 'a', name : 'a'}
 	).then(function () {
 		t.fail('Should not have been able to resolve the promise');
 	}).catch(function (err) {
@@ -1002,7 +963,7 @@ test('\n\n ** test related APIs for create channel **\n\n', function (t) {
 		}
 	});
 
-	var p4= client.updateChannel({config : 'a', signatures : [], nonce : 'a', orderer : 'a', name : 'a'}
+	var p4= client.updateChannel({config : 'a', signatures : [], orderer : 'a', name : 'a'}
 	).then(function () {
 		t.fail('Should not have been able to resolve the promise');
 	}).catch(function (err) {
@@ -1014,19 +975,8 @@ test('\n\n ** test related APIs for create channel **\n\n', function (t) {
 			console.log(err.stack ? err.stack : err);
 		}
 	});
-	var p5= client.updateChannel({config : 'a', signatures : [], txId : 'a', orderer : 'a', name : 'a'}
-	).then(function () {
-		t.fail('Should not have been able to resolve the promise');
-	}).catch(function (err) {
-		let msg = 'Missing nonce request parameter';
-		if (err.message.indexOf(msg) >= 0) {
-			t.pass('Successfully caught the ' + msg );
-		} else {
-			t.fail('Failed to catch the ' + msg + ' Error: ');
-			console.log(err.stack ? err.stack : err);
-		}
-	});
-	var p6= client.updateChannel({config : 'a', signatures : [], txId : 'a', nonce : 'a', name : 'a'}
+
+	var p6= client.updateChannel({config : 'a', signatures : [], txId : 'a', name : 'a'}
 	).then(function () {
 		t.fail('Should not have been able to resolve the promise');
 	}).catch(function (err) {
@@ -1038,7 +988,7 @@ test('\n\n ** test related APIs for create channel **\n\n', function (t) {
 			console.log(err.stack ? err.stack : err);
 		}
 	});
-	var p7= client.updateChannel({config : 'a', signatures : [], txId : 'a', nonce : 'a', orderer : 'a'}
+	var p7= client.updateChannel({config : 'a', signatures : [], txId : 'a', orderer : 'a'}
 	).then(function () {
 		t.fail('Should not have been able to resolve the promise');
 	}).catch(function (err) {
@@ -1062,7 +1012,7 @@ test('\n\n ** test related APIs for create channel **\n\n', function (t) {
 			console.log(err.stack ? err.stack : err);
 		}
 	});
-	Promise.all([p1, p1a, p2, p3a, p3b, p4, p5, p6, p7, p8])
+	Promise.all([p1, p1a, p2, p3a, p3b, p4, p6, p7, p8])
 	.then(
 		function (data) {
 			t.end();

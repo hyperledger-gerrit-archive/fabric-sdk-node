@@ -21,7 +21,6 @@ var config = require('../config.json');
 var helper = require('./helper.js');
 var logger = helper.getLogger('install-chaincode');
 var tx_id = null;
-var nonce = null;
 var member = null;
 //function installChaincode(org) {
 var installChaincode = function(peers, chaincodeName, chaincodePath,
@@ -36,16 +35,12 @@ var installChaincode = function(peers, chaincodeName, chaincodePath,
 
 	return helper.getRegisteredUsers(username, org).then((user) => {
 		member = user;
-		nonce = helper.getNonce();
-		tx_id = chain.buildTransactionID(nonce, member);
 		// send proposal to endorser
 		var request = {
 			targets: targets,
 			chaincodePath: chaincodePath,
 			chaincodeId: chaincodeName,
-			chaincodeVersion: chaincodeVersion,
-			txId: tx_id,
-			nonce: nonce
+			chaincodeVersion: chaincodeVersion
 		};
 		return chain.sendInstallProposal(request);
 	}, (err) => {
