@@ -129,7 +129,7 @@ function installChaincode(org, chaincode_path, version, t) {
 		if (all_good) {
 			t.pass(util.format('Successfully sent install Proposal and received ProposalResponse: Status - %s', proposalResponses[0].response.status));
 		} else {
-			t.fail('Failed to send install Proposal or receive valid response. Response null or status is not 200. exiting...');
+			throw new Error('Failed to send install Proposal or receive valid response. Response null or status is not 200. exiting...');
 		}
 	},
 	(err) => {

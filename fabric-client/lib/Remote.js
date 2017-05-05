@@ -76,6 +76,14 @@ var Remote = class {
 			}
 		}
 
+		let grpc_receive_max = utils.getConfigSetting('grpc-max-receive-message-length');
+		let grpc_send_max = utils.getConfigSetting('grpc-max-send-message-length');
+		if (grpc_receive_max > 0)
+			this._options['grpc.max_receive_message_length'] = grpc_receive_max;
+
+		if (grpc_send_max > 0)
+			this._options['grpc.max_send_message_length'] = grpc_send_max;
+
 		// service connection
 		this._url = url;
 		this._endpoint = new Endpoint(url, pem);

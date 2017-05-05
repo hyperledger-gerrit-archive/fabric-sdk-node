@@ -35,7 +35,8 @@ gulp.task('test', ['lint', 'pre-test'], function() {
 		'test/integration/query.js',
 		'test/integration/upgrade.js',
 		'test/integration/new-chain.js',
-		'test/integration/get-config.js'
+		'test/integration/get-config.js',
+		'test/integration/grpc.js'
 	])
 	.pipe(tape({
 		reporter: tapColorize()
