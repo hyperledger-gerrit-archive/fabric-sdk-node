@@ -29,12 +29,13 @@ var hfc = require('fabric-client');
 var util = require('util');
 var fs = require('fs');
 var path = require('path');
+var grpc = require('grpc');
 var testUtil = require('../unit/util.js');
-var Orderer = require('fabric-client/lib/Orderer.js');
-var Peer = require('fabric-client/lib/Peer.js');
+
+var _commonProto = grpc.load(path.join(__dirname, '../../fabric-client/lib/protos/common/common.proto')).common;
+var _configtxProto = grpc.load(path.join(__dirname, '../../fabric-client/lib/protos/common/configtx.proto')).common;
 
 var client = new hfc();
-var chain = client.newChain(testUtil.END2END.channel);
 hfc.addConfigFile(path.join(__dirname, 'e2e', 'config.json'));
 var ORGS = hfc.getConfigSetting('test-network');
 
@@ -51,28 +52,10 @@ var orderer = client.newOrderer(
 
 var org = 'org1';
 var orgName = ORGS[org].name;
-for (let key in ORGS[org]) {
-	if (ORGS[org].hasOwnProperty(key)) {
-		if (key.indexOf('peer') === 0) {
-			let data = fs.readFileSync(path.join(__dirname, 'e2e', ORGS[org][key]['tls_cacerts']));
-			let peer = new Peer(
-				ORGS[org][key].requests,
-				{
-					pem: Buffer.from(data).toString(),
-					'ssl-target-name-override': ORGS[org][key]['server-hostname']
-				});
-			chain.addPeer(peer);
-		}
-	}
-}
 
-var logger = utils.getLogger('NEW CHAIN');
-hfc.setConfigSetting('hfc-logging', '{"debug":"console"}');
-
-var keyValStorePath = testUtil.KVS;
 var the_user = null;
-var tx_id = null;
-var nonce = null;
+var config = null;
+var signatures = [];
 
 //
 //Orderer via member send chain create
@@ -87,70 +70,96 @@ test('\n\n** TEST ** new chain - chain.createChannel() fail due to already exist
 
 	hfc.newDefaultKeyValueStore({path: testUtil.storePathForOrg(orgName)}
 	)
-	.then(
-		function (store) {
-			client.setStateStore(store);
-			return testUtil.getSubmitter(client, t, org);
-		}
-	)
-	.then(
-		function(admin) {
-			t.pass('Successfully enrolled user \'admin\'');
-			the_user = admin;
+	.then((store) => {
+		client.setStateStore(store);
 
-			// readin the envelope to send to the orderer
-			return readFile('./test/fixtures/channel/mychannel.tx');
-		},
-		function(err) {
-			t.fail('Failed to enroll user \'admin\'. ' + err);
-			t.end();
-		}
-	)
-	.then(
-		function(data) {
-			t.pass('Successfully read file');
-			//console.log('envelope contents ::'+JSON.stringify(data));
-			var request = {
-				envelope : data,
-				name : 'mychannel',
-				orderer : orderer
-			};
-			// send to orderer
-			return client.createChannel(request);
-		},
-		function(err) {
-			t.fail('Failed to read file :: ' + err);
-			t.end();
-		}
-	)
-	.then(
-		function(response) {
-			t.fail('Failed to get error. Response: ' + response);
-			t.end();
-		},
-		function(err) {
-			t.pass('Got back failure error. Error code: ' + err);
-			t.end();
-		}
-	)
-	.catch(function(err) {
-		t.pass('Failed request. ' + err);
+		return testUtil.getOrderAdminSubmitter(client, t);
+	}).then((admin) =>{
+		t.pass('Successfully enrolled user \'admin\' for orderer');
+
+		data = fs.readFileSync(path.join(__dirname, '../fixtures/channel/mychannel.tx'));
+		var envelope = _commonProto.Envelope.decode(data);
+		var payload = _commonProto.Payload.decode(envelope.getPayload().toBuffer());
+		var configtx = _configtxProto.ConfigUpdateEnvelope.decode(payload.getData().toBuffer());
+		config = configtx.getConfigUpdate().toBuffer();
+
+		client._userContext = null;
+		return testUtil.getSubmitter(client, t, true /*get the org admin*/, 'org1');
+	}).then((admin) => {
+		t.pass('Successfully enrolled user \'admin\' for org1');
+
+		// sign the config
+		var signature = client.signChannelConfig(config);
+		t.pass('Successfully signed config update');
+		// collect signature from org1 admin
+		// TODO: signature counting against policies on the orderer
+		// at the moment is being investigated, but it requires this
+		// weird double-signature from each org admin
+		signatures.push(signature);
+		signatures.push(signature);
+
+		// make sure we do not reuse the user
+		client._userContext = null;
+		return testUtil.getSubmitter(client, t, true /*get the org admin*/, 'org2');
+	}).then((admin) => {
+		t.pass('Successfully enrolled user \'admin\' for org2');
+
+		// sign the config
+		var signature = client.signChannelConfig(config);
+		t.pass('Successfully signed config update');
+
+		// collect signature from org2 admin
+		// TODO: signature counting against policies on the orderer
+		// at the moment is being investigated, but it requires this
+		// weird double-signature from each org admin
+		signatures.push(signature);
+		signatures.push(signature);
+
+		// make sure we do not reuse the user
+		client._userContext = null;
+		return testUtil.getOrderAdminSubmitter(client, t);
+	}).then((admin) => {
+		t.pass('Successfully enrolled user \'admin\' for orderer');
+		the_user = admin;
+
+		// sign the config
+		var signature = client.signChannelConfig(config);
+		t.pass('Successfully signed config update');
+
+		// collect signature from orderer org admin
+		// TODO: signature counting against policies on the orderer
+		// at the moment is being investigated, but it requires this
+		// weird double-signature from each org admin
+		signatures.push(signature);
+		signatures.push(signature);
+
+		logger.debug('\n***\n done signing \n***\n');
+
+		// build up the create request
+		let nonce = utils.getNonce();
+		let tx_id = hfc.buildTransactionID(nonce, the_user);
+		var request = {
+			config: config,
+			signatures : signatures,
+			name : 'mychannel',
+			orderer : orderer,
+			txId  : tx_id,
+			nonce : nonce
+		};
+
+		// send to create request to orderer
+		return client.createChannel(request);
+	})
+	.then((result) => {
+		logger.debug(' response ::%j',result);
+		t.fail('Failed to get error. response: ' + result.status);
+		t.end();
+	}, (err) => {
+		t.pass('Got back failure error. Error code: ' + err);
+		t.end();
+	}).catch((err) => {
+		t.fail('Test failed due to unexpected reasons. ' + err.stack ? err.stack : err);
 		t.end();
 	});
 });
 
-function readFile(path) {
-	return new Promise(function(resolve, reject) {
-		fs.readFile(path, function(err, data) {
-			if (err) {
-				reject(err);
-			} else {
-				resolve(data);
-			}
-		});
-	});
-}
-
-function sleep(ms) {
-	return new Promise(resolve => setTimeout(resolve, ms));
-}
