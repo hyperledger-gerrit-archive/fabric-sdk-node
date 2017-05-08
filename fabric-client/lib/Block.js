@@ -23,6 +23,7 @@ var utils = require('./utils.js');
 var logger = utils.getLogger('Block.js');
 
 var _ccProto = grpc.load(__dirname + '/protos/peer/chaincode.proto').protos;
+var _ccEventProto = grpc.load(__dirname + '/protos/peer/chaincodeevent.proto').protos;
 var _transProto = grpc.load(__dirname + '/protos/peer/transaction.proto').protos;
 var _proposalProto = grpc.load(__dirname + '/protos/peer/proposal.proto').protos;
 var _responseProto = grpc.load(__dirname + '/protos/peer/proposal_response.proto').protos;
@@ -41,7 +42,6 @@ var _timestampProto = grpc.load(__dirname + '/protos/google/protobuf/timestamp.p
 var _identityProto = grpc.load(path.join(__dirname, '/protos/identity.proto')).msp;
 var _rwsetProto = grpc.load(path.join(__dirname, '/protos/ledger/rwset/rwset.proto')).rwset;
 var _kv_rwsetProto = grpc.load(path.join(__dirname, '/protos/ledger/rwset/kvrwset/kv_rwset.proto')).kvrwset;
-
 
 
 /**
@@ -68,6 +68,36 @@ var Block = class {
 			block.header = decodeBlockHeader(proto_block.getHeader());
 			block.data = decodeBlockData(proto_block.getData());
 			block.metadata = decodeBlockMetaData(proto_block.getMetadata());
+		}
+		catch(error) {
+			logger.error('decode - ::' + error.stack ? error.stack : error);
+			throw error;
+		}
+
+		return block;
+	};
+
+	/**
+	 * Constructs a JSON object containing all decoded values from the
+	 * grpc encoded `Block` object
+	 *
+	 * @param {Block} block - a Protobuf common.Block object
+	 * @returns {Object} The JSON representation of the Protobuf common.Block
+	 * @see /protos/common/common.proto
+	 */
+	static decodeBlock(proto_block) {
+		if(!proto_block) {
+			throw new Error('Block input data is not a protobuf Block');
+		}
+		var block = {};
+		try {
+			block.header = {
+				number : proto_block.header.number,
+				previous_hash : proto_block.header.previous_hash.toString('hex'),
+				data_hash : proto_block.header.data_hash.toString('hex')
+			};
+			block.data = decodeBlockData(proto_block.data, true);
+			block.metadata = decodeBlockMetaData(proto_block.metadata);
 		}
 		catch(error) {
 			logger.error('decode - ::' + error.stack ? error.stack : error);
@@ -107,11 +137,17 @@ function decodeBlockHeader(proto_block_header) {
 	return block_header;
 };
 
-function decodeBlockData(proto_block_data) {
+function decodeBlockData(proto_block_data, not_proto) {
 	var data = {};
 	data.data = [];
 	for(var i in proto_block_data.data) {
-		var proto_envelope = _commonProto.Envelope.decode(proto_block_data.data[i].toBuffer());
+		var proto_envelope = null;
+		if(not_proto) {
+			proto_envelope = _commonProto.Envelope.decode(proto_block_data.data[i]);
+		}
+		else {
+			proto_envelope = _commonProto.Envelope.decode(proto_block_data.data[i].toBuffer());
+		}
 		var envelope = decodeBlockDataEnvelope(proto_envelope);
 		data.data.push(envelope);
 	}
@@ -122,13 +158,49 @@ function decodeBlockData(proto_block_data) {
 function decodeBlockMetaData(proto_block_metadata) {
 	var metadata = {};
 	metadata.metadata = [];
-	for(var i in proto_block_metadata.metadata) {
-		let proto_block_metadata_metadata = proto_block_metadata.metadata[i];
-		metadata.metadata.push(proto_block_metadata_metadata.toBuffer());
-	}
+
+	var signatures = decodeMetadataSignatures(proto_block_metadata.metadata[0]);
+	metadata.metadata.push(signatures);
+
+	var last_config = decodeLastConfigSequenceNumber(proto_block_metadata.metadata[1]);
+	metadata.metadata.push(last_config);
+
+	var transaction_filter = decodeTransactionFilter(proto_block_metadata.metadata[2]);
+	metadata.metadata.push(transaction_filter);
 
 	return metadata;
 };
+
+function decodeTransactionFilter(metadata_bytes) {
+	var transaction_filter = [];
+	for(let i=0; i<metadata_bytes.length; i++) {
+		let value = parseInt(metadata_bytes[i]);
+		transaction_filter.push(value);
+	}
+	return transaction_filter;
+}
+function decodeLastConfigSequenceNumber(metadata_bytes) {
+	var last_config = {};
+	var proto_last_config = _commonProto.LastConfig.decode(metadata_bytes);
+	last_config.index = proto_last_config.getIndex();
+	return last_config;
+}
+
+function decodeMetadataSignatures(metadata_bytes) {
+	var metadata = {};
+	var proto_metadata = _commonProto.Metadata.decode(metadata_bytes);
+	metadata.value = proto_metadata.getValue().toBuffer().toString();
+	metadata.signatures = [];
+	if(proto_metadata.signatures) for(let i in proto_metadata.signatures) {
+		var metadata_signature = {};
+		var proto_metadata_signature = _commonProto.MetadataSignature.decode(proto_metadata.signatures[i].toBuffer());
+		metadata_signature.signature_header = decodeSignatureHeader(proto_metadata_signature.getSignatureHeader());
+		metadata_signature.signature = proto_metadata_signature.getSignature().toBuffer().toString();
+		metadata.signatures.push(metadata_signature);
+	}
+
+	return metadata;
+}
 
 function decodeBlockDataEnvelope(proto_envelope) {
 	var envelope = {};
@@ -462,7 +534,7 @@ function decodeConfigSignature(proto_configSignature) {
 };
 
 function decodeSignatureHeader(signature_header_bytes) {
-	logger.debug('decodeSignatureHeader - %s',signature_header_bytes);
+	//logger.debug('decodeSignatureHeader - %s',signature_header_bytes);
 	var signature_header = {};
 	var proto_signature_header = _commonProto.SignatureHeader.decode(signature_header_bytes);
 	signature_header.creator = decodeIdentity(proto_signature_header.getCreator().toBuffer());
@@ -472,7 +544,7 @@ function decodeSignatureHeader(signature_header_bytes) {
 };
 
 function decodeIdentity(id_bytes) {
-	logger.debug('decodeIdentity - %s',id_bytes);
+	//logger.debug('decodeIdentity - %s',id_bytes);
 	var identity = {};
 	try {
 		var proto_identity = _identityProto.SerializedIdentity.decode(id_bytes);
@@ -587,11 +659,21 @@ function decodeChaincodeAction(action_bytes) {
 	var chaincode_action = {};
 	var proto_chaincode_action = _proposalProto.ChaincodeAction.decode(action_bytes);
 	chaincode_action.results = decodeReadWriteSets(proto_chaincode_action.getResults());
-	chaincode_action.events = proto_chaincode_action.getEvents(); //TODO should we decode these
+	chaincode_action.events = decodeChaincodeEvents(proto_chaincode_action.getEvents());
 	chaincode_action.response = decodeResponse(proto_chaincode_action.getResponse());
 
 	return chaincode_action;
 };
+
+function decodeChaincodeEvents(event_bytes) {
+	var events = {};
+	var proto_events = _ccEventProto.ChaincodeEvent.decode(event_bytes);
+	events.chaincode_id = proto_events.getChaincodeId();
+	events.tx_id = proto_events.getTxId();
+	events.event_name = proto_events.getEventName();
+	events.payload = proto_events.getPayload().toBuffer();
+	return events;
+}
 
 function decodeReadWriteSets(rw_sets_bytes) {
 	var proto_tx_read_write_set = _rwsetProto.TxReadWriteSet.decode(rw_sets_bytes);
