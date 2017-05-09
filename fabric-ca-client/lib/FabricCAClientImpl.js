@@ -19,11 +19,11 @@
 var api = require('./api.js');
 var utils = require('./utils.js');
 var util = require('util');
-var jsrsa = require('jsrsasign');
 var path = require('path');
 var http = require('http');
 var https = require('https');
 var urlParser = require('url');
+var x509 = require('x509');
 
 var logger = utils.getLogger('FabricCAClientImpl.js');
 
@@ -198,19 +198,17 @@ var FabricCAServices = class {
 		}
 
 		var cert = currentUser.getIdentity()._certificate;
-		var x509 = new jsrsa.X509();
+		var subject;
 		try {
-			x509.readCertPEM(cert);
+			subject = x509.getSubject(cert);
 		} catch(err) {
-			logger.error(util.format('Failed to parse enrollment certificate %s. \nError: %s', cert, err));
+			logger.error(util.format('Failed to parse enrollment certificate %s for Subject. \nError: %s', cert, err));
 		}
 
-		var subject = x509.getSubjectString();
-		if (subject === null || subject === '')
+		if (subject === null || subject === {})
 			throw new Error('Failed to parse the enrollment certificate of the current user for its subject');
 
-		var match = subject.match(/CN=([^,\/]+)/);
-		if (!match)
+		if (!subject.commonName)
 			throw new Error('Invalid enrollment certificate of the current user: does not contain the "CN" value');
 
 		var self = this;
@@ -222,7 +220,7 @@ var FabricCAServices = class {
 				function (privateKey) {
 					//generate CSR using the subject of the current user's certificate
 					try {
-						var csr = privateKey.generateCSR('CN=' + match[1]);
+						var csr = privateKey.generateCSR('CN=' + subject.commonName);
 						self._fabricCAClient.reenroll(csr, currentUser.getSigningIdentity())
 							.then(
 							function (response) {
