@@ -85,14 +85,6 @@ test('\n\n ** Chain - method tests **\n\n', function (t) {
 	t.equal(_chain.isPreFetchMode(), true, 'checking prefetchMode');
 	t.doesNotThrow(
 		function () {
-			_chain.setTCertBatchSize(123);
-		},
-		null,
-		'checking the set of TCertBatchSize'
-	);
-	t.equal(_chain.getTCertBatchSize(), 123, 'checking getTCertBatchSize');
-	t.doesNotThrow(
-		function () {
 			var orderer = new Orderer('grpc://somehost.com:1234');
 			_chain.addOrderer(orderer);
 		},

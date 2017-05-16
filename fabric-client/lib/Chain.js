@@ -93,9 +93,6 @@ var Chain = class {
 		// Security enabled flag
 		this._securityEnabled = true;//to do
 
-		// The number of tcerts to get in each batch
-		this._tcertBatchSize = utils.getConfigSetting('tcert-batch-size',200);
-
 		// If in prefetch mode, we prefetch tcerts from member
 		// services to help performance
 		this._preFetchMode = true;//to do - not in doc
@@ -113,11 +110,9 @@ var Chain = class {
 		//to do update logger
 		logger.debug('Constructed Chain instance: name - %s, ' +
 		    'securityEnabled: %s, ' +
-		    'TCert download batch size: %s, ' +
 		    'network mode: %s',
 			this._name,
 			this._securityEnabled,
-			this._tcertBatchSize,
 			!this._devMode);
 	}
 
@@ -178,20 +173,6 @@ var Chain = class {
 	 */
 	setPreFetchMode(preFetchMode) {
 		this._preFetchMode = preFetchMode;
-	}
-
-	/**
-	 * Get the tcert batch size.
-	 */
-	getTCertBatchSize() {
-		return this._tcertBatchSize;
-	}
-
-	/**
-	 * Set the tcert batch size.
-	 */
-	setTCertBatchSize(batchSize) {
-		this._tcertBatchSize = batchSize;
 	}
 
 	/**
