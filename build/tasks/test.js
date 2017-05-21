@@ -46,7 +46,6 @@ gulp.task('test', ['clean-up', 'lint', 'docker-clean', 'pre-test', 'ca'], functi
 		'test/unit/**/*.js',
 		'!test/unit/constants.js',
 		'!test/unit/util.js',
-		'!test/unit/pkcs11.js',
 		'test/integration/fabric-ca-services-tests.js',
 		'test/integration/client.js',
 		'test/integration/orderer-chain-tests.js',
@@ -86,7 +85,6 @@ gulp.task('test-headless', ['clean-up', 'lint', 'pre-test', 'ca'], function() {
 		'test/unit/**/*.js',
 		'!test/unit/constants.js',
 		'!test/unit/util.js',
-		'!test/unit/pkcs11.js'
 	])
 	.pipe(tape({
 		reporter: tapColorize()
