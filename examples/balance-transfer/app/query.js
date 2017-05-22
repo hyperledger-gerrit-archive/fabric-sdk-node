@@ -25,29 +25,29 @@ var logger = helper.getLogger('Query');
 var tx_id = null;
 var nonce = null;
 var member = null;
-var queryChaincode = function(peer, channelName, chaincodeName,
+var queryChannelcode = function(peer, channelName, chaincodeName,
 	chaincodeVersion, args, username, org) {
 	var peers = [];
 	peers.push(helper.getPeerAddressByName(org, peer));
-	var chain = helper.getChainForOrg(org);
+	var channel = helper.getChannelForOrg(org);
 	var targets = helper.getTargets(peers, org);
-	helper.setupPeers(chain, peers, targets);
+	helper.setupPeers(channel, peers, targets);
 	return helper.getRegisteredUsers(username, org).then((user) => {
 		member = user;
 		nonce = helper.getNonce();
-		tx_id = chain.buildTransactionID(nonce, member);
+		tx_id = channel.buildTransactionID(nonce, member);
 		// send query
 		var request = {
 			targets: targets,
 			chaincodeId: chaincodeName,
 			chaincodeVersion: chaincodeVersion,
-			chainId: channelName,
+			channelId: channelName,
 			txId: tx_id,
 			nonce: nonce,
 			fcn: config.functionName,
 			args: helper.getArgs(args)
 		};
-		return chain.queryByChaincode(request);
+		return channel.queryByChaincode(request);
 	}, (err) => {
 		logger.info('Failed to get submitter \''+username+'\'');
 		return 'Failed to get submitter \''+username+'\'. Error: ' + err.stack ? err.stack :
@@ -78,12 +78,12 @@ var queryChaincode = function(peer, channelName, chaincodeName,
 var getBlockByNumber = function(peer, blockNumber, username, org) {
 	var peers = [];
 	peers.push(helper.getPeerAddressByName(org, peer));
-	var chain = helper.getChainForOrg(org);
+	var channel = helper.getChannelForOrg(org);
 	var targets = helper.getTargets(peers, org);
-	helper.setupPeers(chain, peers, targets);
+	helper.setupPeers(channel, peers, targets);
 	return helper.getRegisteredUsers(username, org).then((member) => {
 		adminUser = member;
-		return chain.queryBlock(parseInt(blockNumber));
+		return channel.queryBlock(parseInt(blockNumber));
 	}, (err) => {
 		logger.info('Failed to get submitter "' + username + '"');
 		return 'Failed to get submitter "' + username + '". Error: ' + err.stack ?
@@ -109,12 +109,12 @@ var getBlockByNumber = function(peer, blockNumber, username, org) {
 var getTransactionByID = function(peer, trxnID, username, org) {
 	var peers = [];
 	peers.push(helper.getPeerAddressByName(org, peer));
-	var chain = helper.getChainForOrg(org);
+	var channel = helper.getChannelForOrg(org);
 	var targets = helper.getTargets(peers, org);
-	helper.setupPeers(chain, peers, targets);
+	helper.setupPeers(channel, peers, targets);
 	return helper.getRegisteredUsers(username, org).then((member) => {
 		adminUser = member;
-		return chain.queryTransaction(trxnID);
+		return channel.queryTransaction(trxnID);
 	}, (err) => {
 		logger.info('Failed to get submitter "' + username + '"');
 		return 'Failed to get submitter "' + username + '". Error: ' + err.stack ?
@@ -139,13 +139,13 @@ var getTransactionByID = function(peer, trxnID, username, org) {
 var getBlockByHash = function(peer, hash, username, org) {
 	var peers = [];
 	peers.push(helper.getPeerAddressByName(org, peer));
-	var chain = helper.getChainForOrg(org);
+	var channel = helper.getChannelForOrg(org);
 	var targets = helper.getTargets(peers, org);
-	helper.setupPeers(chain, peers, targets);
+	helper.setupPeers(channel, peers, targets);
 	return helper.getRegisteredUsers(username, org).then((member) => {
 		adminUser = member;
-		//chain.setPrimaryPeer(targets[0]);
-		return chain.queryBlockByHash(Buffer.from(hash));
+		//channel.setPrimaryPeer(targets[0]);
+		return channel.queryBlockByHash(Buffer.from(hash));
 	}, (err) => {
 		logger.info('Failed to get submitter "' + username + '"');
 		return 'Failed to get submitter "' + username + '". Error: ' + err.stack ?
@@ -167,28 +167,28 @@ var getBlockByHash = function(peer, hash, username, org) {
 		return 'Failed to query with error:' + err.stack ? err.stack : err;
 	});
 };
-var getChainInfo = function(peer, username, org) {
+var getChannelInfo = function(peer, username, org) {
 	var peers = [];
 	peers.push(helper.getPeerAddressByName(org, peer));
-	var chain = helper.getChainForOrg(org);
+	var channel = helper.getChannelForOrg(org);
 	var targets = helper.getTargets(peers, org);
-	helper.setupPeers(chain, peers, targets);
+	helper.setupPeers(channel, peers, targets);
 	return helper.getRegisteredUsers(username, org).then((member) => {
 		adminUser = member;
-		//chain.setPrimaryPeer(targets[0]);
-		return chain.queryInfo();
+		//channel.setPrimaryPeer(targets[0]);
+		return channel.queryInfo();
 	}, (err) => {
 		logger.info('Failed to get submitter "' + username + '"');
 		return 'Failed to get submitter "' + username + '". Error: ' + err.stack ?
 			err.stack : err;
-	}).then((blockchainInfo) => {
-		if (blockchainInfo) {
+	}).then((blockchannelInfo) => {
+		if (blockchannelInfo) {
 			// FIXME: Save this for testing 'getBlockByHash'  ?
 			logger.debug('===========================================');
-			logger.debug(blockchainInfo.currentBlockHash);
+			logger.debug(blockchannelInfo.currentBlockHash);
 			logger.debug('===========================================');
-			//logger.debug(blockchainInfo);
-			return blockchainInfo;
+			//logger.debug(blockchannelInfo);
+			return blockchannelInfo;
 		} else {
 			logger.error('response_payloads is null');
 			return 'response_payloads is null';
@@ -206,18 +206,18 @@ var getChainInfo = function(peer, username, org) {
 var getInstalledChaincodes = function(peer, installed, username, org) {
 	var peers = [];
 	peers.push(helper.getPeerAddressByName(org, peer));
-	var chain = helper.getChainForOrg(org);
+	var channel = helper.getChannelForOrg(org);
 	var targets = helper.getTargets(peers, org);
-	helper.setupPeers(chain, peers, targets);
+	helper.setupPeers(channel, peers, targets);
 	return helper.getRegisteredUsers(username, org).then((member) => {
 		peers.push(helper.getPeerAddressByName(org, peer));
 		adminUser = member;
-		//chain.setPrimaryPeer(targets[0]);
+		//channel.setPrimaryPeer(targets[0]);
 		//TODO: move this to contants
 		if (installed === 'installed') {
-			return chain.queryInstalledChaincodes(targets[0]);
+			return channel.queryInstalledChaincodes(targets[0]);
 		} else {
-			return chain.queryInstantiatedChaincodes();
+			return channel.queryInstantiatedChaincodes();
 		}
 	}, (err) => {
 		logger.info('Failed to get submitter "' + username + '"');
@@ -256,13 +256,13 @@ var getInstalledChaincodes = function(peer, installed, username, org) {
 var getChannels = function(peer, username, org) {
 	var peers = [];
 	peers.push(helper.getPeerAddressByName(org, peer));
-	var chain = helper.getChainForOrg(org);
+	var channel = helper.getChannelForOrg(org);
 	var targets = helper.getTargets(peers, org);
-	helper.setupPeers(chain, peers, targets);
+	helper.setupPeers(channel, peers, targets);
 	return helper.getRegisteredUsers(username, org).then((member) => {
 		adminUser = member;
-		//chain.setPrimaryPeer(targets[0]);
-		return chain.queryChannels(targets[0]);
+		//channel.setPrimaryPeer(targets[0]);
+		return channel.queryChannels(targets[0]);
 	}, (err) => {
 		logger.info('Failed to get submitter "' + username + '"');
 		return 'Failed to get submitter "' + username + '". Error: ' + err.stack ?
@@ -293,6 +293,6 @@ exports.queryChaincode = queryChaincode;
 exports.getBlockByNumber = getBlockByNumber;
 exports.getTransactionByID = getTransactionByID;
 exports.getBlockByHash = getBlockByHash;
-exports.getChainInfo = getChainInfo;
+exports.getChannelInfo = getChannelInfo;
 exports.getInstalledChaincodes = getInstalledChaincodes;
 exports.getChannels = getChannels;

@@ -516,7 +516,7 @@ app.get('/channels/:channelName', function(req, res) {
 		} else {
 			logger.debug('User name : ' + decoded.username);
 			logger.debug('Org name  : ' + decoded.orgName);
-			query.getChainInfo(peer, decoded.username, decoded.orgName).then(
+			query.getChannelInfo(peer, decoded.username, decoded.orgName).then(
 				function(message) {
 					res.send(message);
 				});

@@ -29,15 +29,15 @@ var installChaincode = function(peers, chaincodeName, chaincodePath,
 	logger.debug(
 		'\n============ Install chaincode on organizations ============\n');
 	helper.setupChaincodeDeploy();
-	var chain = helper.getChainForOrg(org);
+	var channel = helper.getChannelForOrg(org);
 	helper.setupOrderer();
 	var targets = helper.getTargets(peers, org);
-	helper.setupPeers(chain, peers, targets);
+	helper.setupPeers(channel, peers, targets);
 
 	return helper.getRegisteredUsers(username, org).then((user) => {
 		member = user;
 		nonce = helper.getNonce();
-		tx_id = chain.buildTransactionID(nonce, member);
+		tx_id = channel.buildTransactionID(nonce, member);
 		// send proposal to endorser
 		var request = {
 			targets: targets,
@@ -47,7 +47,7 @@ var installChaincode = function(peers, chaincodeName, chaincodePath,
 			txId: tx_id,
 			nonce: nonce
 		};
-		return chain.sendInstallProposal(request);
+		return channel.sendInstallProposal(request);
 	}, (err) => {
 		logger.error('Failed to enroll user \'' + username + '\'. ' + err);
 		throw new Error('Failed to enroll user \'' + username + '\'. ' + err);

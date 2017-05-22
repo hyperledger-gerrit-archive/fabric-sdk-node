@@ -31,7 +31,7 @@ var allEventhubs = [];
 var _commonProto = grpc.load(path.join(__dirname,
 	'../node_modules/fabric-client/lib/protos/common/common.proto')).common;
 //
-//Attempt to send a request to the orderer with the sendCreateChain method
+//Attempt to send a request to the orderer with the createChannel method
 //
 var joinChannel = function(channelName, peers, username, org) {
 	// on process exit, always disconnect the event hub
@@ -54,7 +54,7 @@ var joinChannel = function(channelName, peers, username, org) {
 	logger.info(util.format(
 		'Calling peers in organization "%s" to join the channel', org));
 	helper.setupOrderer();
-	var chain = helper.getChainForOrg(org);
+	var channel = helper.getChannelForOrg(org);
 	var targets = helper.getTargets(peers, org);
 	var eventhubs = [];
 	for (let key in ORGS[org]) {
@@ -78,7 +78,7 @@ var joinChannel = function(channelName, peers, username, org) {
 		logger.info('received member object for user : ' + username);
 		user = member;
 		nonce = helper.getNonce();
-		tx_id = chain.buildTransactionID(nonce, user);
+		tx_id = channel.buildTransactionID(nonce, user);
 		var request = {
 			targets: targets,
 			txId: tx_id,
@@ -109,7 +109,7 @@ var joinChannel = function(channelName, peers, username, org) {
 			});
 			eventPromises.push(txPromise);
 		});
-		let sendPromise = chain.joinChannel(request);
+		let sendPromise = channel.joinChannel(request);
 		return Promise.all([sendPromise].concat(eventPromises));
 	}, (err) => {
 		logger.error('Failed to enroll user \'' + username + '\' due to error: ' +

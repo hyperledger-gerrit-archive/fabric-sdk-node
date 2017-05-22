@@ -45,10 +45,10 @@ var instantiateChaincode = function(peers, channelName, chaincodeName,
 	logger.debug('\n============ Instantiate chaincode on organization ' + org +
 		' ============\n');
 	helper.setupChaincodeDeploy();
-	var chain = helper.getChainForOrg(org);
+	var channel = helper.getChannelForOrg(org);
 	helper.setupOrderer();
 	var targets = helper.getTargets(peers, org);
-	helper.setupPeers(chain, peers, targets);
+	helper.setupPeers(channel, peers, targets);
 	//FIXME: chanfe this to read peer dynamically
 	let eh = new EventHub();
 	let data = fs.readFileSync(path.join(__dirname, ORGS[org]['peer1'][
@@ -63,16 +63,16 @@ var instantiateChaincode = function(peers, channelName, chaincodeName,
 	allEventhubs.push(eh);
 	return helper.getRegisteredUsers(username, org).then((user) => {
 		member = user;
-		// read the config block from the orderer for the chain
+		// read the config block from the orderer for the channel
 		// and initialize the verify MSPs based on the participating
 		// organizations
-		return chain.initialize();
+		return channel.initialize();
 	}, (err) => {
 		logger.error('Failed to enroll user \'' + username + '\'. ' + err);
 		throw new Error('Failed to enroll user \'' + username + '\'. ' + err);
 	}).then((success) => {
 		nonce = helper.getNonce();
-		tx_id = chain.buildTransactionID(nonce, member);
+		tx_id = channel.buildTransactionID(nonce, member);
 		// send proposal to endorser
 		var request = {
 			targets: targets,
@@ -81,14 +81,14 @@ var instantiateChaincode = function(peers, channelName, chaincodeName,
 			chaincodeVersion: chaincodeVersion,
 			fcn: functionName,
 			args: helper.getArgs(args),
-			chainId: channelName,
+			channelId: channelName,
 			txId: tx_id,
 			nonce: nonce
 		};
-		return chain.sendInstantiateProposal(request);
+		return channel.sendInstantiateProposal(request);
 	}, (err) => {
-		logger.error('Failed to initialize the chain');
-		throw new Error('Failed to initialize the chain');
+		logger.error('Failed to initialize the channel');
+		throw new Error('Failed to initialize the channel');
 	}).then((results) => {
 		var proposalResponses = results[0];
 		var proposal = results[1];
@@ -143,7 +143,7 @@ var instantiateChaincode = function(peers, channelName, chaincodeName,
 				});
 				eventPromises.push(txPromise);
 			});
-			var sendPromise = chain.sendTransaction(request);
+			var sendPromise = channel.sendTransaction(request);
 			return Promise.all([sendPromise].concat(eventPromises)).then((results) => {
 				logger.debug('Event promise all complete and testing complete');
 				return results[0]; // the first returned value is from the 'sendPromise' which is from the 'sendTransaction()' call

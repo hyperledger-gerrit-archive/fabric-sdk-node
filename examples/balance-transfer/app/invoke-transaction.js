@@ -62,10 +62,10 @@ var invokeChaincode = function(peers, channelName, chaincodeName,
 	chaincodeVersion, args, username, org) {
 	logger.debug('\n============ invoke transaction on organization ' + org +
 		' ============\n');
-	var chain = helper.getChainForOrg(org);
+	var channel = helper.getChannelForOrg(org);
 	helper.setupOrderer();
 	var targets = helper.getTargets(peers, org);
-	helper.setupPeers(chain, peers, targets);
+	helper.setupPeers(channel, peers, targets);
 	var peerHosts = getHostnameByPeerAddress(org, peers);
 	peers.forEach(function(peer) {
 		let peerEh = eventhubs[org + peer];
@@ -76,7 +76,7 @@ var invokeChaincode = function(peers, channelName, chaincodeName,
 	return helper.getRegisteredUsers(username, org).then((user) => {
 		member = user;
 		nonce = helper.getNonce();
-		tx_id = chain.buildTransactionID(nonce, member);
+		tx_id = channel.buildTransactionID(nonce, member);
 		hfc.setConfigSetting('E2E_TX_ID', tx_id);
 		logger.info('setConfigSetting("E2E_TX_ID") = %s', tx_id);
 		logger.debug(util.format('Sending transaction "%s"', tx_id));
@@ -86,11 +86,11 @@ var invokeChaincode = function(peers, channelName, chaincodeName,
 			chaincodeId: chaincodeName,
 			fcn: config.invokeQueryFcnName,
 			args: helper.getArgs(args),
-			chainId: channelName,
+			channelId: channelName,
 			txId: tx_id,
 			nonce: nonce
 		};
-		return chain.sendTransactionProposal(request);
+		return channel.sendTransactionProposal(request);
 	}, (err) => {
 		logger.error('Failed to enroll user \'' + username + '\'. ' + err);
 		throw new Error('Failed to enroll user \'' + username + '\'. ' + err);
@@ -147,7 +147,7 @@ var invokeChaincode = function(peers, channelName, chaincodeName,
 				});
 				eventPromises.push(txPromise);
 			};
-			var sendPromise = chain.sendTransaction(request);
+			var sendPromise = channel.sendTransaction(request);
 			return Promise.all([sendPromise].concat(eventPromises)).then((results) => {
 				logger.debug(' event promise all complete and testing complete');
 				return results[0]; // the first returned value is from the 'sendPromise' which is from the 'sendTransaction()' call

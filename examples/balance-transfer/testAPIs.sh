@@ -140,7 +140,6 @@ TRX_ID=$(curl -s -X POST \
   -H "x-access-token: $ORG1_TOKEN" \
   -d '{
 	"peers": ["localhost:7051", "localhost:7056"],
-	"chaincodeVersion":"v0",
 	"functionName":"invoke",
 	"args":["move","a","b","10"]
 }')
@@ -158,7 +157,6 @@ TRX_ID=$(curl -s -X POST \
   -H "x-access-token: $ORG2_TOKEN" \
   -d '{
 	"peers": ["localhost:8051", "localhost:8056"],
-	"chaincodeVersion":"v0",
 	"functionName":"invoke",
 	"args":["move","a","b","10"]
 }')
@@ -213,7 +211,7 @@ echo
 #echo
 #echo
 
-echo "GET query ChainInfo"
+echo "GET query ChannelInfo"
 echo
 curl -s -X GET \
   "http://localhost:4000/channels/mychannel?peer=peer1" \

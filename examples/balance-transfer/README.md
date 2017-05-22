@@ -173,7 +173,6 @@ curl -s -X POST \
   -H "x-access-token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE0OTQ4NjU1OTEsInVzZXJuYW1lIjoiSmltIiwib3JnTmFtZSI6Im9yZzEiLCJpYXQiOjE0OTQ4NjE5OTF9.yWaJhFDuTvMQRaZIqg20Is5t-JJ_1BP58yrNLOKxtNI" \
   -d '{
 	"peers": ["localhost:7051", "localhost:7056"],
-	"chaincodeVersion":"v0",
 	"functionName":"invoke",
 	"args":["move","a","b","10"]
 }'
@@ -214,7 +213,7 @@ curl -s -X GET http://localhost:4000/channels/mychannel/transactions/TRX_ID?peer
 **NOTE**: Here the TRX_ID can be from any previous invoke transaction
 
 
-### Query ChainInfo
+### Query ChannelInfo
 
 ```
 curl -s -X GET \

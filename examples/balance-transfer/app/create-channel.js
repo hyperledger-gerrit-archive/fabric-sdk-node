@@ -19,11 +19,11 @@ var path = require('path');
 var config = require('../config.json');
 var helper = require('./helper.js');
 var logger = helper.getLogger('Create-Channel');
-//Attempt to send a request to the orderer with the sendCreateChain method
+//Attempt to send a request to the orderer with the createChannel method
 var createChannel = function(channelName, channelConfigPath, username, orgName) {
 	logger.debug('\n====== Creating Channel \'' + channelName + '\' ======\n');
 	helper.setupOrderer();
-	var chain = helper.getChainForOrg(orgName);
+	var channel = helper.getChannelForOrg(orgName);
 	//Acting as a client in the given organization provided with "orgName" param
 	return helper.getRegisteredUsers(username, orgName).then((member) => {
 		logger.debug('Successfully enrolled user \''+username+'\'');
@@ -32,7 +32,7 @@ var createChannel = function(channelName, channelConfigPath, username, orgName) 
 			envelope: fs.readFileSync(path.join(__dirname, channelConfigPath))
 		};
 		// send to orderer
-		return chain.createChannel(request);
+		return channel.createChannel(request);
 	}, (err) => {
 		logger.error('Failed to enroll user \''+username+'\'. Error: ' + err);
 		throw new Error('Failed to enroll user \''+username+'\'' + err);

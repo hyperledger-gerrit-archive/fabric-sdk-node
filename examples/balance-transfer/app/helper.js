@@ -31,22 +31,22 @@ hfc.addConfigFile(path.join(__dirname, 'network-config.json'));
 var ORGS = hfc.getConfigSetting('network-config');
 logger.setLevel('DEBUG');
 var client1 = new hfc();
-var chain1 = client1.newChain(config.channelName);
+var channel1 = client1.newChannel(config.channelName);
 var client2 = new hfc();
-var chain2 = client2.newChain(config.channelName);
+var channel2 = client2.newChannel(config.channelName);
 exports.client1 = client1;
 exports.client1 = client2;
-exports.chain1 = chain1;
-exports.chain2 = chain2;
+exports.channel1 = channel1;
+exports.channel2 = channel2;
 // need to enroll it with CA server
 var caClient;
 var setupOrderer = function() {
-	let chains = [chain1, chain2];
-	chains.forEach(function(chain) {
-		if (chain.getOrderers().length === 0) {
-			chain.addOrderer(getOrderer());
+	let channels = [channel1, channel2];
+	channels.forEach(function(channel) {
+		if (channel.getOrderers().length === 0) {
+			channel.addOrderer(getOrderer());
 		} else {
-			var ordererList = chain.getOrderers();
+			var ordererList = channel.getOrderers();
 			let found = false;
 			for (let key in ordererList) {
 				if (ordererList[key]._url === config.orderer) {
@@ -54,7 +54,7 @@ var setupOrderer = function() {
 				}
 			}
 			if (!found) {
-				chain.addOrderer(getOrderer());
+				channel.addOrderer(getOrderer());
 			}
 		}
 	});
@@ -66,13 +66,13 @@ var getTarget = function(targets, peer) {
 		}
 	}
 };
-var setupPeers = function(chain, peers, targets) {
-	if (chain.getPeers().length === 0) {
+var setupPeers = function(channel, peers, targets) {
+	if (channel.getPeers().length === 0) {
 		for (let index in targets) {
-			chain.addPeer(targets[index]);
+			channel.addPeer(targets[index]);
 		}
 	} else {
-		var peersList = chain.getPeers();
+		var peersList = channel.getPeers();
 		for (let index in peers) {
 			let found = false;
 			for (let key in peersList) {
@@ -82,16 +82,16 @@ var setupPeers = function(chain, peers, targets) {
 			}
 			if (!found) {
 				let target = getTarget(targets, peers[index]);
-				chain.addPeer(target);
+				channel.addPeer(target);
 			}
 		}
 	}
 };
-var getChainForOrg = function(orgName) {
+var getChannelForOrg = function(orgName) {
 	if (orgName === config.orgsList[0]) {
-		return chain1;
+		return channel1;
 	} else if (orgName === config.orgsList[1]) {
-		return chain2;
+		return channel2;
 	}
 };
 var clientForOrg = function(orgName) {
@@ -299,7 +299,7 @@ exports.getMspID = getMspID;
 exports.ORGS = ORGS;
 exports.setupOrderer = setupOrderer;
 exports.getTargets = getTargets;
-exports.getChainForOrg = getChainForOrg;
+exports.getChannelForOrg = getChannelForOrg;
 exports.clientForOrg = clientForOrg;
 exports.setupPeers = setupPeers;
 exports.getPeerAddressByName = getPeerAddressByName;
