@@ -21,7 +21,7 @@
 var tape = require('tape');
 var _test = require('tape-promise');
 var test = _test(tape);
-var e2eUtils = require('./e2eUtils.js');
+var e2eUtils = require('./e2eUtils2.js');//use e2eUtils2 for storeless
 
 test('\n\n***** End-to-end flow: invoke transaction to move money *****', (t) => {
 	e2eUtils.invokeChaincode('org2', 'v0', t)

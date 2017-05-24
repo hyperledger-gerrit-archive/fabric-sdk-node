@@ -876,6 +876,33 @@ test('\n\n ** createUser error path - invalid cryptoContent **\n\n', function (t
 	});
 });
 
+test('\n\n ** createUser no keyValueStore and no cryptoKeyStore **\n\n', function (t) {
+	var userOrg = 'org2';
+	utils.setConfigSetting('crypto-keysize', 256);
+
+	var client = new Client();
+	var cryptoSuite = client.newCryptoSuite();
+
+	client.createUser(
+		{username: caImport.orgs[userOrg].username,
+			mspid: caImport.orgs[userOrg].mspid,
+			cryptoContent: caImport.orgs[userOrg].cryptoContent
+	    })
+	.then((user) => {
+		if (user) {
+			t.pass('createUser, got user');
+			t.end();
+		} else {
+			t.fail('createUser, returned null');
+			t.end();
+		}
+	}).catch((err) => {
+		t.fail('createUser, error, did not get user');
+		t.comment(err.stack ? err.stack : err);
+		t.end();
+	});
+});
+
 test('\n\n ** test related APIs for create channel **\n\n', function (t) {
 	var client = new Client();
 

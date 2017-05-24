@@ -1095,7 +1095,13 @@ var Client = class {
 			promise.then((data) => {
 				if (data) {
 					logger.debug('then privateKeyPEM data');
-					return self._cryptoSuite.importKey(data.toString());
+					var opt1;
+					if (self._cryptoSuite._cryptoKeyStore) {
+						opt1 = {ephemeral: false};
+					} else {
+						opt1 = {ephemeral: true};
+					}
+					return self._cryptoSuite.importKey(data.toString(), opt1);
 				} else {
 					throw new Error('failed to load private key data');
 				}
@@ -1116,7 +1122,13 @@ var Client = class {
 				return member.setEnrollment(importedKey, data.toString(), opts.mspid);
 			}).then(() => {
 				logger.debug('then setUserContext');
-				return self.setUserContext(member);
+				var skipPersistence;
+				if (self._cryptoSuite._cryptoKeyStore) {
+					skipPersistence = false;
+				} else {
+					skipPersistence = true;
+				}
+				return self.setUserContext(member, skipPersistence);
 			}).then((user) => {
 				logger.debug('then user');
 				return resolve(user);
