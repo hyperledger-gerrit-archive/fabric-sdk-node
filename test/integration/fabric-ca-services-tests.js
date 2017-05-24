@@ -25,7 +25,7 @@ var _test = require('tape-promise');
 var test = _test(tape);
 
 
-var hfc = require('fabric-client');
+var Client = require('fabric-client');
 
 var X509 = require('x509');
 
@@ -48,8 +48,8 @@ var enrollmentID = 'testUser';
 var enrollmentSecret;
 var csr = fs.readFileSync(path.resolve(__dirname, '../fixtures/fabricca/enroll-csr.pem'));
 
-hfc.addConfigFile(path.join(__dirname, 'e2e', 'config.json'));
-var ORGS = hfc.getConfigSetting('test-network');
+Client.addConfigFile(path.join(__dirname, 'e2e', 'config.json'));
+var ORGS = Client.getConfigSetting('test-network');
 var userOrg = 'org1';
 
 var	tlsOptions = {
@@ -93,7 +93,7 @@ test('\n\n ** FabricCAServices: Test enroll() With Dynamic CSR **\n\n', function
 			t.comment(util.format('Parsed subject: %j', subject));
 			t.equal(subject.commonName, req.enrollmentID, 'Subject should be /CN=' + req.enrollmentID);
 
-			return caService.cryptoPrimitives.importKey(enrollment.certificate);
+			return caService.getCryptoSuite().importKey(enrollment.certificate);
 		},(err) => {
 			t.fail('Failed to enroll the admin. Can not progress any further. Exiting. ' + err.stack ? err.stack : err);
 
@@ -103,7 +103,7 @@ test('\n\n ** FabricCAServices: Test enroll() With Dynamic CSR **\n\n', function
 
 			var msp = new LocalMSP({
 				id: ORGS[userOrg].mspid,
-				cryptoSuite: caService.cryptoPrimitives
+				cryptoSuite: caService.getCryptoSuite()
 			});
 
 			var signingIdentity = new SigningIdentity(eResult.certificate, pubKey, msp.getId(), msp.cryptoSuite,
@@ -120,7 +120,7 @@ test('\n\n ** FabricCAServices: Test enroll() With Dynamic CSR **\n\n', function
 
 			t.pass('testUser \'' + enrollmentID + '\'');
 
-			return hfc.newDefaultKeyValueStore({
+			return Client.newDefaultKeyValueStore({
 				path: testUtil.KVS
 			});
 		},(err) => {
@@ -129,7 +129,7 @@ test('\n\n ** FabricCAServices: Test enroll() With Dynamic CSR **\n\n', function
 		}).then((store) => {
 			t.comment('Successfully constructed a state store');
 
-			client = new hfc();
+			client = new Client();
 			client.setStateStore(store);
 			member = new User('adminX');
 			return member.setEnrollment(eResult.key, eResult.certificate, 'Org1MSP');

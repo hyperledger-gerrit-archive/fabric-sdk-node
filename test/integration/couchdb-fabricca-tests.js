@@ -25,27 +25,26 @@ var _test = require('tape-promise');
 var test = _test(tape);
 
 var path = require('path');
-var hfc = require('fabric-client');
+var Client = require('fabric-client');
 
-var Client = hfc;
 var User = require('fabric-client/lib/User.js');
 var FabricCAServices = require('fabric-ca-client/lib/FabricCAClientImpl');
 
 var couchdbUtil = require('./couchdb-util.js');
 
 // Use the CouchDB specific config file
-hfc.addConfigFile('test/fixtures/couchdb.json');
+Client.addConfigFile('test/fixtures/couchdb.json');
 
-var keyValueStore = hfc.getConfigSetting('key-value-store');
+var keyValueStore = Client.getConfigSetting('key-value-store');
 logger.info('couchdb Key Value Store = ' + keyValueStore);
 
-var couchdbIPAddr = hfc.getConfigSetting('couchdb-ip-addr', 'notfound');
-var couchdbPort = hfc.getConfigSetting('couchdb-port', 'notfound');
+var couchdbIPAddr = Client.getConfigSetting('couchdb-ip-addr', 'notfound');
+var couchdbPort = Client.getConfigSetting('couchdb-port', 'notfound');
 var keyValStorePath = couchdbIPAddr + ':' + couchdbPort;
 logger.info('couch keyValStorePath: '+keyValStorePath);
 
-hfc.addConfigFile(path.join(__dirname, 'e2e', 'config.json'));
-var ORGS = hfc.getConfigSetting('test-network');
+Client.addConfigFile(path.join(__dirname, 'e2e', 'config.json'));
+var ORGS = Client.getConfigSetting('test-network');
 var userOrg = 'org1';
 
 var	tlsOptions = {
@@ -80,8 +79,8 @@ test('Use FabricCAServices with a CouchDB KeyValueStore', function(t) {
 			function(kvs) {
 
 				member = new User('admin2');
-				cryptoSuite = client.newCryptoSuite(options);
-				cryptoSuite.setCryptoKeyStore(client.newCryptoKeyStore(options));
+				cryptoSuite = Client.newCryptoSuite(options);
+				cryptoSuite.setCryptoKeyStore(Client.newCryptoKeyStore(options));
 				client.setCryptoSuite(cryptoSuite);
 				member.setCryptoSuite(cryptoSuite);
 

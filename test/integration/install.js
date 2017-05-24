@@ -32,13 +32,13 @@ var path = require('path');
 var fs = require('fs');
 var util = require('util');
 
-var hfc = require('fabric-client');
+var Client = require('fabric-client');
 var Packager = require('fabric-client/lib/Packager.js');
 var testUtil = require('../unit/util.js');
 
 var e2e = testUtil.END2END;
-hfc.addConfigFile(path.join(__dirname, 'e2e', 'config.json'));
-var ORGS = hfc.getConfigSetting('test-network');
+Client.addConfigFile(path.join(__dirname, 'e2e', 'config.json'));
+var ORGS = Client.getConfigSetting('test-network');
 
 var tx_id = null;
 var the_user = null;
@@ -166,7 +166,7 @@ test('\n\n** Test chaincode install using chaincodePackage[byte] **\n\n', (t) =>
 function installChaincode(params, t) {
 	try {
 		var org = params.org;
-		var client = new hfc();
+		var client = new Client();
 		var channel = client.newChannel(params.channelName);
 
 		var caRootsPath = ORGS.orderer.tls_cacerts;
@@ -202,7 +202,7 @@ function installChaincode(params, t) {
 			}
 		}
 
-		return hfc.newDefaultKeyValueStore({
+		return Client.newDefaultKeyValueStore({
 			path: testUtil.storePathForOrg(orgName)
 		}).then((store) => {
 			client.setStateStore(store);

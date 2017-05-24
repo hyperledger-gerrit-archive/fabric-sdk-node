@@ -25,8 +25,7 @@ var _test = require('tape-promise');
 var test = _test(tape);
 
 var path = require('path');
-var hfc = require('fabric-client');
-var Client = hfc;
+var Client = require('fabric-client');
 var User = require('fabric-client/lib/User.js');
 var FabricCAServices = require('fabric-ca-client/lib/FabricCAClientImpl');
 var CouchDBKeyValueStore = require('fabric-client/lib/impl/CouchDBKeyValueStore');
@@ -34,14 +33,14 @@ var CouchDBKeyValueStore = require('fabric-client/lib/impl/CouchDBKeyValueStore'
 
 var couchdbUtil = require('./couchdb-util.js');
 
-hfc.addConfigFile('test/fixtures/cloudant.json');
-var keyValueStore = hfc.getConfigSetting('key-value-store');
+Client.addConfigFile('test/fixtures/cloudant.json');
+var keyValueStore = Client.getConfigSetting('key-value-store');
 logger.info('cloudant Key Value Store = ' + keyValueStore);
 
 var cloudantUrl = 'https://1421acc7-6faa-491a-8e10-951e2e190684-bluemix:7179ef7a72602189243deeabe207889bde1c2fada173ae1022b5592e5a79dacc@1421acc7-6faa-491a-8e10-951e2e190684-bluemix.cloudant.com';
 
-hfc.addConfigFile(path.join(__dirname, 'e2e', 'config.json'));
-var ORGS = hfc.getConfigSetting('test-network');
+Client.addConfigFile(path.join(__dirname, 'e2e', 'config.json'));
+var ORGS = Client.getConfigSetting('test-network');
 var userOrg = 'org1';
 
 var	tlsOptions = {
@@ -77,8 +76,8 @@ test('Use FabricCAServices wih a Cloudant CouchDB KeyValueStore', function(t) {
 			function(kvs) {
 				t.comment('Setting client keyValueStore to: ' + kvs);
 				member = new User('admin2');
-				cryptoSuite = client.newCryptoSuite();
-				cryptoSuite.setCryptoKeyStore(client.newCryptoKeyStore(options));
+				cryptoSuite = Client.newCryptoSuite();
+				cryptoSuite.setCryptoKeyStore(Client.newCryptoKeyStore(options));
 				client.setCryptoSuite(cryptoSuite);
 				member.setCryptoSuite(cryptoSuite);
 
