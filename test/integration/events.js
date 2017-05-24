@@ -29,15 +29,15 @@ var path = require('path');
 var util = require('util');
 var fs = require('fs');
 
-var hfc = require('fabric-client');
+var Client = require('fabric-client');
 var testUtil = require('../unit/util.js');
 var EventHub = require('fabric-client/lib/EventHub.js');
 var eputil = require('./eventutil.js');
 
-var client = new hfc();
+var client = new Client();
 var channel = client.newChannel(testUtil.END2END.channel);
-hfc.addConfigFile(path.join(__dirname, 'e2e', 'config.json'));
-var ORGS = hfc.getConfigSetting('test-network');
+Client.addConfigFile(path.join(__dirname, 'e2e', 'config.json'));
+var ORGS = Client.getConfigSetting('test-network');
 
 var caRootsPath = ORGS.orderer.tls_cacerts;
 let data = fs.readFileSync(path.join(__dirname, 'e2e', caRootsPath));
@@ -115,7 +115,7 @@ test('Test chaincode instantiate with event, transaction invocation with chainco
 		};
 	})(t, eventhubs, t.end);
 
-	hfc.newDefaultKeyValueStore({
+	Client.newDefaultKeyValueStore({
 		path: testUtil.storePathForOrg(orgName)
 	}).then((store) => {
 		client.setStateStore(store);

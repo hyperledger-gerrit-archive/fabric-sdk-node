@@ -35,16 +35,16 @@ var util = require('util');
 var fs = require('fs');
 
 var testUtil = require('../unit/util.js');
-var hfc = require('fabric-client');
+var Client = require('fabric-client');
 var Peer = require('fabric-client/lib/Peer.js');
 var Orderer = require('fabric-client/lib/Orderer.js');
 
-var client = new hfc();
+var client = new Client();
 var channel_id = testUtil.END2END.channel;
 var channel = client.newChannel(channel_id);
 
-hfc.addConfigFile(path.join(__dirname, 'e2e', 'config.json'));
-var ORGS = hfc.getConfigSetting('test-network');
+Client.addConfigFile(path.join(__dirname, 'e2e', 'config.json'));
+var ORGS = Client.getConfigSetting('test-network');
 var org = 'org1';
 var orgName = ORGS[org].name;
 
@@ -111,11 +111,11 @@ channel.addPeer(peer1);
 
 test('  ---->>>>> Query channel working <<<<<-----', function(t) {
 	utils.setConfigSetting('key-value-store','fabric-client/lib/impl/FileKeyValueStore.js');
-	var cryptoSuite = client.newCryptoSuite();
-	cryptoSuite.setCryptoKeyStore(client.newCryptoKeyStore({path: testUtil.storePathForOrg(orgName)}));
+	var cryptoSuite = Client.newCryptoSuite();
+	cryptoSuite.setCryptoKeyStore(Client.newCryptoKeyStore({path: testUtil.storePathForOrg(orgName)}));
 	client.setCryptoSuite(cryptoSuite);
 
-	return hfc.newDefaultKeyValueStore({
+	return Client.newDefaultKeyValueStore({
 		path: testUtil.storePathForOrg(orgName)
 	}).then( function (store) {
 		client.setStateStore(store);
@@ -214,7 +214,7 @@ test('  ---->>>>> Query channel failing: GetBlockByNumber <<<<<-----', function(
 	if (!queryParameters || querys.indexOf('GetBlockByNumber') >= 0) {
 		logger.info('Executing GetBlockByNumber');
 
-		return hfc.newDefaultKeyValueStore({
+		return Client.newDefaultKeyValueStore({
 			path: testUtil.storePathForOrg(orgName)
 		}).then(
 			function(store) {
@@ -252,7 +252,7 @@ test('  ---->>>>> Query channel failing: GetBlockByNumber <<<<<-----', function(
 
 test('  ---->>>>> Query channel failing: GetTransactionByID <<<<<-----', function(t) {
 	if (!queryParameters || querys.indexOf('GetTransactionByID') >= 0) {
-		return hfc.newDefaultKeyValueStore({
+		return Client.newDefaultKeyValueStore({
 			path: testUtil.storePathForOrg(orgName)
 		}).then(
 			function(store) {
@@ -291,7 +291,7 @@ test('  ---->>>>> Query channel failing: GetTransactionByID <<<<<-----', functio
 test('  ---->>>>> Query channel failing: GetChannelInfo <<<<<-----', function(t) {
 	if (!queryParameters || querys.indexOf('GetChannelInfo') >= 0) {
 
-		return hfc.newDefaultKeyValueStore({
+		return Client.newDefaultKeyValueStore({
 			path: testUtil.storePathForOrg(orgName)
 		}).then(
 			function(store) {
@@ -330,7 +330,7 @@ test('  ---->>>>> Query channel failing: GetChannelInfo <<<<<-----', function(t)
 
 test('  ---->>>>> Query channel failing: GetBlockByHash <<<<<-----', function(t) {
 	if (!queryParameters || querys.indexOf('GetBlockByHash') >= 0) {
-		return hfc.newDefaultKeyValueStore({
+		return Client.newDefaultKeyValueStore({
 			path: testUtil.storePathForOrg(orgName)
 		}).then(
 			function (store) {
@@ -369,7 +369,7 @@ test('  ---->>>>> Query channel failing: GetBlockByHash <<<<<-----', function(t)
 
 test('  ---->>>>> Query Installed Chaincodes working <<<<<-----', function(t) {
 	if (!queryParameters || querys.indexOf('GetInstalledChaincodes') >= 0) {
-		return hfc.newDefaultKeyValueStore({
+		return Client.newDefaultKeyValueStore({
 			path: testUtil.storePathForOrg(orgName)
 		}).then( function (store) {
 			client.setStateStore(store);
@@ -425,7 +425,7 @@ test('  ---->>>>> Query Installed Chaincodes working <<<<<-----', function(t) {
 
 test('  ---->>>>> Query Instantiated Chaincodes working <<<<<-----', function(t) {
 	if (!queryParameters || querys.indexOf('GetInstantiatedChaincodes') >= 0) {
-		return hfc.newDefaultKeyValueStore({
+		return Client.newDefaultKeyValueStore({
 			path: testUtil.storePathForOrg(orgName)
 		}).then( function (store) {
 			client.setStateStore(store);
@@ -480,7 +480,7 @@ test('  ---->>>>> Query Instantiated Chaincodes working <<<<<-----', function(t)
 
 test('  ---->>>>> Query Channels working <<<<<-----', function(t) {
 	if (!queryParameters || querys.indexOf('GetChannels') >= 0) {
-		return hfc.newDefaultKeyValueStore({
+		return Client.newDefaultKeyValueStore({
 			path: testUtil.storePathForOrg(orgName)
 		}).then( function (store) {
 			client.setStateStore(store);

@@ -25,7 +25,7 @@ var tape = require('tape');
 var _test = require('tape-promise');
 var test = _test(tape);
 
-var hfc = require('fabric-client');
+var Client = require('fabric-client');
 var util = require('util');
 var fs = require('fs');
 var path = require('path');
@@ -33,14 +33,14 @@ var testUtil = require('../unit/util.js');
 var Orderer = require('fabric-client/lib/Orderer.js');
 var Peer = require('fabric-client/lib/Peer.js');
 
-var client = new hfc();
+var client = new Client();
 var channel = client.newChannel(testUtil.END2END.channel);
-hfc.addConfigFile(path.join(__dirname, 'e2e', 'config.json'));
-var ORGS = hfc.getConfigSetting('test-network');
+Client.addConfigFile(path.join(__dirname, 'e2e', 'config.json'));
+var ORGS = Client.getConfigSetting('test-network');
 var org = 'org1';
 var orgName = ORGS[org].name;
-var cryptoSuite = client.newCryptoSuite();
-cryptoSuite.setCryptoKeyStore(client.newCryptoKeyStore({path: testUtil.storePathForOrg(orgName)}));
+var cryptoSuite = Client.newCryptoSuite();
+cryptoSuite.setCryptoKeyStore(Client.newCryptoKeyStore({path: testUtil.storePathForOrg(orgName)}));
 client.setCryptoSuite(cryptoSuite);
 
 var caRootsPath = ORGS.orderer.tls_cacerts;
@@ -70,7 +70,7 @@ for (let key in ORGS[org]) {
 }
 
 var logger = utils.getLogger('NEW CHANNEL');
-hfc.setConfigSetting('hfc-logging', '{"debug":"console"}');
+Client.setConfigSetting('hfc-logging', '{"debug":"console"}');
 
 var keyValStorePath = testUtil.KVS;
 var the_user = null;
@@ -86,13 +86,13 @@ test('\n\n** TEST ** new channel - channel.createChannel() fail due to already e
 	// Create and configure the test channel
 	//
 	utils.setConfigSetting('key-value-store','fabric-client/lib/impl/FileKeyValueStore.js');
-	hfc.newDefaultKeyValueStore({path: testUtil.storePathForOrg(orgName)}
+	Client.newDefaultKeyValueStore({path: testUtil.storePathForOrg(orgName)}
 	)
 	.then(
 		function (store) {
 			client.setStateStore(store);
-			var cryptoSuite = client.newCryptoSuite();
-			cryptoSuite.setCryptoKeyStore(client.newCryptoKeyStore({path: testUtil.storePathForOrg(orgName)}));
+			var cryptoSuite = Client.newCryptoSuite();
+			cryptoSuite.setCryptoKeyStore(Client.newCryptoKeyStore({path: testUtil.storePathForOrg(orgName)}));
 			client.setCryptoSuite(cryptoSuite);
 
 			return testUtil.getSubmitter(client, t, org);

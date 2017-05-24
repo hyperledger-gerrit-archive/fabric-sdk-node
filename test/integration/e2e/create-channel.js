@@ -248,8 +248,8 @@ test('\n\n***** SDK Built config update  create flow  *****\n\n', function(t) {
 		path: testUtil.storePathForOrg(org)
 	}).then((store) => {
 		client.setStateStore(store);
-		var cryptoSuite = client.newCryptoSuite();
-		cryptoSuite.setCryptoKeyStore(client.newCryptoKeyStore({path: testUtil.storePathForOrg(org)}));
+		var cryptoSuite = Client.newCryptoSuite();
+		cryptoSuite.setCryptoKeyStore(Client.newCryptoKeyStore({path: testUtil.storePathForOrg(org)}));
 		client.setCryptoSuite(cryptoSuite);
 
 		return testUtil.getOrderAdminSubmitter(client, t);
