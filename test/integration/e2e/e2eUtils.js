@@ -439,6 +439,12 @@ module.exports.instantiateChaincode = instantiateChaincode;
 function invokeChaincode(userOrg, version, t, useStore){
 	logger.debug('invokeChaincode begin');
 	Client.setConfigSetting('request-timeout', 60000);
+	if(version === 'v1') {
+		Client.setConfigSetting('heartbeat-time', 0); //try turning off
+	}
+	else {
+		Client.setConfigSetting('heartbeat-time', 2000);
+	}
 	var channel_name = Client.getConfigSetting('E2E_CONFIGTX_CHANNEL_NAME', testUtil.END2END.channel);
 
 	var targets = [],
@@ -559,7 +565,7 @@ function invokeChaincode(userOrg, version, t, useStore){
 		throw new Error('Failed to enroll user \'admin\'. ' + err);
 	}).then((results) =>{
 		pass_results = results;
-		var sleep_time = 0;
+		var sleep_time = 10; // sleep some during automated run to force a few keep alives to fire
 		// can use "sleep=30000" to give some time to manually stop and start
 		// the peer so the event hub will also stop and start
 		if (process.argv.length > 2) {

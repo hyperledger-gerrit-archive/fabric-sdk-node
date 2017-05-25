@@ -123,7 +123,7 @@ var EventHub = class {
 	 */
 
 	constructor(clientContext) {
-		logger.debug('const ');
+		logger.info('const ');
 		// hashtable of clients registered for chaincode events
 		this._chaincodeRegistrants = {};
 		// set of clients registered for block events
@@ -146,6 +146,11 @@ var EventHub = class {
 		this._force_reconnect = true;
 		// connect count for this instance
 		this._current_stream = 0;
+		// heartbeat
+		this._heartbeat_timer = null;
+		this._activity_received = false;
+		this._keep_alive_response = false;
+
 		// reference to the client instance holding critical context such as signing identity
 		if (typeof clientContext === 'undefined' || clientContext === null || clientContext === '')
 			throw new Error('Missing required argument: clientContext');
@@ -157,6 +162,50 @@ var EventHub = class {
 			throw new Error('The clientContext has not been properly initialized, missing userContext');
 
 		this._clientContext = clientContext;
+	}
+
+	/*
+	 * Internal method to manage the heartbeat timer.
+	 *
+	 * The heartbeat timer will fire on an interval based on the "heartbeat-time" or if
+	 * not set based on the "request-timeout" config setting.
+	 * When the heartbeat timer fires it will check to see if there has been activity
+	 * during this interval, if there has been activity then restart the timer.
+	 * If there has not been activity, check to see if there has been a registration
+	 * response received. If there has been a registration response then make another
+	 * registration and restart the timer. If there has not been a registration response,
+	 * then something is wrong and shutdown this event stream
+	 */
+	_startHeartbeatTimer() {
+		clearTimeout(this._heartbeat_timer);
+		var heartbeat_time = utils.getConfigSetting('heartbeat-time', this._ep._request_timeout);
+		logger.info('_startHeartbeatTimer -  timer set to:%s',heartbeat_time);
+		if(heartbeat_time <= 0) {
+			logger.info('_startHeartbeatTimer -  not starting timer set to:%s',heartbeat_time);
+			return;
+		}
+
+		var self = this;
+		this._heartbeat_timer = setTimeout(() => {
+			logger.info('heartbeat timer - woke up after:%s', heartbeat_time);
+			if(self._activity_received) {
+				logger.info('heatbeat timer - event activity has been received');
+				self._activity_received = false;
+				self._startHeartbeatTimer();
+			}
+			else if(self._keep_alive_response) {
+				logger.info('heatbeat timer - registration response has been received');
+				self._keep_alive_response = false;
+				self._sendKeepAlive();
+
+				// restart timer
+				self._startHeartbeatTimer();
+			}
+			else {
+				logger.info('heartbeat timer - send back failure to all callbacks');
+				this._disconnect(new Error('EventHub has been shutdown due to loss of heartbeat'));
+			}
+		}, heartbeat_time);
 	}
 
 	/**
@@ -173,7 +222,7 @@ var EventHub = class {
 	 * <br>- any other standard grpc stream options will be passed to the grpc service calls directly
 	 */
 	setPeerAddr(peerUrl, opts) {
-		logger.debug('setPeerAddr -  %s',peerUrl);
+		logger.info('setPeerAddr -  %s',peerUrl);
 		//clean up
 		this._disconnect(new Error('EventHub has been shutdown due to new Peer address assignment'));
 		this._ep = new Remote(peerUrl, opts);
@@ -207,7 +256,7 @@ var EventHub = class {
 	 * The connection will be established asynchronously.
 	 */
 	connect(){
-		logger.debug('connect - start');
+		logger.info('connect - start');
 		this._connect_running = false; //override a running connect
 		this._connect();
 	}
@@ -220,11 +269,11 @@ var EventHub = class {
 	 */
 	_connect(force) {
 		if(this._connect_running) {
-			logger.debug('_connect - connect is running');
+			logger.info('_connect - connect is running');
 			return;
 		}
 		if (!force && this._connected) {
-			logger.debug('_connect - end - already conneted');
+			logger.info('_connect - end - already conneted');
 			return;
 		}
 		if (!this._ep) throw Error('Must set peer address before connecting.');
@@ -232,7 +281,7 @@ var EventHub = class {
 		this._connect_running = true;
 		this._current_stream++;
 		var stream_id = this._current_stream;
-		logger.debug('_connect - start stream:',stream_id);
+		logger.info('_connect - start stream:',stream_id);
 		var self = this; // for callback context
 
 		var send_timeout = setTimeout(function(){
@@ -247,61 +296,67 @@ var EventHub = class {
 		this._stream.on('data', function(event) {
 			self._connect_running = false;
 			clearTimeout(send_timeout);
-			logger.debug('on.data - event stream:%s _current_stream:%s',stream_id, self._current_stream);
+			logger.info('on.data - event stream:%s _current_stream:%s',stream_id, self._current_stream);
 			if(stream_id != self._current_stream) {
-				logger.debug('on.data - incoming event was from a cancel stream');
+				logger.info('on.data - incoming event was from a cancel stream');
 				return;
 			}
 
 			var state = -1;
 			if(self._stream) state = self._stream.call.channel_.getConnectivityState();
-			logger.debug('on.data - grpc stream state :%s',state);
+			logger.info('on.data - grpc stream state :%s',state);
 			if (event.Event == 'block') {
+				self._activity_received = true;
 				var block = BlockDecoder.decodeBlock(event.block);
 				self._processBlockOnEvents(block);
 				self._processTxOnEvents(block);
 				self._processChainCodeOnEvents(block);
 			}
 			else if (event.Event == 'register'){
-				logger.debug('on.data - register event received');
+				logger.info('on.data - register event received');
 				self._connected = true;
+				self._keep_alive_response = true;
 			}
 			else if (event.Event == 'unregister'){
 				if(self._connected) self._disconnect(new Error('Peer event hub has disconnected due to an "unregister" event'));
-				logger.debug('on.data - unregister event received');
+				logger.info('on.data - unregister event received');
+			}
+			else if (event.Event == 'keep_alive'){
+				logger.info('on.data - keep alive event received');
+				self._keep_alive_response = true;
 			}
 			else {
-				logger.debug('on.data - unknown event %s',event.Event);
+				logger.info('on.data - unknown event %s',event.Event);
 			}
 		});
 
 		this._stream.on('end', function() {
 			self._connect_running = false;
 			clearTimeout(send_timeout);
-			logger.debug('on.end - event stream:%s _current_stream:%s',stream_id, self._current_stream);
+			logger.info('on.end - event stream:%s _current_stream:%s',stream_id, self._current_stream);
 			if(stream_id != self._current_stream) {
-				logger.debug('on.end - incoming event was from a cancel stream');
+				logger.info('on.end - incoming event was from a cancel stream');
 				return;
 			}
 
 			var state = -1;
 			if(self._stream) state = self._stream.call.channel_.getConnectivityState();
-			logger.debug('on.end - grpc stream state :%s',state);
-			self._disconnect(new Error('Peer event hub has disconnected due to an "end" event'));
+			logger.info('on.end - grpc stream state :%s',state);
+			if(self._connected) self._disconnect(new Error('Peer event hub has disconnected due to an "end" event'));
 		});
 
 		this._stream.on('error', function(err) {
 			self._connect_running = false;
 			clearTimeout(send_timeout);
-			logger.debug('on.error - event stream:%s _current_stream:%s',stream_id, self._current_stream);
+			logger.info('on.error - event stream:%s _current_stream:%s',stream_id, self._current_stream);
 			if(stream_id != self._current_stream) {
-				logger.debug('on.error - incoming event was from a cancel stream');
+				logger.info('on.error - incoming event was from a cancel stream');
 				return;
 			}
 
 			var state = -1;
 			if(self._stream) state = self._stream.call.channel_.getConnectivityState();
-			logger.debug('on.error - grpc stream state :%s',state);
+			logger.info('on.error - grpc stream state :%s',state);
 			if(err instanceof Error) {
 				self._disconnect(err);
 			}
@@ -310,8 +365,11 @@ var EventHub = class {
 			}
 		});
 
+		this._activity_received = false;
+		this._keep_alive_response = false;
 		this._sendRegistration(true);
-		logger.debug('_connect - end stream:',stream_id);
+		this._startHeartbeatTimer();
+		logger.info('_connect - end stream:',stream_id);
 	}
 
 	/**
@@ -329,15 +387,17 @@ var EventHub = class {
 	 * all listeners that provided an "onError" callback.
 	 */
 	_disconnect(err) {
-		logger.debug('_disconnect - start -- called due to:: %s',err.message);
+		logger.info('_disconnect - start -- called due to:: %s',err.message);
+		clearTimeout(this._heartbeat_timer); //heartbeat not needed
 		this._connected = false;
 		this._closeAllCallbacks(err);
 		if(this._stream) {
-			logger.debug('_disconnect - shutdown existing stream');
+			logger.info('_disconnect - shutdown existing stream');
 			this._sendRegistration(false);
 			this._stream.end();
 			this._stream = null;
 		}
+		logger.info('_disconnect - end -- called due to:: %s',err.message);
 	}
 
 	/*
@@ -346,6 +406,7 @@ var EventHub = class {
 	 * and sends it to the peer's event hub.
 	 */
 	_sendRegistration(register) {
+		logger.info('_sendRegistration - start -- register:: %s',register);
 		var user = this._clientContext.getUserContext();
 		var signedEvent = new _events.SignedEvent();
 		var event = new _events.Event();
@@ -367,26 +428,45 @@ var EventHub = class {
 
 	/*
 	 * Internal method
+	 * Builds a signed event keep alive
+	 * and sends it to the peer's event hub.
+	 */
+	_sendKeepAlive() {
+		logger.info('_sendKeepAlive - start');
+		var user = this._clientContext.getUserContext();
+		var signedEvent = new _events.SignedEvent();
+		var event = new _events.Event();
+		event.setKeepAlive(Buffer.from('KEEPALIVE'));
+
+		event.setCreator(user.getIdentity().serialize());
+		signedEvent.setEventBytes(event.toBuffer());
+		var sig = user.getSigningIdentity().sign(event.toBuffer());
+		signedEvent.setSignature(Buffer.from(sig));
+		this._stream.write(signedEvent);
+	}
+
+	/*
+	 * Internal method
 	 * Will close out all callbacks
 	 * Sends an error to all registered event "onError" callbacks
 	 */
 	_closeAllCallbacks(err) {
-		logger.debug('_closeAllCallbacks - start');
+		logger.info('_closeAllCallbacks - start');
 
 		var closer = function(list) {
 			for (let key in list) {
 				let cb = list[key];
-				logger.debug('_closeAllCallbacks - closing this callback %s',key);
+				logger.info('_closeAllCallbacks - closing this callback %s',key);
 				cb(err);
 			}
 		};
 
-		logger.debug('_closeAllCallbacks - blockOnErrors %s', Object.keys(this._blockOnErrors).length);
+		logger.info('_closeAllCallbacks - blockOnErrors %s', Object.keys(this._blockOnErrors).length);
 		closer(this._blockOnErrors);
 		this._blockOnEvents = {};
 		this._blockOnErrors = {};
 
-		logger.debug('_closeAllCallbacks - transactionOnErrors %s', Object.keys(this._transactionOnErrors).length);
+		logger.info('_closeAllCallbacks - transactionOnErrors %s', Object.keys(this._transactionOnErrors).length);
 		closer(this._transactionOnErrors);
 		this._transactionOnEvents = {};
 		this._transactionOnErrors = {};
@@ -395,14 +475,14 @@ var EventHub = class {
 		var cc_closer = function(key) {
 			var cbtable = self._chaincodeRegistrants[key];
 			cbtable.forEach(function(cbe) {
-				logger.debug('_closeAllCallbacks - closing this chaincode event ccid:%s eventNameFilter:%s',cbe.ccid, cbe.eventNameFilter);
+				logger.info('_closeAllCallbacks - closing this chaincode event ccid:%s eventNameFilter:%s',cbe.ccid, cbe.eventNameFilter);
 				if(cbe.onError) {
 					cbe.onError(err);
 				}
 			});
 		};
 
-		logger.debug('_closeAllCallbacks - chaincodeRegistrants %s', Object.keys(this._chaincodeRegistrants).length);
+		logger.info('_closeAllCallbacks - chaincodeRegistrants %s', Object.keys(this._chaincodeRegistrants).length);
 		Object.keys(this._chaincodeRegistrants).forEach(cc_closer);
 		this._chaincodeRegistrants = {};
 	}
@@ -412,16 +492,16 @@ var EventHub = class {
 	 * checks for a connection and will restart
 	 */
 	_checkConnection(throw_error, force_reconnect) {
-		logger.debug('_checkConnection - start throw_error %s, force_reconnect %s',throw_error, force_reconnect);
+		logger.info('_checkConnection - start throw_error %s, force_reconnect %s',throw_error, force_reconnect);
 		var state = 0;
 		if(this._stream) {
 			state = this._stream.call.channel_.getConnectivityState();
 		}
 		if(this._connected || this._connect_running) {
-			logger.debug('_checkConnection - this hub %s is connected or trying to connect with stream channel state %s', this._ep.getUrl(), state);
+			logger.info('_checkConnection - this hub %s is connected or trying to connect with stream channel state %s', this._ep.getUrl(), state);
 		}
 		else {
-			logger.debug('_checkConnection - this hub %s is not connected with stream channel state %s', this._ep.getUrl(), state);
+			logger.info('_checkConnection - this hub %s is not connected with stream channel state %s', this._ep.getUrl(), state);
 			if(throw_error && !force_reconnect) {
 				throw new Error('The event hub has not been connected to the event source');
 			}
@@ -431,20 +511,20 @@ var EventHub = class {
 			try {
 				if(this._stream) {
 					var is_paused = this._stream.isPaused();
-					logger.debug('_checkConnection - grpc isPaused :%s',is_paused);
+					logger.info('_checkConnection - grpc isPaused :%s',is_paused);
 					if(is_paused) {
 						this._stream.resume();
-						logger.debug('_checkConnection - grpc resuming ');
+						logger.info('_checkConnection - grpc resuming ');
 					}
 					var state = this._stream.call.channel_.getConnectivityState();
-					logger.debug('_checkConnection - grpc stream state :%s',state);
+					logger.info('_checkConnection - grpc stream state :%s',state);
 					if(state != 2) {
 						// try to reconnect
 						this._connect(true);
 					}
 				}
 				else {
-					logger.debug('_checkConnection - stream was shutdown - will reconnected');
+					logger.info('_checkConnection - stream was shutdown - will reconnected');
 					// try to reconnect
 					this._connect(true);
 				}
@@ -481,7 +561,7 @@ var EventHub = class {
 	 * handle used to unregister (see unregisterChaincodeEvent)
 	 */
 	registerChaincodeEvent(ccid, eventname, onEvent, onError) {
-		logger.debug('registerChaincodeEvent - start');
+		logger.info('registerChaincodeEvent - start');
 		if(!ccid) {
 			throw new Error('Missing "ccid" parameter');
 		}
@@ -519,13 +599,13 @@ var EventHub = class {
 	 * registerChaincodeEvent.
 	 */
 	unregisterChaincodeEvent(cbe) {
-		logger.debug('unregisterChaincodeEvent - start');
+		logger.info('unregisterChaincodeEvent - start');
 		if(!cbe) {
 			throw new Error('Missing "cbe" parameter');
 		}
 		var cbtable = this._chaincodeRegistrants[cbe.ccid];
 		if (!cbtable) {
-			logger.debug('No event registration for ccid %s ', cbe.ccid);
+			logger.info('No event registration for ccid %s ', cbe.ccid);
 			return;
 		}
 		cbtable.delete(cbe);
@@ -555,7 +635,7 @@ var EventHub = class {
 	 * used to unregister (see unregisterBlockEvent)
 	 */
 	registerBlockEvent(onEvent, onError) {
-		logger.debug('registerBlockEvent - start');
+		logger.info('registerBlockEvent - start');
 		if(!onEvent) {
 			throw new Error('Missing "onEvent" parameter');
 		}
@@ -584,7 +664,7 @@ var EventHub = class {
 	 * during registration.
 	 */
 	unregisterBlockEvent(block_registration_number) {
-		logger.debug('unregisterBlockEvent - start  %s',block_registration_number);
+		logger.info('unregisterBlockEvent - start  %s',block_registration_number);
 		if(!block_registration_number) {
 			throw new Error('Missing "block_registration_number" parameter');
 		}
@@ -612,7 +692,7 @@ var EventHub = class {
 	 * event hub is shutdown.
 	 */
 	registerTxEvent(txid, onEvent, onError) {
-		logger.debug('registerTxEvent txid ' + txid);
+		logger.info('registerTxEvent txid ' + txid);
 		if(!txid) {
 			throw new Error('Missing "txid" parameter');
 		}
@@ -639,7 +719,7 @@ var EventHub = class {
 	 * @param txid string transaction id
 	 */
 	unregisterTxEvent(txid) {
-		logger.debug('unregisterTxEvent txid ' + txid);
+		logger.info('unregisterTxEvent txid ' + txid);
 		if(!txid) {
 			throw new Error('Missing "txid" parameter');
 		}
@@ -652,9 +732,9 @@ var EventHub = class {
 	 * @param {object} block protobuf object
 	 */
 	_processBlockOnEvents(block) {
-		logger.debug('_processBlockOnEvents block=%s', block.header.number);
+		logger.info('_processBlockOnEvents block=%s', block.header.number);
 		if(Object.keys(this._blockOnEvents).length == 0) {
-			logger.debug('_processBlockOnEvents - no registered block event "listeners"');
+			logger.info('_processBlockOnEvents - no registered block event "listeners"');
 			return;
 		}
 
@@ -671,22 +751,22 @@ var EventHub = class {
 	 * @param {object} block protobuf object which might contain the tx from the fabric
 	 */
 	_processTxOnEvents(block) {
-		logger.debug('_processTxOnEvents block=%s', block.header.number);
+		logger.info('_processTxOnEvents block=%s', block.header.number);
 		if(Object.keys(this._transactionOnEvents).length == 0) {
-			logger.debug('_processTxOnEvents - no registered transaction event "listeners"');
+			logger.info('_processTxOnEvents - no registered transaction event "listeners"');
 			return;
 		}
 
 		var txStatusCodes = block.metadata.metadata[_common.BlockMetadataIndex.TRANSACTIONS_FILTER];
 
 		for (var index=0; index < block.data.data.length; index++) {
-			logger.debug('_processTxOnEvents - trans index=%s',index);
+			logger.info('_processTxOnEvents - trans index=%s',index);
 			var channel_header = block.data.data[index].payload.header.channel_header;
 			var val_code = convertValidationCode(txStatusCodes[index]);
-			logger.debug('_processTxOnEvents - txid=%s  val_code=%s', channel_header.tx_id, val_code);
+			logger.info('_processTxOnEvents - txid=%s  val_code=%s', channel_header.tx_id, val_code);
 			var cb = this._transactionOnEvents[channel_header.tx_id];
 			if (cb){
-				logger.debug('_processTxOnEvents - about to stream the transaction call back for code=%s tx=%s', val_code, channel_header.tx_id);
+				logger.info('_processTxOnEvents - about to stream the transaction call back for code=%s tx=%s', val_code, channel_header.tx_id);
 				cb(channel_header.tx_id, val_code);
 			}
 		}
@@ -697,14 +777,14 @@ var EventHub = class {
 	 * @param {object} block protobuf object which might contain the chaincode event from the fabric
 	 */
 	_processChainCodeOnEvents(block) {
-		logger.debug('_processChainCodeOnEvents block=%s', block.header.number);
+		logger.info('_processChainCodeOnEvents block=%s', block.header.number);
 		if(Object.keys(this._chaincodeRegistrants).length == 0) {
-			logger.debug('_processChainCodeOnEvents - no registered chaincode event "listeners"');
+			logger.info('_processChainCodeOnEvents - no registered chaincode event "listeners"');
 			return;
 		}
 
 		for (var index=0; index < block.data.data.length; index++) {
-			logger.debug('_processChainCodeOnEvents - trans index=%s',index);
+			logger.info('_processChainCodeOnEvents - trans index=%s',index);
 			try {
 				var env = block.data.data[index];
 				var payload = env.payload;
@@ -715,7 +795,7 @@ var EventHub = class {
 					var propRespPayload = chaincodeActionPayload.action.proposal_response_payload;
 					var caPayload = propRespPayload.extension;
 					var ccEvent = caPayload.events;
-					logger.debug('_processChainCodeOnEvents - ccEvent %s',ccEvent);
+					logger.info('_processChainCodeOnEvents - ccEvent %s',ccEvent);
 					var cbtable = this._chaincodeRegistrants[ccEvent.chaincode_id];
 					if (!cbtable) {
 						return;
