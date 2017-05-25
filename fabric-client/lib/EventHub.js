@@ -146,6 +146,11 @@ var EventHub = class {
 		this._force_reconnect = true;
 		// connect count for this instance
 		this._current_stream = 0;
+		// heartbeat
+		this._heartbeat_timer = null;
+		this._activity_received = false;
+		this._registration_response = false;
+		
 		// reference to the client instance holding critical context such as signing identity
 		if (typeof clientContext === 'undefined' || clientContext === null || clientContext === '')
 			throw new Error('Missing required argument: clientContext');
@@ -157,6 +162,46 @@ var EventHub = class {
 			throw new Error('The clientContext has not been properly initialized, missing userContext');
 
 		this._clientContext = clientContext;
+	}
+
+	/*
+	 * Internal method to manage the heartbeat timer.
+	 * 
+	 * The heartbeat timer will fire on an interval based on the "heartbeat-time" or if
+	 * not set based on the "request-timeout" config setting.
+	 * When the heartbeat timer fires it will check to see if there has been activity
+	 * during this interval, if there has been activity then restart the timer.
+	 * If there has not been activity, check to see if there has been a registration
+	 * response received. If there has been a registration response then make another
+	 * registration and restart the timer. If there has not been a registration response,
+	 * then something is wrong and shutdown this event stream
+	 */
+	_startHeartbeatTimer() {
+		clearTimeout(this._heartbeat_timer);
+		var heartbeat_time = utils.getConfigSetting('heartbeat-time', this._ep._request_timeout);
+		logger.debug('_startHeartbeatTimer -  timer set to:%s',heartbeat_time);
+
+		var self = this;
+		this._heartbeat_timer = setTimeout(() => {
+			logger.debug('heartbeat timer - woke up after:%s', heartbeat_time);
+			if(self._activity_received) {
+				logger.debug('heatbeat timer - event activity has been received');
+				self._activity_received = false;
+				self._startHeartbeatTimer();
+			}
+			else if(self._registration_response) {
+				logger.debug('heatbeat timer - registration response has been received');
+				self._registration_response = false;
+				self._sendRegistration(true);
+
+				// restart timer
+				self._startHeartbeatTimer();
+			}
+			else {
+				logger.debug('heartbeat timer - ********************  send back failures to all callbacks');
+				this._disconnect(new Error('EventHub has been shutdown due to loss of heartbeat'));
+			}
+		}, heartbeat_time);
 	}
 
 	/**
@@ -257,6 +302,7 @@ var EventHub = class {
 			if(self._stream) state = self._stream.call.channel_.getConnectivityState();
 			logger.debug('on.data - grpc stream state :%s',state);
 			if (event.Event == 'block') {
+				self._activity_received = true;
 				var block = BlockDecoder.decodeBlock(event.block);
 				self._processBlockOnEvents(block);
 				self._processTxOnEvents(block);
@@ -265,6 +311,7 @@ var EventHub = class {
 			else if (event.Event == 'register'){
 				logger.debug('on.data - register event received');
 				self._connected = true;
+				self._registration_response = true;
 			}
 			else if (event.Event == 'unregister'){
 				if(self._connected) self._disconnect(new Error('Peer event hub has disconnected due to an "unregister" event'));
@@ -287,7 +334,7 @@ var EventHub = class {
 			var state = -1;
 			if(self._stream) state = self._stream.call.channel_.getConnectivityState();
 			logger.debug('on.end - grpc stream state :%s',state);
-			self._disconnect(new Error('Peer event hub has disconnected due to an "end" event'));
+			if(self._connected) self._disconnect(new Error('Peer event hub has disconnected due to an "end" event'));
 		});
 
 		this._stream.on('error', function(err) {
@@ -310,7 +357,10 @@ var EventHub = class {
 			}
 		});
 
+		this._activity_received = false;
+		this._registration_response = false;
 		this._sendRegistration(true);
+		this._startHeartbeatTimer();
 		logger.debug('_connect - end stream:',stream_id);
 	}
 
@@ -330,6 +380,7 @@ var EventHub = class {
 	 */
 	_disconnect(err) {
 		logger.debug('_disconnect - start -- called due to:: %s',err.message);
+		clearTimeout(this._heartbeat_timer); //heartbeat not needed
 		this._connected = false;
 		this._closeAllCallbacks(err);
 		if(this._stream) {
@@ -338,6 +389,7 @@ var EventHub = class {
 			this._stream.end();
 			this._stream = null;
 		}
+		logger.debug('_disconnect - end -- called due to:: %s',err.message);
 	}
 
 	/*
@@ -346,6 +398,7 @@ var EventHub = class {
 	 * and sends it to the peer's event hub.
 	 */
 	_sendRegistration(register) {
+		logger.debug('_sendRegistration - start -- register:: %s',register);
 		var user = this._clientContext.getUserContext();
 		var signedEvent = new _events.SignedEvent();
 		var event = new _events.Event();
