@@ -34,6 +34,7 @@ enum EventType {
         BLOCK = 1;
 	CHAINCODE = 2;
 	REJECTION = 3;
+	KEEPALIVE = 4;
 }
 
 //ChaincodeReg is used for registering chaincode Interests
@@ -99,9 +100,12 @@ message Event {
 
         //Unregister consumer sent events
         Unregister unregister = 5;
+
+        //Keep alive data , not used currently
+        bytes keep_alive = 6;
     }
     // Creator of the event, specified as a certificate chain
-    bytes creator = 6;
+    bytes creator = 7;
 }
 
 // Interface exported by the events server

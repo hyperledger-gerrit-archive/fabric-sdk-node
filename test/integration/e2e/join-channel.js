@@ -131,7 +131,7 @@ function joinChannel(org, t) {
 
 		return testUtil.getSubmitter(client, t, true /* get peer org admin */, org);
 	}).then((admin) => {
-		t.pass('Successfully enrolled org:' + org + ' \'admin\'');
+		logger.info('Successfully enrolled org:' + org + ' \'admin\'');
 		the_user = admin;
 
 		for (let key in ORGS[org]) {
@@ -147,7 +147,10 @@ function joinChannel(org, t) {
 							}
 						)
 					);
-
+					if(client._userContext && client._userContext._mspId)
+						logger.info(' client %s',client._userContext._mspId);
+					else
+						logger.info(' client is missing the user context%');
 					let eh = client.newEventHub();
 					eh.setPeerAddr(
 						ORGS[org][key].events,
