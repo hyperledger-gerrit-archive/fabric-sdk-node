@@ -20,6 +20,7 @@ var sdkUtils = require('./utils.js');
 process.env.GRPC_SSL_CIPHER_SUITES = sdkUtils.getConfigSetting('grpc-ssl-cipher-suites');
 
 var api = require('./api.js');
+var BaseClient = require('./BaseClient.js');
 var User = require('./User.js');
 var Channel = require('./Channel.js');
 var ChannelConfig = require('./ChannelConfig.js');
@@ -56,75 +57,23 @@ var _queryProto = grpc.load(__dirname + '/protos/peer/query.proto').protos;
  * private ledgers.
  *
  * @class
+ * @extends BaseClient
  *
  */
-var Client = class {
+var Client = class extends BaseClient {
 
 	constructor() {
+		super();
+
 		logger.debug('const - new Client');
 		this._channels = {};
 		this._stateStore = null;
-		this._cryptoSuite = null;
 		this._userContext = null;
 		// keep a collection of MSP's
 		this._msps = new Map();
 
 		// Is in dev mode or network mode
 		this._devMode = false;
-	}
-
-	/**
-	 * Returns a new instance of the CryptoSuite API implementation.
-	 *
-	 * Creating a new CryptoSuite is optional and should be used if options other than defaults are needed.
-	 *
-	 * If not specified, an instance of {@link CryptoSuite} will be constructed based on the current configuration settings:
-	 * <br> - crypto-hsm: use an implementation for Hardware Security Module (if set to true) or software-based key management (if set to false)
-	 * <br> - crypto-keysize: security level, or key size, to use with the digital signature public key algorithm. Currently ECDSA
-	 *  is supported and the valid key sizes are 256 and 384
-	 * <br> - crypto-hash-algo: hashing algorithm
-	 * <br> - key-value-store: some CryptoSuite implementation requires a key store to persist private keys. A {@link CryptoKeyStore}
-	 *  is provided for this purpose, which can be used on top of any implementation of the {@link KeyValueStore} interface,
-	 *  such as a file-based store or a database-based one. The specific implementation is determined by the value of this configuration setting.
-	 *
-	 * @param {object} setting This optional parameter is an object with the following optional properties:
-	 * <br> - software {boolean}: Whether to load a software-based implementation (true) or HSM implementation (false)
-   	 *    default is true (for software based implementation), specific implementation module is specified
-	 *    in the setting 'crypto-suite-software'
-	 * <br> - keysize {number}: The key size to use for the crypto suite instance. default is value of the setting 'crypto-keysize'
-	 * <br> - algorithm {string}: Digital signature algorithm, currently supporting ECDSA only with value "EC"
-	 * <br> - hash {string}: 'SHA2' or 'SHA3'
-	 * @returns a new instance of the CryptoSuite API implementation
-	 */
-	newCryptoSuite(setting) {
-		this._cryptoSuite = sdkUtils.newCryptoSuite(setting);
-		return this._cryptoSuite;
-	}
-
-	setCryptoSuite(cryptoSuite) {
-		this._cryptoSuite = cryptoSuite;
-	}
-
-	getCryptoSuite() {
-		return this._cryptoSuite;
-	}
-
-	/**
-	 * Returns a new instance of the CryptoKeyStore.
-	 *
-	 * When the application needs to use a key store other than the default,
-	 * it should create a new CryptoKeyStore and set it on the CryptoSuite.
-	 *
-	 * <br><br><code>cryptosuite.setCryptoKeyStore(client.newCryptoKeyStore(KVSImplClass, opts))</code>
-	 *
-	 * @param {function} KVSImplClass Optional. The built-in key store saves private keys. The key store may be backed by different
-	 * {@link KeyValueStore} implementations. If specified, the value of the argument must point to a module implementing the
-	 * KeyValueStore interface.
-	 * @param {object} opts Implementation-specific option object used in the constructor
-	 * @returns a new instance of the CryptoKeystore
-	 */
-	newCryptoKeyStore (KVSImplClass, opts) {
-		return sdkUtils.newCryptoKeyStore(KVSImplClass, opts);
 	}
 
 	/**
@@ -997,10 +946,10 @@ var Client = class {
 					if (memberStr) {
 						// The member was found in the key value store, so restore the state.
 						var newUser = new User(name);
-						if (!self._cryptoSuite) {
+						if (!self.getCryptoSuite()) {
 							logger.info('loadUserFromStateStore, cryptoSuite is not set, will load using defaults');
 						}
-						newUser.setCryptoSuite(self._cryptoSuite);
+						newUser.setCryptoSuite(self.getCryptoSuite());
 
 						return newUser.fromString(memberStr);
 					} else {
@@ -1077,12 +1026,12 @@ var Client = class {
 			return Promise.reject(new Error('Client.createUser parameter \'opts cryptoContent\' is required.'));
 		}
 
-		if (this._cryptoSuite == null) {
+		if (this.getCryptoSuite() == null) {
 			logger.debug('cryptoSuite is null, creating default cryptoSuite and cryptoKeyStore');
-			this._cryptoSuite = sdkUtils.newCryptoSuite();
-			this._cryptoSuite.setCryptoKeyStore(this.newCryptoKeyStore());
+			this.setCryptoSuite(sdkUtils.newCryptoSuite());
+			this.getCryptoSuite().setCryptoKeyStore(Client.newCryptoKeyStore());
 		} else {
-			if (this._cryptoSuite._cryptoKeyStore) logger.debug('cryptoSuite has a cryptoKeyStore');
+			if (this.getCryptoSuite()._cryptoKeyStore) logger.debug('cryptoSuite has a cryptoKeyStore');
 			else logger.info('cryptoSuite does not have a cryptoKeyStore');
 		}
 
@@ -1108,7 +1057,7 @@ var Client = class {
 			promise.then((data) => {
 				if (data) {
 					logger.debug('then privateKeyPEM data');
-					return self._cryptoSuite.importKey(data.toString());
+					return self.getCryptoSuite().importKey(data.toString());
 				} else {
 					throw new Error('failed to load private key data');
 				}
@@ -1125,7 +1074,7 @@ var Client = class {
 			}).then((data) => {
 				logger.debug('then signedCertPEM data');
 				member = new User(opts.username);
-				member.setCryptoSuite(self._cryptoSuite);
+				member.setCryptoSuite(self.getCryptoSuite());
 				return member.setEnrollment(importedKey, data.toString(), opts.mspid);
 			}).then(() => {
 				logger.debug('then setUserContext');
@@ -1138,20 +1087,6 @@ var Client = class {
 				return reject(new Error('Failed to load key or certificate and save to local stores.'));
 			});
 		});
-	}
-
-	/**
-	 * Obtains an instance of the [KeyValueStore]{@link module:api.KeyValueStore} class. By default
-	 * it returns the built-in implementation, which is based on files ([FileKeyValueStore]{@link module:api.FileKeyValueStore}).
-	 * This can be overriden with an environment variable KEY_VALUE_STORE, the value of which is the
-	 * full path of a CommonJS module for the alternative implementation.
-	 *
-	 * @param {Object} options is whatever the implementation requires for initializing the instance. For the built-in
-	 * file-based implementation, this requires a single property "path" to the top-level folder for the store
-	 * @returns [KeyValueStore]{@link module:api.KeyValueStore} an instance of the KeyValueStore implementation
-	 */
-	static newDefaultKeyValueStore(options) {
-		return sdkUtils.newKeyValueStore(options);
 	}
 
 	/**

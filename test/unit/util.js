@@ -22,7 +22,7 @@ var util = require('util');
 var jsrsa = require('jsrsasign');
 var KEYUTIL = jsrsa.KEYUTIL;
 
-var hfc = require('fabric-client');
+var Client = require('fabric-client');
 var copService = require('fabric-ca-client/lib/FabricCAClientImpl.js');
 var User = require('fabric-client/lib/User.js');
 var CryptoSuite = require('fabric-client/lib/impl/CryptoSuite_ECDSA_AES.js');
@@ -106,8 +106,8 @@ module.exports.existsSync = function(absolutePath /*string*/) {
 
 module.exports.readFile = readFile;
 
-hfc.addConfigFile(path.join(__dirname, '../integration/e2e/config.json'));
-var ORGS = hfc.getConfigSetting('test-network');
+Client.addConfigFile(path.join(__dirname, '../integration/e2e/config.json'));
+var ORGS = Client.getConfigSetting('test-network');
 
 var	tlsOptions = {
 	trustedRoots: [],
@@ -128,9 +128,9 @@ function getMember(username, password, client, t, userOrg) {
 			}
 
 			var member = new User(username);
-			var cryptoSuite = client.newCryptoSuite();
+			var cryptoSuite = Client.newCryptoSuite();
 			if (userOrg) {
-				cryptoSuite.setCryptoKeyStore(client.newCryptoKeyStore({path: module.exports.storePathForOrg(ORGS[userOrg].name)}));
+				cryptoSuite.setCryptoKeyStore(Client.newCryptoKeyStore({path: module.exports.storePathForOrg(ORGS[userOrg].name)}));
 				client.setCryptoSuite(cryptoSuite);
 			}
 			member.setCryptoSuite(cryptoSuite);
@@ -163,9 +163,9 @@ function getAdmin(client, t, userOrg) {
 	var certPath = path.join(__dirname, util.format('../fixtures/channel/crypto-config/peerOrganizations/%s.example.com/users/Admin@%s.example.com/signcerts', userOrg, userOrg));
 	var certPEM = readAllFiles(certPath)[0];
 
-	var cryptoSuite = client.newCryptoSuite();
+	var cryptoSuite = Client.newCryptoSuite();
 	if (userOrg) {
-		cryptoSuite.setCryptoKeyStore(client.newCryptoKeyStore({path: module.exports.storePathForOrg(ORGS[userOrg].name)}));
+		cryptoSuite.setCryptoKeyStore(Client.newCryptoKeyStore({path: module.exports.storePathForOrg(ORGS[userOrg].name)}));
 		client.setCryptoSuite(cryptoSuite);
 	}
 

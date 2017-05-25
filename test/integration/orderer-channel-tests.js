@@ -32,15 +32,15 @@ var path = require('path');
 
 var testUtil = require('../unit/util.js');
 
-var hfc = require('fabric-client');
+var Client = require('fabric-client');
 var Orderer = require('fabric-client/lib/Orderer.js');
 var Channel = require('fabric-client/lib/Channel.js');
 
 var keyValStorePath = testUtil.KVS;
-hfc.addConfigFile(path.join(__dirname, 'e2e', 'config.json'));
-var ORGS = hfc.getConfigSetting('test-network');
+Client.addConfigFile(path.join(__dirname, 'e2e', 'config.json'));
+var ORGS = Client.getConfigSetting('test-network');
 
-var client = new hfc();
+var client = new Client();
 
 //
 // Orderer via member missing orderer
@@ -57,7 +57,7 @@ test('\n\n** TEST ** orderer via member missing orderer', function(t) {
 	//
 	var channel = client.newChannel('testChannel-orderer-member2');
 
-	hfc.newDefaultKeyValueStore({
+	Client.newDefaultKeyValueStore({
 		path: testUtil.KVS
 	}).then((store) => {
 		client.setStateStore(store);

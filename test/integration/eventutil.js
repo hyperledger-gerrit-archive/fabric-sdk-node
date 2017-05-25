@@ -16,7 +16,6 @@
 
 'use strict';
 
-var hfc = require('fabric-client');
 var utils = require('fabric-client/lib/utils.js');
 
 module.exports.registerTxEvent = function(eh, txid, timeout) {

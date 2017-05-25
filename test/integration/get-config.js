@@ -32,7 +32,7 @@ var path = require('path');
 var fs = require('fs');
 var util = require('util');
 
-var hfc = require('fabric-client');
+var Client = require('fabric-client');
 var testUtil = require('../unit/util.js');
 var Peer = require('fabric-client/lib/Peer.js');
 var Orderer = require('fabric-client/lib/Orderer.js');
@@ -48,11 +48,11 @@ var _responseProto = grpc.load(__dirname + '/../../fabric-client/lib/protos/peer
 var _ccProposalProto = grpc.load(__dirname + '/../../fabric-client/lib/protos/peer/proposal.proto').protos;
 var _ccEventProto = grpc.load(__dirname + '/../../fabric-client/lib/protos/peer/chaincode_event.proto').protos;
 
-var client = new hfc();
+var client = new Client();
 // IMPORTANT ------>>>>> MUST RUN e2e/create-channel.js FIRST
 var channel = client.newChannel(testUtil.END2END.channel);
-hfc.addConfigFile(path.join(__dirname, 'e2e', 'config.json'));
-var ORGS = hfc.getConfigSetting('test-network');
+Client.addConfigFile(path.join(__dirname, 'e2e', 'config.json'));
+var ORGS = Client.getConfigSetting('test-network');
 
 var caRootsPath = ORGS.orderer.tls_cacerts;
 let data = fs.readFileSync(path.join(__dirname, 'e2e', caRootsPath));
@@ -98,12 +98,12 @@ logger.info('Found query: %s', querys);
 testUtil.setupChaincodeDeploy();
 
 test('  ---->>>>> get config <<<<<-----', function(t) {
-	hfc.newDefaultKeyValueStore({
+	Client.newDefaultKeyValueStore({
 		path: testUtil.storePathForOrg(orgName)
 	}).then( function (store) {
 		client.setStateStore(store);
-		var cryptoSuite = client.newCryptoSuite();
-		cryptoSuite.setCryptoKeyStore(client.newCryptoKeyStore({path: testUtil.storePathForOrg(orgName)}));
+		var cryptoSuite = Client.newCryptoSuite();
+		cryptoSuite.setCryptoKeyStore(Client.newCryptoKeyStore({path: testUtil.storePathForOrg(orgName)}));
 		client.setCryptoSuite(cryptoSuite);
 
 		testUtil.getSubmitter(client, t, org)
