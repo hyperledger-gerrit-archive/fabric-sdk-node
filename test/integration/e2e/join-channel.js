@@ -166,7 +166,7 @@ function joinChannel(org, t) {
 		var eventPromises = [];
 		eventhubs.forEach((eh) => {
 			let txPromise = new Promise((resolve, reject) => {
-				let handle = setTimeout(reject, 30000);
+				let handle = setTimeout(reject, 60000);
 
 				eh.registerBlockEvent((block) => {
 					clearTimeout(handle);
