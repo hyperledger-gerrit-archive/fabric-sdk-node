@@ -27,7 +27,6 @@ var tape = require('tape');
 var _test = require('tape-promise');
 var test = _test(tape);
 
-var hfc = require('fabric-client');
 var Channel = require('fabric-client/lib/Channel.js');
 
 var grpc = require('grpc');

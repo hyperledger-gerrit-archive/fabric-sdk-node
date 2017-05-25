@@ -7,6 +7,7 @@ const DEPS = [
 	'fabric-client/lib/api.js',
 	'fabric-client/lib/hash.js',
 	'fabric-client/lib/utils.js',
+	'fabric-client/lib/BaseClient.js',
 	'fabric-client/lib/Config.js',
 	'fabric-client/lib/Remote.js',
 	'fabric-client/lib/impl/CouchDBKeyValueStore.js',

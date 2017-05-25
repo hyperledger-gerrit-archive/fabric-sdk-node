@@ -48,8 +48,8 @@ function installChaincode(org, chaincode_path, version, t) {
 	var channel = client.newChannel(channel_name);
 
 	var orgName = ORGS[org].name;
-	var cryptoSuite = client.newCryptoSuite();
-	cryptoSuite.setCryptoKeyStore(client.newCryptoKeyStore({path: testUtil.storePathForOrg(orgName)}));
+	var cryptoSuite = Client.newCryptoSuite();
+	cryptoSuite.setCryptoKeyStore(Client.newCryptoKeyStore({path: testUtil.storePathForOrg(orgName)}));
 	client.setCryptoSuite(cryptoSuite);
 
 	var caRootsPath = ORGS.orderer.tls_cacerts;
@@ -169,8 +169,8 @@ function instantiateChaincode(userOrg, chaincode_path, version, upgrade, t){
 	var channel = client.newChannel(channel_name);
 
 	var orgName = ORGS[userOrg].name;
-	var cryptoSuite = client.newCryptoSuite();
-	cryptoSuite.setCryptoKeyStore(client.newCryptoKeyStore({path: testUtil.storePathForOrg(orgName)}));
+	var cryptoSuite = Client.newCryptoSuite();
+	cryptoSuite.setCryptoKeyStore(Client.newCryptoKeyStore({path: testUtil.storePathForOrg(orgName)}));
 	client.setCryptoSuite(cryptoSuite);
 
 	var caRootsPath = ORGS.orderer.tls_cacerts;
@@ -468,9 +468,9 @@ function invokeChaincode(userOrg, version, t, useStore){
 	var channel = client.newChannel(channel_name);
 
 	var orgName = ORGS[userOrg].name;
-	var cryptoSuite = client.newCryptoSuite();
+	var cryptoSuite = Client.newCryptoSuite();
 	if (useStore) {
-		cryptoSuite.setCryptoKeyStore(client.newCryptoKeyStore({path: testUtil.storePathForOrg(orgName)}));
+		cryptoSuite.setCryptoKeyStore(Client.newCryptoKeyStore({path: testUtil.storePathForOrg(orgName)}));
 		client.setCryptoSuite(cryptoSuite);
 	}
 
@@ -706,8 +706,8 @@ function queryChaincode(org, version, value, t, transientMap) {
 	var channel = client.newChannel(channel_name);
 
 	var orgName = ORGS[org].name;
-	var cryptoSuite = client.newCryptoSuite();
-	cryptoSuite.setCryptoKeyStore(client.newCryptoKeyStore({path: testUtil.storePathForOrg(orgName)}));
+	var cryptoSuite = Client.newCryptoSuite();
+	cryptoSuite.setCryptoKeyStore(Client.newCryptoKeyStore({path: testUtil.storePathForOrg(orgName)}));
 	client.setCryptoSuite(cryptoSuite);
 
 	var targets = [];

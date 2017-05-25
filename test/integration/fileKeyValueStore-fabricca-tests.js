@@ -28,14 +28,13 @@ var testUtil = require('../unit/util.js');
 var fs = require('fs-extra');
 
 var path = require('path');
-var hfc = require('fabric-client');
+var Client = require('fabric-client');
 
-var Client = hfc;
 var User = require('fabric-client/lib/User.js');
 var FabricCAServices = require('fabric-ca-client/lib/FabricCAClientImpl');
 
-hfc.addConfigFile(path.join(__dirname, 'e2e', 'config.json'));
-var ORGS = hfc.getConfigSetting('test-network');
+Client.addConfigFile(path.join(__dirname, 'e2e', 'config.json'));
+var ORGS = Client.getConfigSetting('test-network');
 var userOrg = 'org1';
 
 var fabricCAEndpoint = ORGS[userOrg].ca.url;
@@ -51,7 +50,7 @@ test('Use FabricCAServices with a File KeyValueStore', function(t) {
 	utils.setConfigSetting('crypto-keysize', 256);
 	utils.setConfigSetting('key-value-store','fabric-client/lib/impl/FileKeyValueStore.js');
 
-	var keyValueStore = hfc.getConfigSetting('key-value-store');
+	var keyValueStore = Client.getConfigSetting('key-value-store');
 	logger.info('File Key Value Store = ' + keyValueStore);
 	var keyValStorePath = path.join(testUtil.getTempDir(), 'customKeyValStorePath');
 	logger.info('keyValStorePath: '+keyValStorePath);
@@ -75,8 +74,8 @@ test('Use FabricCAServices with a File KeyValueStore', function(t) {
 		function(kvs) {
 
 			member = new User('admin2');
-			cryptoSuite = client.newCryptoSuite();
-			cryptoSuite.setCryptoKeyStore(client.newCryptoKeyStore({path: keyValStorePath}));
+			cryptoSuite = Client.newCryptoSuite();
+			cryptoSuite.setCryptoKeyStore(Client.newCryptoKeyStore({path: keyValStorePath}));
 			member.setCryptoSuite(cryptoSuite);
 
 			t.comment('Setting client keyValueStore to: ' +kvs);
