@@ -33,8 +33,7 @@ var testUtil = require('../../unit/util.js');
 var the_user = null;
 var tx_id = null;
 
-Client.addConfigFile(path.join(__dirname, './config.json'));
-var ORGS = Client.getConfigSetting('test-network');
+var ORGS;
 
 var allEventhubs = [];
 
@@ -42,6 +41,9 @@ var allEventhubs = [];
 //Attempt to send a request to the orderer with the createChannel method
 //
 test('\n\n***** End-to-end flow: join channel *****\n\n', function(t) {
+	Client.addConfigFile(path.join(__dirname, './config.json'));
+	ORGS = Client.getConfigSetting('test-network');
+
 	// override t.end function so it'll always disconnect the event hub
 	t.end = ((context, ehs, f) => {
 		return function() {
@@ -203,7 +205,7 @@ function joinChannel(org, t) {
 		throw new Error('Failed to enroll user \'admin\' due to error: ' + err.stack ? err.stack : err);
 	})
 	.then((results) => {
-		t.comment(util.format('Join Channel R E S P O N S E : %j', results));
+		logger.debug(util.format('Join Channel R E S P O N S E : %j', results));
 
 		if(results[0] && results[0][0] && results[0][0].response && results[0][0].response.status == 200) {
 			t.pass(util.format('Successfully joined peers in organization %s to join the channel', orgName));

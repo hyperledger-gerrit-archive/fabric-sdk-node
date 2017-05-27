@@ -24,8 +24,6 @@ var hfc = require('fabric-client');
 var testutil = require('./util.js');
 var utils = require('fabric-client/lib/utils.js');
 
-testutil.resetDefaults();
-
 var bunyan = require('bunyan');
 var log4js = require('log4js');
 var intercept = require('intercept-stdout');
@@ -35,6 +33,8 @@ var path = require('path');
 
 // Logger tests /////////
 function testLogger(t, ignoreLevels) {
+	testutil.resetDefaults();
+
 	var output = '';
 
 	let unhook = intercept(function (txt) {

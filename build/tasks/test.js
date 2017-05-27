@@ -4,6 +4,7 @@ var gulp = require('gulp');
 var tape = require('gulp-tape');
 var tapColorize = require('tap-colorize');
 var istanbul = require('gulp-istanbul');
+var addsrc = require('gulp-add-src');
 
 var fs = require('fs-extra');
 var os = require('os');
@@ -47,16 +48,17 @@ gulp.task('test', ['clean-up', 'lint', 'docker-clean', 'pre-test', 'ca'], functi
 		'test/unit/**/*.js',
 		'!test/unit/constants.js',
 		'!test/unit/util.js',
+		'!test/unit/logger.js',
+		'test/integration/e2e.js',
+		'test/integration/query.js',
 		'test/integration/fabric-ca-services-tests.js',
 		'test/integration/client.js',
 		'test/integration/orderer-channel-tests.js',
 		'test/integration/cloudant-fabricca-tests.js',
 		'test/integration/couchdb-fabricca-tests.js',
 		'test/integration/fileKeyValueStore-fabricca-tests.js',
-		'test/integration/e2e.js',
 		'test/integration/install.js',
 		'test/integration/events.js',
-		'test/integration/query.js',
 		'test/integration/upgrade.js',
 		'test/integration/new-channel.js',
 		'test/integration/get-config.js',
@@ -67,6 +69,9 @@ gulp.task('test', ['clean-up', 'lint', 'docker-clean', 'pre-test', 'ca'], functi
 		'test/integration/e2e/query.js',
 		'test/integration/grpc.js'
 	]))
+	.pipe(addsrc.append(
+		'test/unit/logger.js' // put this to the last so the debugging levels are not mixed up
+	))
 	.pipe(tape({
 		reporter: tapColorize()
 	}))
@@ -86,7 +91,11 @@ gulp.task('test-headless', ['clean-up', 'lint', 'pre-test', 'ca'], function() {
 		'test/unit/**/*.js',
 		'!test/unit/constants.js',
 		'!test/unit/util.js',
+		'!test/unit/logger.js'
 	]))
+	.pipe(addsrc.append(
+		'test/unit/logger.js' // put this to the last so the debugging levels are not mixed up
+	))
 	.pipe(tape({
 		reporter: tapColorize()
 	}))
