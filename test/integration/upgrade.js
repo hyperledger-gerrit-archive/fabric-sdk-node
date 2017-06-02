@@ -168,6 +168,7 @@ function checkResults(results, error_snip, t) {
 	var proposalResponses = results[0];
 	for(var i in proposalResponses) {
 		let proposal_response = proposalResponses[i];
+		t.comment(' checkResults :: '+ proposal_response.toString());
 		if(proposal_response instanceof Error) {
 			logger.info(' Got the error ==>%s<== when looking for %s', proposal_response,error_snip);
 			if(proposal_response.toString().indexOf(error_snip) > 0) {
