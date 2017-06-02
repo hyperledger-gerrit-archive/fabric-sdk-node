@@ -1,0 +1,7 @@
+Verified+1: Hyperledger Jobbuilder <jobbuilder@jenkins.hyperledger.org>
+Code-Review+2: Artem Barger <bartem@il.ibm.com>
+Submitted-by: Christopher Ferris <chris.ferris@gmail.com>
+Submitted-at: Fri, 02 Jun 2017 01:04:46 +0000
+Reviewed-on: http://gerrit.hyperledger.org/r/10043
+Project: fabric-sdk-node
+Branch: refs/heads/master
