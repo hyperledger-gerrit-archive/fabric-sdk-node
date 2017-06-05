@@ -22,6 +22,7 @@ var fs = require('fs-extra');
 var crypto = require('crypto');
 var path = require('path');
 var os = require('os');
+var settle = require('promise-settle');
 var Config = require('./Config.js');
 
 //
