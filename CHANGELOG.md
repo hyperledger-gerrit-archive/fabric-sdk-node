@@ -1,3 +1,51 @@
+## v1.0.0-beta
+Thu Jun  8 07:11:33 EDT 2017
+
+* [edbf91d](https://github.com/hyperledger/fabric/commit/edbf91d) [FAB-4393](https://jira.hyperledger.org/browse/FAB-4393) release notes for 1.0.0-beta
+* [7d62c53](https://github.com/hyperledger/fabric/commit/7d62c53) [FAB-4284](https://jira.hyperledger.org/browse/FAB-4284) - Fix link to CA Overview
+* [1b2930c](https://github.com/hyperledger/fabric/commit/1b2930c) [FAB-4283](https://jira.hyperledger.org/browse/FAB-4283) NodeSDK clean up
+* [7358d0c](https://github.com/hyperledger/fabric/commit/7358d0c) [FAB-1592](https://jira.hyperledger.org/browse/FAB-1592) Delete marbles.js from integration test
+* [de5a980](https://github.com/hyperledger/fabric/commit/de5a980) [FAB-4374](https://jira.hyperledger.org/browse/FAB-4374) NodeSDK - block decode return bytes
+* [5d158e8](https://github.com/hyperledger/fabric/commit/5d158e8) [FAB-2787](https://jira.hyperledger.org/browse/FAB-2787) NodeSDK - Client timeout
+* [63ea71d](https://github.com/hyperledger/fabric/commit/63ea71d) [FAB-4226](https://jira.hyperledger.org/browse/FAB-4226) Upgrade example app to beta level
+* [af194a8](https://github.com/hyperledger/fabric/commit/af194a8) [FAB-4306](https://jira.hyperledger.org/browse/FAB-4306) signatures not able to save
+* [f306afe](https://github.com/hyperledger/fabric/commit/f306afe) [FAB-4131](https://jira.hyperledger.org/browse/FAB-4131) Enhance FabricCAClientImpl with persistence
+* [335f587](https://github.com/hyperledger/fabric/commit/335f587) [FAB-4308](https://jira.hyperledger.org/browse/FAB-4308) add missing CCBY license to docs
+* [a494295](https://github.com/hyperledger/fabric/commit/a494295) [FAB-2991](https://jira.hyperledger.org/browse/FAB-2991) Improve query interfaces
+* [4b6bd7a](https://github.com/hyperledger/fabric/commit/4b6bd7a) [FAB-4238](https://jira.hyperledger.org/browse/FAB-4238) install chaincode e2e test
+* [ad807b3](https://github.com/hyperledger/fabric/commit/ad807b3) [FAB-4191](https://jira.hyperledger.org/browse/FAB-4191) Remove --peer-defaultchain from compose
+* [e5f04ef](https://github.com/hyperledger/fabric/commit/e5f04ef) [FAB-4187](https://jira.hyperledger.org/browse/FAB-4187) Clean up unit test of sdk-node
+* [68f7c04](https://github.com/hyperledger/fabric/commit/68f7c04) [FAB-3693](https://jira.hyperledger.org/browse/FAB-3693) Fix channel creation in new-channel.js
+* [c856573](https://github.com/hyperledger/fabric/commit/c856573) [FAB-4165](https://jira.hyperledger.org/browse/FAB-4165) Fix gulp test to remove chaincode containers
+* [123e595](https://github.com/hyperledger/fabric/commit/123e595) [FAB-4160](https://jira.hyperledger.org/browse/FAB-4160) NodeSDK - remove SDK channel create
+* [183a619](https://github.com/hyperledger/fabric/commit/183a619) [FAB-4094](https://jira.hyperledger.org/browse/FAB-4094) Enable state-store-less-ness
+* [959d99f](https://github.com/hyperledger/fabric/commit/959d99f) [FAB-4145](https://jira.hyperledger.org/browse/FAB-4145) intermittent e2e failure in fabric verify
+* [105d16c](https://github.com/hyperledger/fabric/commit/105d16c) [FAB-4145](https://jira.hyperledger.org/browse/FAB-4145) intermittent e2e failure in fabric verify
+* [bfdb8e5](https://github.com/hyperledger/fabric/commit/bfdb8e5) [FAB-4145](https://jira.hyperledger.org/browse/FAB-4145) intermittent e2e failure in fabric verify
+* [c899119](https://github.com/hyperledger/fabric/commit/c899119) [FAB-2843](https://jira.hyperledger.org/browse/FAB-2843) NodeSDK - Handle network issues Part 2
+* [ef61a8b](https://github.com/hyperledger/fabric/commit/ef61a8b) [FAB-3253](https://jira.hyperledger.org/browse/FAB-3253) Should attempt to load bccsp_pkcs11
+* [9d3de19](https://github.com/hyperledger/fabric/commit/9d3de19) [FAB-4075](https://jira.hyperledger.org/browse/FAB-4075) Change APIs and code from Chain to Channel
+* [392dd9f](https://github.com/hyperledger/fabric/commit/392dd9f) [FAB-2864](https://jira.hyperledger.org/browse/FAB-2864) Replace hashtable module
+* [3ff53c4](https://github.com/hyperledger/fabric/commit/3ff53c4) node-SDK [FAB-2637](https://jira.hyperledger.org/browse/FAB-2637) assign PKCS11 libpath based on search
+* [96b1b9f](https://github.com/hyperledger/fabric/commit/96b1b9f) [FAB-4014](https://jira.hyperledger.org/browse/FAB-4014) Remove chaincode version from invoke
+* [6778314](https://github.com/hyperledger/fabric/commit/6778314) [FAB-3829](https://jira.hyperledger.org/browse/FAB-3829) Remove storekey param in cryptoSuite importKey
+* [a01f72f](https://github.com/hyperledger/fabric/commit/a01f72f) [FAB-4054](https://jira.hyperledger.org/browse/FAB-4054) consolidate ca launch params
+* [c3b5cb9](https://github.com/hyperledger/fabric/commit/c3b5cb9) [FAB-3568](https://jira.hyperledger.org/browse/FAB-3568) NodeSDK - Remove nonce requirement
+* [33fb2b0](https://github.com/hyperledger/fabric/commit/33fb2b0) [FAB-4019](https://jira.hyperledger.org/browse/FAB-4019) Add newCryptoKeyStore to FabricCAClientImpl
+* [9541aa4](https://github.com/hyperledger/fabric/commit/9541aa4) [FAB-2819](https://jira.hyperledger.org/browse/FAB-2819) Tutorial for app dev environment setup
+* [696da1f](https://github.com/hyperledger/fabric/commit/696da1f) [FAB-4000](https://jira.hyperledger.org/browse/FAB-4000) balance-transasfer README corrections
+* [88c0de6](https://github.com/hyperledger/fabric/commit/88c0de6) [FAB-3862](https://jira.hyperledger.org/browse/FAB-3862) Remove getRoles from Peer
+* [6d5751a](https://github.com/hyperledger/fabric/commit/6d5751a) [FAB-3881](https://jira.hyperledger.org/browse/FAB-3881)  Remove local key store from Crypto
+* [4506da9](https://github.com/hyperledger/fabric/commit/4506da9) [FAB-2843](https://jira.hyperledger.org/browse/FAB-2843) NodeSDK - Handle network issues part1
+* [4b5a9b5](https://github.com/hyperledger/fabric/commit/4b5a9b5) [FAB-2726](https://jira.hyperledger.org/browse/FAB-2726) transform windows-style paths in CC package
+* [5f3ebc8](https://github.com/hyperledger/fabric/commit/5f3ebc8) [FAB-3945](https://jira.hyperledger.org/browse/FAB-3945) Remove chainId from required params
+* [67364a3](https://github.com/hyperledger/fabric/commit/67364a3) [FAB-3944](https://jira.hyperledger.org/browse/FAB-3944) renaming Chain.getOrganizationUnits()
+* [c8706f9](https://github.com/hyperledger/fabric/commit/c8706f9) [FAB-3943](https://jira.hyperledger.org/browse/FAB-3943) Remove TCert methods from API
+* [8846c0e](https://github.com/hyperledger/fabric/commit/8846c0e) [FAB-3935](https://jira.hyperledger.org/browse/FAB-3935) Add README to Balance-transfer sample
+* [8e0c434](https://github.com/hyperledger/fabric/commit/8e0c434) Prepase for alpha2 development
+* [6e1d2a5](https://github.com/hyperledger/fabric/commit/6e1d2a5) [FAB-3886](https://jira.hyperledger.org/browse/FAB-3886) Reduce steps to run gulp test
+* [38eda84](https://github.com/hyperledger/fabric/commit/38eda84) [FAB-3868](https://jira.hyperledger.org/browse/FAB-3868) NodeSDK - update proto files to latest
+
 ## v1.0.0-alpha.1 April, 28 2017
 
 * [7eaa632](https://github.com/hyperledger/fabric/commit/7eaa632) [FAB-3492](https://jira.hyperledger.org/browse/FAB-3492) Do not allow grpc 1.3.0 or greater
