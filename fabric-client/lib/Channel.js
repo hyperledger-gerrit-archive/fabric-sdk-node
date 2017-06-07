@@ -989,8 +989,6 @@ var Channel = class {
 	 *                      this parameter is omitted.
 	 *		<br>`chaincodeType` : optional -- Type of chaincode ['golang', 'car', 'java']
 	 *                            (default 'golang')
-	 *		<br>`chaincodePath` : required - String of the path to location of
-	 *                            the source code of the chaincode
 	 *		<br>`chaincodeId` : required - String of the name of the chaincode
 	 *		<br>`chaincodeVersion` : required - String of the version of the chaincode
 	 *		<br>`txId` : required -  {@link TransactionID} object with the transaction id and nonce
@@ -1044,8 +1042,6 @@ var Channel = class {
 	 *                      targets of the request
 	 *		<br>`chaincodeType` : optional -- Type of chaincode ['golang', 'car', 'java']
 	 *                            (default 'golang')
-	 *		<br>`chaincodePath` : required - String of the path to location of
-	 *                            the source code of the chaincode
 	 *		<br>`chaincodeId` : required - String of the name of the chaincode
 	 *		<br>`chaincodeVersion` : required - String of the version of the chaincode
 	 *		<br>`txId` : required -  {@link TransactionID} object with the transaction id and nonce
