@@ -199,16 +199,17 @@ test('Test chaincode instantiate with event, transaction invocation with chainco
 		return client.installChaincode(request);
 	}).then((results) => {
 		if ( eputil.checkProposal(results)) {
+			t.pass('Successfully endorsed the installed chaincode proposal');
 			// read the config block from the orderer for the channel
 			// and initialize the verify MSPs based on the participating
 			// organizations
 			return channel.initialize();
 		} else {
-			return Promise.reject('bad install proposal:' + results);
+			t.fail(' Failed to install install chaincode');
+			return Promise.reject('failed to endorse the install chaincode proposal:' + results);
 		}
 	}, (err) => {
-		t.comment(err);
-		t.fail(err);//Failed to initialize the channel or bad install proposal
+		t.fail('Failed to install chaincode '+ err);
 		t.end();
 	}).then((success) => {
 		t.pass('Successfully initialized the channel');
@@ -217,12 +218,18 @@ test('Test chaincode instantiate with event, transaction invocation with chainco
 		request.chaincodeVersion = chaincode_version;
 		return channel.sendInstantiateProposal(request);
 	}, (err) => {
-		t.fail('Failed to send instantiate proposal due to error: ' + err.stack ? err.stack : err);
+		t.fail('Failed to initialize the channel: ' + err.stack ? err.stack : err);
 		t.end();
 	}).then((results) => {
-		var tmo = 50000;
-		return Promise.all([eputil.registerTxEvent(eh, request.txId.getTransactionID().toString(), tmo),
-			eputil.sendTransaction(channel, results)]);
+		if ( eputil.checkProposal(results)) {
+			t.pass('Successfully endorsed the instantiate chaincode proposal');
+			var tmo = 50000;
+			return Promise.all([eputil.registerTxEvent(eh, request.txId.getTransactionID().toString(), tmo),
+				eputil.sendTransaction(channel, results)]);
+		} else {
+			t.fail('Failed to endorse the instantiate chaincode proposal');
+			return Promise.reject('Failed to endorse the instatiate chaincode proposal:' + results);
+		}
 	},
 	(err) => {
 		t.fail('Failed sending instantiate proposal: ' + err);
