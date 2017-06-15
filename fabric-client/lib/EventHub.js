@@ -81,7 +81,6 @@ eh.setPeerAddr(
 		'ssl-target-name-override': 'peer1']
 	}
 );
-eh.connect();
   eh.registerTxEvent(
   	transactionId,
 	(tx, code) => {
@@ -94,6 +93,7 @@ eh.connect();
 		console.log('Transaction listener has been closed on ' +
 		eh.getPeerAddr());
 	}
+	eh.connect();
 );
 </pre><br>
  * Use the "newEventHub" method on {@link Client} to get a new EventHub instance.
@@ -110,6 +110,10 @@ eh.connect();
  * an error callback will guarantee that you get notified of network issues,
  * otherwise there is no path available for this EventHub to notify the
  * listeners.
+ * When the event registration does not have a error callback the connect must be called
+ * prior to event registration to provide some knowledge of connection problems.
+ * The EventHub will throw an error if it is not in the connected state when an event
+ * is registered without an error callback.
  * @class
  */
 var EventHub = class {
@@ -140,6 +144,7 @@ var EventHub = class {
 		// grpc chat streaming interface
 		this._stream = null;
 		// fabric connection state of this eventhub
+		this._connect_called = false;
 		this._connected = false;
 		this._connect_running = false;
 		// should this event hub reconnect on registrations
@@ -219,6 +224,7 @@ var EventHub = class {
 	 *                  the connection to the peer event hub
 	 */
 	_connect(force) {
+		this._connect_called = true;
 		if(this._connect_running) {
 			logger.debug('_connect - connect is running');
 			return;
@@ -349,6 +355,7 @@ var EventHub = class {
 			this._stream.end();
 			this._stream = null;
 		}
+		this._connect_called = false; //we can turn off since we closed out all callbacks
 	}
 
 	/*
@@ -438,7 +445,7 @@ var EventHub = class {
 			}
 		}
 
-		if(force_reconnect) {
+		if(force_reconnect && this._connect_called) {
 			try {
 				if(this._stream) {
 					var is_paused = this._stream.isPaused();
