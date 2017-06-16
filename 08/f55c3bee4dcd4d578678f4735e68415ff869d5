@@ -1,0 +1,8 @@
+Code-Review+1: Bret Harrison <beharrison@nc.rr.com>
+Verified+1: Hyperledger Jobbuilder <jobbuilder@jenkins.hyperledger.org>
+Code-Review+2: Jim Zhang <jim_the_matrix@hotmail.com>
+Submitted-by: Jim Zhang <jim_the_matrix@hotmail.com>
+Submitted-at: Fri, 16 Jun 2017 15:01:00 +0000
+Reviewed-on: http://gerrit.hyperledger.org/r/10665
+Project: fabric-sdk-node
+Branch: refs/heads/master
