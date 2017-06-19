@@ -1,0 +1,11 @@
+{
+	"app-dev-env-setup": {
+		"title": "Setting up the Application Developer's Environment"
+	},
+	"channel-create": {
+		"title": "Channel create"
+	},
+	"channel-update": {
+			"title": "Channel update"
+		}
+}
