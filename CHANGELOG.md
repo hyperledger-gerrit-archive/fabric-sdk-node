@@ -1,3 +1,24 @@
+## v1.0.0-rc1
+Thu Jun 22 04:38:24 HKT 2017
+
+* [1b3d8a7](https://github.com/hyperledger/fabric-sdk-node/commit/1b3d8a7) [FAB-4852](https://jira.hyperledger.org/browse/FAB-4852) NodeSDK - fix doc broken links
+* [9f9659f](https://github.com/hyperledger/fabric-sdk-node/commit/9f9659f) [FAB-4860](https://jira.hyperledger.org/browse/FAB-4860) BaseClient.js missing 'use strict'
+* [164b777](https://github.com/hyperledger/fabric-sdk-node/commit/164b777) [FAB-4456](https://jira.hyperledger.org/browse/FAB-4456) JSDoc cleanup and enhancement - part VI
+* [dd49adb](https://github.com/hyperledger/fabric-sdk-node/commit/dd49adb) [FAB-4794](https://jira.hyperledger.org/browse/FAB-4794) NodeSDK - eventhub connect
+* [08f55c3](https://github.com/hyperledger/fabric-sdk-node/commit/08f55c3) [FAB-4456](https://jira.hyperledger.org/browse/FAB-4456) JSDoc cleanup and enhancement - part V
+* [8fb2968](https://github.com/hyperledger/fabric-sdk-node/commit/8fb2968) [FAB-4456](https://jira.hyperledger.org/browse/FAB-4456) JSDoc cleanup - part IV
+* [6c3bfe6](https://github.com/hyperledger/fabric-sdk-node/commit/6c3bfe6) [FAB-4456](https://jira.hyperledger.org/browse/FAB-4456) JSDoc cleanup - part III
+* [9ed6451](https://github.com/hyperledger/fabric-sdk-node/commit/9ed6451) [FAB-4456](https://jira.hyperledger.org/browse/FAB-4456) Fixup jsdoc - part II
+* [0eeaa61](https://github.com/hyperledger/fabric-sdk-node/commit/0eeaa61) FAB-4573 add missing license headers
+* [7185cdb](https://github.com/hyperledger/fabric-sdk-node/commit/7185cdb) [FAB-4483](https://jira.hyperledger.org/browse/FAB-4483) NodeSDK - intermittent errors
+* [811474c](https://github.com/hyperledger/fabric-sdk-node/commit/811474c) [FAB-4486](https://jira.hyperledger.org/browse/FAB-4486)Improve integration test for "instantiate CC"
+* [443bbef](https://github.com/hyperledger/fabric-sdk-node/commit/443bbef) [FAB-4456](https://jira.hyperledger.org/browse/FAB-4456) Fixup jsdoc - part I
+* [84ebeb4](https://github.com/hyperledger/fabric-sdk-node/commit/84ebeb4) [FAB-4395](https://jira.hyperledger.org/browse/FAB-4395) Prepare for rc1 development
+* [d8f52a8](https://github.com/hyperledger/fabric-sdk-node/commit/d8f52a8) [FAB-4446](https://jira.hyperledger.org/browse/FAB-4446) NodeSDK - test code invalid
+* [a05c55c](https://github.com/hyperledger/fabric-sdk-node/commit/a05c55c) [FAB-4441](https://jira.hyperledger.org/browse/FAB-4441) NodeSDK update protos to current
+* [a156a23](https://github.com/hyperledger/fabric-sdk-node/commit/a156a23) [FAB-4435](https://jira.hyperledger.org/browse/FAB-4435) gulp test recreates containers
+* [2717d9b](https://github.com/hyperledger/fabric-sdk-node/commit/2717d9b) Fix indexing bug in installChaincode e2e test
+
 ## v1.0.0-beta
 Thu Jun  8 07:11:33 EDT 2017
 
