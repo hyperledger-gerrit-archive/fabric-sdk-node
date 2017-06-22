@@ -885,7 +885,7 @@ var Client = class extends BaseClient {
 	 */
 	getUserContext(name, checkPersistence) {
 		// first check if only one param is passed in for "checkPersistence"
-		if (typeof name === 'boolean' && name && typeof checkPersistence === 'undefined')
+		if (typeof checkPersistence === 'boolean' && checkPersistence && typeof name === 'undefined')
 			throw new Error('Illegal arguments: "checkPersistence" is truthy but "name" is undefined');
 
 		if (typeof checkPersistence === 'boolean' && checkPersistence &&
