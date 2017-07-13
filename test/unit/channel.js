@@ -652,8 +652,7 @@ test('\n\n ** Channel _buildDefaultEndorsementPolicy() tests **\n\n', function (
 
 test('\n\n ** Channel sendInstantiateProposal() tests **\n\n', function (t) {
 	var c = new Channel('does not matter', client);
-	var peer = new Peer('grpc://localhost:7051');
-	c.addPeer(peer);
+
 
 	var p1 = c.sendInstantiateProposal({
 		targets: [new Peer('grpc://localhost:7051')],
@@ -690,7 +689,6 @@ test('\n\n ** Channel sendInstantiateProposal() tests **\n\n', function (t) {
 		}
 	});
 
-	c.removePeer(peer);
 	var p4 = c.sendInstantiateProposal({
 		chaincodePath: 'blah',
 		chaincodeId: 'blah',
@@ -709,7 +707,27 @@ test('\n\n ** Channel sendInstantiateProposal() tests **\n\n', function (t) {
 		}
 	});
 
+	var p5 = c.sendInstantiateProposal({
+		targets : [],
+		chaincodePath: 'blah',
+		chaincodeId: 'blah',
+		chaincodeVersion: 'blah',
+		fcn: 'init',
+		args: ['a', '100', 'b', '200'],
+		txId: 'blah'
+	}).then(function () {
+		t.fail('Should not have been able to resolve the promise because of missing "peer" objects on channel');
+	}).catch(function (err) {
+		var msg = 'Missing peer objects in Instantiate proposal';
+		if (err.message.indexOf(msg) >= 0) {
+			t.pass('Successfully caught error: '+msg);
+		} else {
+			t.fail('Failed to catch error: '+msg+'. Error: ' + err.stack ? err.stack : err);
+		}
+	});
+	var peer = new Peer('grpc://localhost:7051');
 	c.addPeer(peer);
+
 	var p7 = c.sendInstantiateProposal().then(function () {
 		t.fail('Should not have been able to resolve the promise because of missing request parameter');
 	}).catch(function (err) {
@@ -720,7 +738,7 @@ test('\n\n ** Channel sendInstantiateProposal() tests **\n\n', function (t) {
 		}
 	});
 
-	Promise.all([p1, p3, p4, p7])
+	Promise.all([p1, p3, p4, p5, p7])
 	.then(
 		function (data) {
 			t.end();
