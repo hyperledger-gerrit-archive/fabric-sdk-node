@@ -65,6 +65,7 @@ var queryParameters = false;    // false = do all queries; true = do some querie
 if (querys.length > 0 ) {
 	// Parameters detected; are these query parameters or gulp parameters?
 	if ((querys.indexOf('GetBlockByNumber') > -1) ||
+		(querys.indexOf('GetBlockByTxID') > -1) ||
 		(querys.indexOf('GetTransactionByID') > -1) ||
 		(querys.indexOf('GetChannelInfo') > -1) ||
 		(querys.indexOf('GetBlockByHash') > -1) ||
@@ -76,7 +77,6 @@ if (querys.length > 0 ) {
 }
 
 var data;
-
 test('  ---->>>>> Query channel working <<<<<-----', function(t) {
 	Client.addConfigFile(path.join(__dirname, 'e2e', 'config.json'));
 	ORGS = Client.getConfigSetting('test-network');
@@ -234,6 +234,46 @@ test('  ---->>>>> Query channel failing: GetBlockByNumber <<<<<-----', function(
 			},
 			function(err) {
 				t.pass(util.format('Did not find a block with this number : %j', err));
+				t.end();
+			}
+		).catch(
+			function(err) {
+				t.fail('Failed to query with error:' + err.stack ? err.stack : err);
+				t.end();
+			}
+		);
+	} else t.end();
+});
+
+test('  ---->>>>> Query channel failing: GetBlockByTxID <<<<<-----', function(t) {
+	if (!queryParameters || querys.indexOf('GetBlockByTxID') >= 0) {
+
+		return Client.newDefaultKeyValueStore({
+			path: testUtil.storePathForOrg(orgName)
+		}).then(
+			function(store) {
+				client.setStateStore(store);
+				return testUtil.getSubmitter(client, t, org);
+			}
+		).then(
+			function(admin) {
+				t.pass('Successfully enrolled user \'admin\'');
+				the_user = admin;
+				let tx_id = client.newTransactionID();
+				// send query
+				return channel.queryBlockByTxID(tx_id); //should not find this txid
+			},
+			function(err) {
+				t.fail('Failed to enroll user: ' + err.stack ? err.stack : err);
+				t.end();
+			}
+		).then(
+			function(response_payloads) {
+				t.fail('Should not have found a block');
+				t.end();
+			},
+			function(err) {
+				t.pass(util.format('Did not find a block with this txid : %j', err));
 				t.end();
 			}
 		).catch(
