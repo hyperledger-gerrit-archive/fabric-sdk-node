@@ -82,14 +82,14 @@ gulp.task('test', ['clean-up', 'lint', 'pre-test', 'docker-ready', 'ca'], functi
 		'test/integration/fileKeyValueStore-fabricca-tests.js',
 		'test/integration/install.js',
 		'test/integration/events.js',
+		'test/integration/grpc.js',
 		'test/integration/upgrade.js',
 		'test/integration/get-config.js',
 		'test/integration/create-configtx-channel.js',
 		'test/integration/e2e/join-channel.js',
 		'test/integration/instantiate.js',
 		'test/integration/e2e/invoke-transaction.js',
-		'test/integration/e2e/query.js',
-		'test/integration/grpc.js'
+		'test/integration/e2e/query.js'
 	]))
 	.pipe(addsrc.append(
 		'test/unit/logger.js' // put this to the last so the debugging levels are not mixed up
