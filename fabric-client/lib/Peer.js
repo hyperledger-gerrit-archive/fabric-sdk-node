@@ -54,26 +54,31 @@ var Peer = class extends Remote {
 
 		logger.debug('Peer.const - url: %s timeout: %s', url, this._request_timeout);
 		this._endorserClient = new _serviceProto.Endorser(this._endpoint.addr, this._endpoint.creds, this._options);
-		this._name = null;
+		this._roles = {};
 	}
 
 	/**
-	 * Get the Peer name. This is a client-side only identifier for this
-	 * Peer object.
-	 * @returns {string} The name of the Peer object
+	 * Set a role for this peer.
+	 * @param {string} role - The name of the role
+	 * @param {boolean} isIn - The boolean value if this peer is in this role
 	 */
-	getName() {
-		return this._name;
+	setRole(role, isIn) {
+		this._roles[role] = isIn;
 	}
 
 	/**
-	 * Set the Peer name as a client-side only identifier of this Peer object.
-	 * @param {string} name
+	 * Checks if this peer is in the specified role.
+	 * Default is true when the role is not defined.
+	 * As all peers should be able to perform the functions required to be in a role,
+	 * the default will be that this peer is in the role unless the role is set to false.
 	 */
-	setName(name) {
-		this._name = name;
+	isInRole(role) {
+		if(typeof this._roles[role] === undefined) {
+			return true;
+		} else {
+			return this._roles[role];
+		}
 	}
-
 	/**
 	 * Send an endorsement proposal to an endorser. This is used to call an
 	 * endorsing peer to execute a chaincode to process a transaction proposal,

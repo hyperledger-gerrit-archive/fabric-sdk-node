@@ -26,6 +26,43 @@ var utils = require('./utils.js');
 var Remote = require('./Remote');
 
 /**
+ * Abstract class for a Network Configuration.
+ *
+ * @class
+ */
+module.exports.NetworkConfig = class {
+	/**
+	 *  Get a {@link Channel} instance based on the definition in
+	 *  the network configuration. The object will be populated with
+	 *  the {@link Orderer} objects and {@link Peer} objects as defined
+	 *  for this channel.
+	 *
+	 *  @param {string} name - The name of the channel
+	 *  @returns {Channel}
+	 */
+	getChannel(name) {}
+
+	/**
+	 *  Get a {@link Peer} instance based on the definition in
+	 *  the network configuration.
+	 *
+	 *  @param {string} name - The name of the peer
+	 *  @returns {Peer}
+	 */
+	getPeer(name) {}
+
+	/**
+	 *  Get a {@link Orderer} instance based on the definition in
+	 *  the network configuration.
+	 *
+	 *  @param {string} name - The name of the orderer
+	 *  @returns {Orderer}
+	 */
+	getOrderer(name) {}
+};
+
+
+/**
  * Abstract class for a Key-Value store. The Channel class uses this store
  * to save sensitive information such as authenticated user's private keys,
  * certificates, etc.

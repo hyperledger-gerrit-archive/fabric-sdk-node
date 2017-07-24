@@ -34,6 +34,8 @@ var MSP = require('./msp/msp.js');
 var logger = sdkUtils.getLogger('Client.js');
 var util = require('util');
 var fs = require('fs-extra');
+var path = require('path');
+var yaml = require('js-yaml');
 var Constants = require('./Constants.js');
 
 var grpc = require('grpc');
@@ -77,11 +79,58 @@ var Client = class extends BaseClient {
 		this._channels = {};
 		this._stateStore = null;
 		this._userContext = null;
+		this._network_config = null;
 		// keep a collection of MSP's
 		this._msps = new Map();
 
 		// Is in dev mode or network mode
 		this._devMode = false;
+	}
+
+	/**
+	 * Load a network configuration JSON file and return a Client object.
+	 * with t hubschannels, peers, orderers, and even.
+	 *
+	 * @param {string} path - The path to the configuration file
+	 * @return {Client} An instance of this class initialized with the network end points.
+	 */
+	static loadFromConfig(config_path) {
+		var method = 'newClient';
+		var client = new Client();
+		var network_config = null;
+		var config_loc = path.resolve(config_path);
+		logger.debug('%s - looking at absolute path of ==>%s<==',method,config_loc);
+		var file_data = fs.readFileSync(config_loc);
+		let file_ext = path.extname(config_loc);
+		// maybe the file is yaml else has to be JSON
+		if(file_ext.indexOf('y') > -1) {
+			network_config = yaml.safeLoad(file_data);
+		} else {
+			network_config = JSON.parse(file_data);
+		}
+
+		var error_msg = null;
+		if(network_config.version) {
+			var parsing_version = null;
+			if(network_config.version.indexOf('v4.0') > -1) {
+				parsing_version = '101';
+			}
+			if(parsing_version) {
+				var NetworkConfig = require('./impl/NetworkConfig'+parsing_version+'.js');
+				client._network_config = new NetworkConfig(network_config, client);
+			} else {
+				error_msg = '"version" is an unknown value';
+			}
+		} else {
+			error_msg = '"version" is missing';
+		}
+
+		if(error_msg) {
+			let out_message = util.format('Invalid network configuration with %s',error_msg);
+			logger.error(out_message);
+			throw new Error(out_message);
+		}
+		return client;
 	}
 
 	/**
@@ -119,7 +168,13 @@ var Client = class extends BaseClient {
 		if (channel)
 			throw new Error(util.format('Channel %s already exists', name));
 
-		var channel = new Channel(name, this);
+		if(this._network_config) {
+			channel = this._network_config.getChannel(name);
+		}
+		if(!channel) {
+			channel = new Channel(name, this);
+		}
+
 		this._channels[name] = channel;
 		return channel;
 	}
@@ -131,11 +186,20 @@ var Client = class extends BaseClient {
 	 * @returns {Channel} The channel instance
 	 */
 	getChannel(name) {
-		var ret = this._channels[name];
+		var channel = this._channels[name];
 
-		if (ret)
-			return ret;
+		if (channel)
+			return channel;
 		else {
+			// maybe it is defined in the network config
+			if(this._network_config) {
+				channel = this._network_config.getChannel(name);
+			}
+			if(channel) {
+				return channel;
+			}
+
+			// not defined
 			logger.error('Channel not found for name '+name+'.');
 			throw new Error('Channel not found for name '+name+'.');
 		}
@@ -375,44 +439,68 @@ var Client = class extends BaseClient {
 	 */
 	_createOrUpdateChannel(request, have_envelope) {
 		logger.debug('_createOrUpdateChannel - start');
-		var errorMsg = null;
+		var error_msg = null;
+		var orderer = null;
 
 		if(!request) {
-			errorMsg = 'Missing all required input request parameters for initialize channel';
+			error_msg = 'Missing all required input request parameters for initialize channel';
+		}
+		// Verify that a config envelope or config has been included in the request object
+		else if (!request.config && !have_envelope) {
+			error_msg = 'Missing config request parameter containing the configuration of the channel';
+		}
+		else if(!request.signatures && !have_envelope) {
+			error_msg = 'Missing signatures request parameter for the new channel';
+		}
+		else if(!Array.isArray(request.signatures ) && !have_envelope) {
+			error_msg = 'Signatures request parameter must be an array of signatures';
+		}
+		else if(!request.txId && !have_envelope) {
+			error_msg = 'Missing txId request parameter';
+		}
+		// verify that we have the name of the new channel
+		else if(!request.name) {
+			error_msg = 'Missing name request parameter';
 		}
 		else {
-			// Verify that a config envelope or config has been included in the request object
-			if (!request.config && !have_envelope) {
-				errorMsg = 'Missing config request parameter containing the configuration of the channel';
-			}
-			if(!request.signatures && !have_envelope) {
-				errorMsg = 'Missing signatures request parameter for the new channel';
-			}
-			else if(!Array.isArray(request.signatures ) && !have_envelope) {
-				errorMsg = 'Signatures request parameter must be an array of signatures';
-			}
-			if(!request.txId && !have_envelope) {
-				errorMsg = 'Missing txId request parameter';
-			}
-
-			// verify that we have an orderer configured
-			if(!request.orderer) {
-				errorMsg = 'Missing orderer request parameter';
-			}
-			// verify that we have the name of the new channel
-			if(!request.name) {
-				errorMsg = 'Missing name request parameter';
+			// figure out the orderer
+			if(request.orderer) {
+				if(typeof request.orderer === 'string') {
+					if(this._network_config) {
+						orderer = this._network_config.getOrderer(request.orderer);
+					}
+				} else if(request.orderer instanceof Orderer) {
+					orderer = request.orderer;
+				} else {
+					error_msg = 'orderer request parameter is not valid';
+				}
+			} else {
+				// see if there is one in the network configuration
+				let temp_channel = null;
+				if(this._channels[request.name]) {
+					temp_channel = this.getChannel(request.name);
+				} else {
+					temp_channel = this.newChannel(request.name);
+				}
+				if(temp_channel) {
+					let temp_orderers = temp_channel.getOrderers();
+					if(temp_orderers) {
+						orderer = temp_orderers[0];
+					}
+				}
+				if(!orderer) {
+					error_msg = 'Missing orderer request parameter or orderer not found';
+				}
 			}
 		}
 
-		if(errorMsg) {
-			logger.error('_createOrUpdateChannel error %s',errorMsg);
-			return Promise.reject(new Error(errorMsg));
+		if(error_msg) {
+			logger.error('_createOrUpdateChannel error %s',error_msg);
+			return Promise.reject(new Error(error_msg));
 		}
 
 		var self = this;
 		var channel_id = request.name;
-		var orderer = request.orderer;
 		var userContext = null;
 		var channel = null;
 
@@ -666,7 +754,7 @@ var Client = class extends BaseClient {
 	installChaincode(request) {
 		logger.debug('installChaincode - start');
 
-		var errorMsg = null;
+		var error_msg = null;
 
 		var peers = null;
 		if (request) {
@@ -676,19 +764,19 @@ var Client = class extends BaseClient {
 				logger.debug('installChaincode - found peers ::%s',peers.length);
 			}
 			else {
-				errorMsg = 'Missing peer objects in install chaincode request';
+				error_msg = 'Missing peer objects in install chaincode request';
 			}
 		}
 		else {
-			errorMsg = 'Missing input request object on install chaincode request';
+			error_msg = 'Missing input request object on install chaincode request';
 		}
 
-		if (!errorMsg) errorMsg = clientUtils.checkProposalRequest(request, true);
-		if (!errorMsg) errorMsg = clientUtils.checkInstallRequest(request);
+		if (!error_msg) error_msg = clientUtils.checkProposalRequest(request, true);
+		if (!error_msg) error_msg = clientUtils.checkInstallRequest(request);
 
-		if (errorMsg) {
-			logger.error('installChaincode error ' + errorMsg);
-			return Promise.reject(new Error(errorMsg));
+		if (error_msg) {
+			logger.error('installChaincode error ' + error_msg);
+			return Promise.reject(new Error(error_msg));
 		}
 
 		let self = this;
