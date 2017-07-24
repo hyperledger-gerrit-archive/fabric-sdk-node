@@ -101,14 +101,11 @@ var Channel = class {
 		}
 
 		this._name = name;
-
 		this._peers = [];
 		this._anchor_peers = [];
 		this._orderers = [];
 		this._kafka_brokers = [];
-
-		this._clientContext = clientContext;
-
+		this._client_context = clientContext;
 		this._msp_manager = new MSPManager();
 
 		//to do update logger
@@ -313,9 +310,8 @@ var Channel = class {
 	/**
 	 * A channel's first block is called the "genesis block". This block captures the
 	 * initial channel configuration. For a peer node to join the channel, it must be
-	 * provided the genesis block. The method [joinChannel()]{@link Channel#joinChannel}
-	 * calls this method under the covers to automate the acquisition of the genesis block
-	 * and sending it to the target peer to join.
+	 * provided the genesis block. This method must be called before calling
+	 * [joinChannel()]{@link Channel#joinChannel}.
 	 *
 	 * @param {OrdererRequest} request - A transaction ID object
 	 * @returns {Promise} A Promise for an encoded protobuf "Block"
@@ -323,26 +319,36 @@ var Channel = class {
 	getGenesisBlock(request) {
 		logger.debug('getGenesisBlock - start');
 		var errorMsg = null;
+		var orderer = null;
+		var tx_id = null;
+		try {
+			if(!request) throw new Error('Missing all required input request parameters');
 
-		// verify that we have an orderer configured
-		if(!this.getOrderers()[0]) {
-			errorMsg = 'Missing orderer assigned to this channel for the getGenesisBlock request';
-		}
-		// verify that we have transaction id
-		else if(!request.txId) {
-			errorMsg = 'Missing txId input parameter with the required transaction identifier';
-		}
+			// verify that we have an orderer configured
+			orderer = clientUtils.getOrderer(request.orderer, this._name, this._client_context);
+			if(!orderer) {
+				orderer = this._orderers[0];
+			}
+			if(!orderer) {
+				logger.error('getGenesisBlock - no orderers defined');
+				throw new Error('Missing "orderer" request parameter');
+			}
 
-		if(errorMsg) {
-			logger.error('getGenesisBlock - error '+ errorMsg);
-			return Promise.reject(new Error(errorMsg));
+			// verify that we have transaction id
+			if(request.txId) {
+				tx_id = request.txId;
+			} else {
+				tx_id = new TransactionID(userContext);
+			}
+		} catch(err) {
+			logger.error('getGenesisBlock - error '+ err);
+			return Promise.reject(err);
 		}
 
 		var self = this;
 		var userContext = null;
-		var orderer = self.getOrderers()[0];
 
-		userContext = this._clientContext.getUserContext();
+		userContext = this._client_context.getUserContext();
 
 		// now build the seek info, will be used once the channel is created
 		// to get the genesis block back
@@ -368,11 +374,11 @@ var Channel = class {
 		var seekInfoHeader = clientUtils.buildChannelHeader(
 			_commonProto.HeaderType.DELIVER_SEEK_INFO,
 			self._name,
-			request.txId.getTransactionID(),
+			tx_id.getTransactionID(),
 			self._initial_epoch
 		);
 
-		var seekHeader = clientUtils.buildHeader(userContext.getIdentity(), seekInfoHeader, request.txId.getNonce());
+		var seekHeader = clientUtils.buildHeader(userContext.getIdentity(), seekInfoHeader, tx_id.getNonce());
 		var seekPayload = new _commonProto.Payload();
 		seekPayload.setHeader(seekHeader);
 		seekPayload.setData(seekInfo.toBuffer());
@@ -418,8 +424,11 @@ var Channel = class {
 
 	/**
 	 * @typedef {Object} JoinChannelRequest
-	 * @property {Peer[]} targets - Required. An array of Peer objects that will
-	 *                              be asked to join this channel
+	 * @property {Peer[]} targets - Optional. An array of Peer objects or Peer names that will
+	 *                              be asked to join this channel. When using Peer names or left
+	 *                              empty (use default targets) there must be a loaded network
+	 *                              configuration.
+	 *                              See [loadFromConfig()]{@link Client#loadFromConfig}
 	 * @property {byte[]} block - The encoded bytes of the channel's genesis block.
 	 *                            See [getGenesisBlock()]{@link Channel#getGenesisBlock} method
 	 * @property {TransactionID} txId - Required. TransactionID object with the transaction id and nonce
@@ -428,9 +437,7 @@ var Channel = class {
 	/**
 	 * For a peer node to become part of a channel, it must be sent the genesis
 	 * block, as explained [here]{@link Channel#getGenesisBlock}. This method
-	 * sends a join channel proposal to one or more endorsing peers. It automatically
-	 * acquires the channel's genesis block from the channel object's orderer and
-	 * includes the block in the proposal request.
+	 * sends a join channel proposal to one or more endorsing peers.
 	 *
 	 * @param {JoinChannelRequest} request
 	 * @returns {Promise} A Promise for an array of {@link ProposalResponse} from the target peers
@@ -438,25 +445,25 @@ var Channel = class {
 	joinChannel(request) {
 		logger.debug('joinChannel - start');
 		var errorMsg = null;
+		var targets = null;
 
 		// verify that we have targets (Peers) to join this channel
 		// defined by the caller
 		if(!request) {
 			errorMsg = 'Missing all required input request parameters';
 		}
-
-		// verify that a Peer(s) has been selected to join this channel
-		else if (!request.targets) {
-			errorMsg = 'Missing targets input parameter with the peer objects for the join channel proposal';
-		}
-
 		// verify that we have transaction id
 		else if(!request.txId) {
 			errorMsg = 'Missing txId input parameter with the required transaction identifier';
 		}
-
 		else if(!request.block) {
 			errorMsg = 'Missing block input parameter with the required genesis block';
+		}
+		else {
+			targets = this._getTargets(request.targets); //no role, will get all peers
+			if(targets instanceof Error) {
+				errorMsg = targets.message;
+			}
 		}
 
 		if(errorMsg) {
@@ -465,7 +472,7 @@ var Channel = class {
 		}
 
 		var self = this;
-		var userContext = this._clientContext.getUserContext();
+		var userContext = this._client_context.getUserContext();
 		var chaincodeInput = new _ccProto.ChaincodeInput();
 		var args = [];
 		args.push(Buffer.from('JoinChain', 'utf8'));
@@ -493,7 +500,7 @@ var Channel = class {
 		var proposal = clientUtils.buildProposal(chaincodeSpec, header);
 		var signed_proposal = clientUtils.signProposal(userContext.getSigningIdentity(), proposal);
 
-		return clientUtils.sendPeersProposal(request.targets, signed_proposal)
+		return clientUtils.sendPeersProposal(targets, signed_proposal)
 		.then(
 			function(responses) {
 				return Promise.resolve(responses);
@@ -521,7 +528,7 @@ var Channel = class {
 		var userContext = null;
 		var orderer = self.getOrderers()[0];
 
-		userContext = this._clientContext.getUserContext();
+		userContext = this._client_context.getUserContext();
 		var txId = new TransactionID(userContext);
 
 		// seek the latest block
@@ -751,12 +758,12 @@ var Channel = class {
 	 */
 	queryInfo(target) {
 		logger.debug('queryInfo - start');
-		var peer = this._getPeerForQuery(target);
+		var peer = this._getTargetForQuery(target);
 		if (peer instanceof Error) {
 			throw peer;
 		}
 		var self = this;
-		var userContext = this._clientContext.getUserContext();
+		var userContext = this._client_context.getUserContext();
 		var txId = new TransactionID(userContext);
 		var request = {
 			targets: [peer],
@@ -798,19 +805,55 @@ var Channel = class {
 		);
 	}
 
-	_getPeerForQuery(target) {
-		if (target) {
-			if (Array.isArray(target)) {
-				return new Error('"target" parameter is an array, but should be a singular peer object');
-			}
-			return target;
-		} else {
-			var peers = this.getPeers();
-			if (peers.length < 1) {
-				return new Error('"target" parameter not specified and no peers are set on Channel.');
-			}
-			return peers[0];
+/*
+ *  utility method to decide on the target for queries that only need ledger access
+ */
+	_getTargetForQuery(target) {
+		if (Array.isArray(target)) {
+			return new Error('"target" parameter is an array, but should be a singular peer object');
 		}
+
+		var targets = this._getTargets(target, api.NetworkConfig.LEDGER_QUERY_ROLE);
+		if(Array.isArray(targets)) {
+			targets = targets[0];
+		}
+
+		return targets;
+	}
+
+	/*
+	 * utility method to decide on the targets for requests
+	 */
+	_getTargets(request_targets, role) {
+		var targets = null;
+		if (request_targets) {
+			// first check to see if they have passed a peer or peer name
+			try {
+				targets = clientUtils.getTargets(request_targets, this._client_context);
+			} catch(err) {
+				return err;
+			}
+		}
+		// so nothing passed in
+		// see if we can find in the network configuration
+		if (!targets || targets.length < 1 ) try {
+			targets = this._getTargetsFromConfig(role);
+		} catch(err) {
+			return err;
+		}
+
+		// nothing yet
+		// maybe there are peers on the channel
+		if (!targets || targets.length < 1 ) {
+			var targets = this.getPeers();
+			if (this.getPeers().length < 1) {
+				return new Error('"targets" parameter not specified and no peers are set on Channel.');
+			} else {
+				targets = this.getPeers();
+			}
+		}
+
+		return targets;
 	}
 
 	/**
@@ -826,12 +869,12 @@ var Channel = class {
 		if(!blockHash) {
 			return Promise.reject( new Error('Blockhash bytes are required'));
 		}
-		var peer = this._getPeerForQuery(target);
+		var peer = this._getTargetForQuery(target);
 		if (peer instanceof Error) {
-			throw peer;
+			return Promise.reject(peer);
 		}
 		var self = this;
-		var userContext = this._clientContext.getUserContext();
+		var userContext = this._client_context.getUserContext();
 		var txId = new TransactionID(userContext);
 		var request = {
 			targets: [peer],
@@ -891,12 +934,12 @@ var Channel = class {
 		} else {
 			return Promise.reject( new Error('Block number must be a postive integer'));
 		}
-		var peer = this._getPeerForQuery(target);
+		var peer = this._getTargetForQuery(target);
 		if (peer instanceof Error) {
-			throw peer;
+			return Promise.reject(peer);
 		}
 		var self = this;
-		var userContext = self._clientContext.getUserContext();
+		var userContext = self._client_context.getUserContext();
 		var txId = new TransactionID(userContext);
 		var request = {
 			targets: [peer],
@@ -955,12 +998,12 @@ var Channel = class {
 		} else {
 			return Promise.reject( new Error('Missing "tx_id" parameter'));
 		}
-		var peer = this._getPeerForQuery(target);
+		var peer = this._getTargetForQuery(target);
 		if (peer instanceof Error) {
-			throw peer;
+			return Promise.reject(peer);
 		}
 		var self = this;
-		var userContext = self._clientContext.getUserContext();
+		var userContext = self._client_context.getUserContext();
 		var txId = new TransactionID(userContext);
 		var request = {
 			targets: [peer],
@@ -1011,12 +1054,12 @@ var Channel = class {
 	 */
 	queryInstantiatedChaincodes(target) {
 		logger.debug('queryInstantiatedChaincodes - start');
-		var peer = this._getPeerForQuery(target);
+		var peer = this._getTargetForQuery(target);
 		if (peer instanceof Error) {
-			throw peer;
+			return Promise.reject(peer);
 		}
 		var self = this;
-		var userContext = self._clientContext.getUserContext();
+		var userContext = self._client_context.getUserContext();
 		var txId = new TransactionID(userContext);
 		var request = {
 			targets: [peer],
@@ -1148,25 +1191,18 @@ var Channel = class {
 	 * Internal method to handle both chaincode calls
 	 */
 	_sendChaincodeProposal(request, command) {
-		var errorMsg = null;
-
 		var peers = null;
-		if (request) {
-			peers = request.targets;
-		}
-		if (!peers || peers.length < 1) {
-			peers = this.getPeers();
-		}
-		// Verify that a Peer has been added
-		if (peers.length < 1) {
-			errorMsg = 'Missing peer objects in Instantiate proposal';
-			logger.error('Channel.sendInstantiateProposal error '+ errorMsg);
-			return Promise.reject(new Error(errorMsg));
-		}
+		var errorMsg = null;
 
 		//validate the incoming request
 		if(!errorMsg) errorMsg = clientUtils.checkProposalRequest(request);
 		if(!errorMsg) errorMsg = clientUtils.checkInstallRequest(request);
+		if(!errorMsg) {
+			peers = this._getTargets(request.targets, api.NetworkConfig.ENDORSING_PEER_ROLE);
+			if(peers instanceof Error) {
+				errorMsg = peers.message;
+			}
+		}
 
 		if(errorMsg) {
 			logger.error('sendChainCodeProposal error ' + errorMsg);
@@ -1202,20 +1238,20 @@ var Channel = class {
 		chaincodeDeploymentSpec.setChaincodeSpec(ccSpec);
 
 		var header, proposal;
-		var userContext = self._clientContext.getUserContext();
+		var userContext = self._client_context.getUserContext();
+		let lcccSpec_args = [
+			Buffer.from(command),
+			Buffer.from(self._name),
+			chaincodeDeploymentSpec.toBuffer()
+		];
+		if(request['endorsement-policy']) {
+			lcccSpec_args[3] = self._buildEndorsementPolicy(request['endorsement-policy']);
+		}
+
 		let lcccSpec = {
 			type: _ccProto.ChaincodeSpec.Type.GOLANG,
-			chaincode_id: {
-				name: Constants.LSCC
-			},
-			input: {
-				args: [
-					Buffer.from(command),
-					Buffer.from(self._name),
-					chaincodeDeploymentSpec.toBuffer(),
-					self._buildEndorsementPolicy(request['endorsement-policy'])
-				]
-			}
+			chaincode_id: {	name: Constants.LSCC },
+			input: { args : lcccSpec_args}
 		};
 
 		var channelHeader = clientUtils.buildChannelHeader(
@@ -1277,7 +1313,7 @@ var Channel = class {
 			logger.debug('sendTransactionProposal - request does not have targets using this channels endorsing peers');
 			request.targets = this.getPeers();
 		}
-		return Channel.sendTransactionProposal(request, this._name, this._clientContext);
+		return Channel.sendTransactionProposal(request, this._name, this._client_context);
 	}
 
 	/*
@@ -1415,12 +1451,6 @@ var Channel = class {
 		let proposalResponses = request.proposalResponses;
 		let chaincodeProposal = request.proposal;
 
-		// verify that we have an orderer configured
-		if(!this.getOrderers()) {
-			logger.error('sendTransaction - no orderers defined');
-			return Promise.reject(new Error('no Orderer defined'));
-		}
-
 		var endorsements = [];
 		let proposalResponse = proposalResponses;
 		if(Array.isArray(proposalResponses)) {
@@ -1441,6 +1471,21 @@ var Channel = class {
 		if(endorsements.length < 1) {
 			logger.error('sendTransaction - no valid endorsements found');
 			return Promise.reject(new Error('no valid endorsements found'));
+		}
+
+		// verify that we have an orderer configured
+		var orderer = null;
+		try {
+			orderer = clientUtils.getOrderer(request.orderer, this._name, this._client_context);
+			if(!orderer) {
+				orderer = this._orderers[0];
+			}
+			if(!orderer) {
+				logger.error('sendTransaction - no orderers defined');
+				throw new Error('no Orderer defined');
+			}
+		} catch (err) {
+			return Promise.reject(err);
 		}
 
 		let header = _commonProto.Header.decode(chaincodeProposal.getHeader());
@@ -1480,7 +1525,7 @@ var Channel = class {
 		let payload_bytes = payload.toBuffer();
 
 		var self = this;
-		var userContext = this._clientContext.getUserContext();
+		var userContext = this._client_context.getUserContext();
 		let sig = userContext.getSigningIdentity().sign(payload_bytes);
 		let signature = Buffer.from(sig);
 
@@ -1490,7 +1535,6 @@ var Channel = class {
 			payload : payload_bytes
 		};
 
-		var orderer = self.getOrderers()[0];
 		return orderer.sendBroadcast(envelope);
 	}
 
@@ -1521,11 +1565,16 @@ var Channel = class {
 		if(!request) {
 			return Promise.reject(new Error('Missing request object for this queryByChaincode call.'));
 		}
-		var userContext = this._clientContext.getUserContext();
+		var userContext = this._client_context.getUserContext();
 		var txId = new TransactionID(userContext);
+		var targets = this._getTargets(request.targets, api.NetworkConfig.CHAINCODE_QUERY_ROLE);
+		if(targets instanceof Error) {
+			return Promise.reject(targets);
+		}
+
 		// make a new request object so we can add in the txId and not change the user's
 		var trans_request = {
-			targets : request.targets,
+			targets : targets,
 			chaincodeId : request.chaincodeId,
 			chainId : request.channelId,
 			fcn : request.fcn,
@@ -1675,7 +1724,96 @@ var Channel = class {
 		}
 
 		return true;
-	 }
+	}
+
+	/**
+	 * Utility method to return a list of targets from the network configuration
+	 * that are in this role of operation
+	 */
+	_getTargetsFromConfig(role) {
+		var method = 'getTargets';
+		logger.debug('%s - start  ::role %s',method,role);
+		var targets = [];
+		if(role) {
+			var found = false;
+			for(let i in api.NetworkConfig.ROLES) {
+				if(role === api.NetworkConfig.ROLES[i]) {
+					found = true;
+					break;
+				}
+			}
+			if(!found) {
+				throw Error('Target role is unknown');
+			}
+		}
+
+		/*
+		 * Need to list all the organizations from the network configuration.
+		 * Check each peer in each organization to see if it is on the channel.
+		 * If peer is on the channel and in the role, add this peer to a new list
+		 * of peers for this organization. Keep all these new lists in a list keyed
+		 * by the organization name. Once we have all the peers on the channel
+		 * sorted by organization, then we can randomly take one of those peers
+		 * for each organization and add it to the final target list.
+		 */
+		if (this._client_context._network_config) {
+			var orgs = this._client_context._network_config.getOrganizations();
+			if(orgs) {
+				//first get all the peers on the channel divided up by orgs
+				var peers_by_org = {};
+				for(let i in orgs) {
+					let org = orgs[i];
+					var peers_in_org_and_in_channel = [];
+					peers_by_org[org.getName()] = peers_in_org_and_in_channel;
+					var org_peers = org.getPeers();
+					logger.debug('%s - org:%s has %s peers',method,org.getName(), org_peers.length);
+					for(let j in org_peers) {
+						let org_peer = org_peers[j];
+						var channel_peers = this.getPeers();
+						for(let k in channel_peers) {
+							let channel_peer = channel_peers[k];
+							if(!channel_peer) {
+								logger.debug('%s - no peers on this channel',method);
+								break;
+							}
+							if(!org_peer) {
+								logger.debug('%s - null peer on this org',method);
+								break;
+							}
+							logger.debug('%s - comparing channel peer:%s to org peer:%s',method, channel_peer.getName(), org_peer.getName());
+							if(channel_peer.getName() === org_peer.getName()) {
+								// only peers in the request role get added
+								if(channel_peer.isInRole(role)) {
+									peers_in_org_and_in_channel.push(channel_peer);
+									logger.debug('%s - added peer %s',method,channel_peer.toString());
+								}
+								break;
+							}
+						}
+					}
+				}
+				// now add just one peer from each org to targets if in role
+				for(let org_name in peers_by_org) {
+					let peers_org = peers_by_org[org_name];
+					if(peers_org && peers_org.length > 0) {
+						logger.debug('%s - orgs %s has %s peers',method, org_name, peers_org.length);
+						let which_peer = Math.floor(Math.random() * peers_org.length);
+						logger.debug('%s - peer index:%s',method,which_peer);
+						let peer_org = peers_org[which_peer];
+						targets.push(peer_org);
+						logger.debug('%s - added target peer %s',method,peer_org.toString());
+					} else {
+						logger.debug('%s - no peers in this org %s',method,org_name);
+					}
+				}
+			}
+
+			if(targets.length == 0) {
+				logger.warn('No peers found in the loaded network configuration that can be used as the target of this operation');
+			}
+			return targets;
+		}
+	}
 
 	// internal utility method to build chaincode policy
 	_buildEndorsementPolicy(policy) {
@@ -1982,5 +2120,11 @@ function decodeSignaturePolicy(identities) {
 	}
 	return results;
 }
+/* hang on to these
+ * 		peer.setRole(Constants.ENDORSING_PEER_ROLE, peer_config[Constants.ENDORSING_PEER_ROLE]);
+		peer.setRole(Constants.CHAINCODE_QUERY_ROLE, peer_config[Constants.CHAINCODE_QUERY_ROLE]);
+		peer.setRole(Constants.LEDGER_QUERY_ROLE, peer_config[Constants.LEDGER_QUERY_ROLE]);
+		peer.setRole(Constants.EVENT_SOURCE_ROLE, peer_config[Constants.EVENT_SOURCE_ROLE]);
+ */
 
 module.exports = Channel;
