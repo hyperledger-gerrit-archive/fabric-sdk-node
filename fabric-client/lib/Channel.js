@@ -324,6 +324,8 @@ var Channel = class {
 		logger.debug('getGenesisBlock - start');
 		var errorMsg = null;
 
+		//TODO - add in getting orderer from request
+
 		// verify that we have an orderer configured
 		if(!this.getOrderers()[0]) {
 			errorMsg = 'Missing orderer assigned to this channel for the getGenesisBlock request';
@@ -438,25 +440,45 @@ var Channel = class {
 	joinChannel(request) {
 		logger.debug('joinChannel - start');
 		var errorMsg = null;
+		var targets = [];
 
 		// verify that we have targets (Peers) to join this channel
 		// defined by the caller
 		if(!request) {
 			errorMsg = 'Missing all required input request parameters';
 		}
-
-		// verify that a Peer(s) has been selected to join this channel
-		else if (!request.targets) {
-			errorMsg = 'Missing targets input parameter with the peer objects for the join channel proposal';
-		}
-
 		// verify that we have transaction id
 		else if(!request.txId) {
 			errorMsg = 'Missing txId input parameter with the required transaction identifier';
 		}
-
 		else if(!request.block) {
 			errorMsg = 'Missing block input parameter with the required genesis block';
+		}
+		else {
+			// figure out who the target is of this action
+			if(request.targets) {
+				if(Array.isArray(request.targets)) {
+					for(let i in request.targets) {
+						let target_peer = request.targets[i];
+						if(typeof target_peer === 'string') {
+							if(this._clientContext._network_config) {
+								let peer = this._clientContext._network_config.getPeer(target_peer);
+								if(peer) targets.push(peer);
+							}
+						} else if(target_peer instanceof Peer) {
+							targets.push(target_peer);
+						}
+						else {
+							errorMsg = 'Target Peer is not valid';
+						}
+					}
+				}
+			} else {
+				targets = this.getPeers();
+			}
+			if(!errorMsg && targets.length == 0) {
+				errorMsg = 'No target peers found for this request';
+			}
 		}
 
 		if(errorMsg) {
@@ -493,7 +515,7 @@ var Channel = class {
 		var proposal = clientUtils.buildProposal(chaincodeSpec, header);
 		var signed_proposal = clientUtils.signProposal(userContext.getSigningIdentity(), proposal);
 
-		return clientUtils.sendPeersProposal(request.targets, signed_proposal)
+		return clientUtils.sendPeersProposal(targets, signed_proposal)
 		.then(
 			function(responses) {
 				return Promise.resolve(responses);
@@ -1982,5 +2004,11 @@ function decodeSignaturePolicy(identities) {
 	}
 	return results;
 }
+/* hang on to these
+ * 		peer.setRole(Constants.ENDORSING_PEER_ROLE, peer_config[Constants.ENDORSING_PEER_ROLE]);
+		peer.setRole(Constants.CHAINCODE_QUERY_ROLE, peer_config[Constants.CHAINCODE_QUERY_ROLE]);
+		peer.setRole(Constants.LEDGER_QUERY_ROLE, peer_config[Constants.LEDGER_QUERY_ROLE]);
+		peer.setRole(Constants.EVENT_SOURCE_ROLE, peer_config[Constants.EVENT_SOURCE_ROLE]);
+ */
 
 module.exports = Channel;
