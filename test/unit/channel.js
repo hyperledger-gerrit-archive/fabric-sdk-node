@@ -313,14 +313,26 @@ test('\n\n ** Channel joinChannel() tests **\n\n', function (t) {
 		}
 	});
 
-	var p3 = c.joinChannel({}
+	var p3 = c.joinChannel({txId : 'txid', block : 'something'}
 	).then(function () {
 		t.fail('Should not have been able to resolve the promise because of targets request parameter');
 	}).catch(function (err) {
-		if (err.message.indexOf('Missing targets') >= 0) {
+		if (err.message.indexOf('No target peers found for this request') >= 0) {
 			t.pass('Successfully caught missing targets request error');
 		} else {
 			t.fail('Failed to catch the missing targets request error. Error: ');
+			logger.error(err.stack ? err.stack : err);
+		}
+	});
+
+	var p3a = c.joinChannel({txId : 'txid', block : 'something', targets : [{}]}
+	).then(function () {
+		t.fail('Should not have been able to resolve the promise because of targets request parameter');
+	}).catch(function (err) {
+		if (err.message.indexOf('Target Peer is not valid') >= 0) {
+			t.pass('Successfully caught bad targets request error');
+		} else {
+			t.fail('Failed to catch the bad targets request error. Error: ');
 			logger.error(err.stack ? err.stack : err);
 		}
 	});
@@ -349,7 +361,7 @@ test('\n\n ** Channel joinChannel() tests **\n\n', function (t) {
 		}
 	});
 
-	Promise.all([p1, p2, p3, p4, p4a])
+	Promise.all([p1, p2, p3, p3a, p4, p4a])
 	.then(
 		function (data) {
 			t.end();

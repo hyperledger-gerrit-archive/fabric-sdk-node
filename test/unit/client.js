@@ -999,6 +999,18 @@ test('\n\n ** test related APIs for create channel **\n\n', function (t) {
 			console.log(err.stack ? err.stack : err);
 		}
 	});
+	var p6a= client.updateChannel({config : 'a', signatures : [], txId : 'a', name : 'a', orderer : {}}
+	).then(function () {
+		t.fail('Should not have been able to resolve the promise');
+	}).catch(function (err) {
+		let msg = 'orderer request parameter is not valid';
+		if (err.message.indexOf(msg) >= 0) {
+			t.pass('Successfully caught the ' + msg );
+		} else {
+			t.fail('Failed to catch the ' + msg + ' Error: ');
+			console.log(err.stack ? err.stack : err);
+		}
+	});
 	var p7= client.updateChannel({config : 'a', signatures : [], txId : 'a', orderer : 'a'}
 	).then(function () {
 		t.fail('Should not have been able to resolve the promise');
@@ -1023,7 +1035,7 @@ test('\n\n ** test related APIs for create channel **\n\n', function (t) {
 			console.log(err.stack ? err.stack : err);
 		}
 	});
-	Promise.all([p3a, p3b, p4, p6, p7, p8])
+	Promise.all([p3a, p3b, p4, p6, p6a, p7, p8])
 	.then(
 		function (data) {
 			t.end();
