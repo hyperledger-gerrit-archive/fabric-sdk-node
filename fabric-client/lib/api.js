@@ -26,6 +26,60 @@ var utils = require('./utils.js');
 var Remote = require('./Remote');
 
 /**
+ * Abstract class for a Network Configuration.
+ *
+ * @class
+ */
+module.exports.NetworkConfig = class {
+	/**
+	 *  Get a {@link Channel} instance based on the definition in
+	 *  the network configuration. The object will be populated with
+	 *  the {@link Orderer} objects and {@link Peer} objects as defined
+	 *  for this channel.
+	 *
+	 *  @param {string} name - The name of the channel
+	 *  @returns {Channel}
+	 */
+	getChannel(name) {}
+
+	/**
+	 *  Get a {@link Peer} instance based on the definition in
+	 *  the network configuration.
+	 *
+	 *  @param {string} name - The name of the peer
+	 *  @returns {Peer}
+	 */
+	getPeer(name) {}
+
+	/**
+	 *  Get a {@link Orderer} instance based on the definition in
+	 *  the network configuration.
+	 *
+	 *  @param {string} name - The name of the orderer
+	 *  @returns {Orderer}
+	 */
+	getOrderer(name) {}
+
+	/**
+	 * Get a list of {@link Organization} instances based on all
+	 * the definitions of organizations in the network configuration.
+	 *
+	 * @returns {Organization}
+	 */
+	getOrganizations() {}
+};
+module.exports.NetworkConfig.ENDORSING_PEER_ROLE = 'endorsingPeer';
+module.exports.NetworkConfig.CHAINCODE_QUERY_ROLE = 'chaincodeQuery';
+module.exports.NetworkConfig.LEDGER_QUERY_ROLE = 'ledgerQuery';
+module.exports.NetworkConfig.EVENT_SOURCE_ROLE = 'eventSource';
+module.exports.NetworkConfig.ROLES = [
+	module.exports.NetworkConfig.ENDORSING_PEER_ROLE,
+	module.exports.NetworkConfig.CHAINCODE_QUERY_ROLE,
+	module.exports.NetworkConfig.LEDGER_QUERY_ROLE,
+	module.exports.NetworkConfig.EVENT_SOURCE_ROLE
+];
+
+/**
  * Abstract class for a Key-Value store. The Channel class uses this store
  * to save sensitive information such as authenticated user's private keys,
  * certificates, etc.
@@ -42,7 +96,8 @@ module.exports.KeyValueStore = class {
 	 * Get the value associated with <code>name</code>.
 	 *
 	 * @param {string} name Name of the key
-	 * @returns {Promise} Promise for the value corresponding to the key. If the value does not exist in the
+	 * @returns {Promise} Promise for the value corresponding to the key.
+	 *          If the value does not exist in the
 	 * store, returns null without rejecting the promise
 	 */
 	getValue(name) {}

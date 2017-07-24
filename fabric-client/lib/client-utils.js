@@ -26,6 +26,10 @@ var settle = require('promise-settle');
 var utils = require('./utils.js');
 var logger = utils.getLogger('client-utils.js');
 var Config = require('./Config.js');
+var Constants = require('./Constants.js');
+var Peer = require('./Peer.js');
+var EventHub = require('./EventHub.js');
+var Orderer = require('./Orderer.js');
 
 var grpc = require('grpc');
 var _commonProto = grpc.load(__dirname + '/protos/common/common.proto').common;
@@ -218,4 +222,90 @@ module.exports.buildCurrentTimestamp = function() {
 	timestamp.setSeconds(now.getTime() / 1000);
 	timestamp.setNanos((now.getTime() % 1000) * 1000000);
 	return timestamp;
+};
+
+/*
+ * utility method to get the peer targets
+ */
+module.exports.getTargets = function(request_targets, client) {
+	var method = 'getTargets';
+	logger.debug('%s - start',method);
+	var targets = [];
+	if(request_targets) {
+		if(!Array.isArray(request_targets)) {
+			request_targets = [request_targets];
+		}
+		for(let i in request_targets) {
+			let target_peer = request_targets[i];
+			if(typeof target_peer === 'string') {
+				if(client._network_config) {
+					let peer = client._network_config.getPeer(target_peer);
+					if(peer) {
+						targets.push(peer);
+					} else {
+						throw new Error('Target peer name was not found');
+					}
+				} else {
+					throw new Error('No network configuraton loaded');
+				}
+			} else if(target_peer && target_peer.constructor && target_peer.constructor.name === 'Peer') {
+				targets.push(target_peer);
+			} else {
+				throw new Error('Target peer is not a valid peer object instance');
+			}
+		}
+	}
+
+	if(targets.length > 0) {
+		return targets;
+	} else {
+		return null;
+	}
+};
+
+/*
+ * Utility method to get the orderer for the request
+ * Will:
+ *    if request is an object, will check that it is an orderer
+ *    if request is a string will look up in the network configuration the orderer by that name
+ *    if request is null will look up the channel to see if there is an orderer defined in the
+ *        network configuration
+ *    will throw an error in all cases if there is not a valid orderer to return
+ */
+module.exports.getOrderer = function(request_orderer, channel_name, client) {
+	var orderer = null;
+	if(request_orderer) {
+		if(typeof request_orderer === 'string') {
+			if(client._network_config) {
+				orderer = client._network_config.getOrderer(request_orderer);
+				if(!orderer) {
+					throw new Error('Orderer name was not found in the network configuration');
+				}
+			}
+		} else if(request_orderer && request_orderer.constructor && request_orderer.constructor.name === 'Orderer') {
+			orderer = request_orderer;
+		} else {
+			throw new Error('"orderer" request parameter is not valid. Must be an orderer name or "Orderer" object.');
+		}
+	} else {
+		if(client._network_config) {
+			let temp_channel = client.getChannel(channel_name, false);
+			if(temp_channel) {
+				let temp_orderers = temp_channel.getOrderers();
+				if(temp_orderers && temp_orderers.length > 0) {
+					orderer = temp_orderers[0];
+				}
+				else {
+					throw new Error('"orderer" request parameter is missing and there' + ' ' +
+							'is no orderer defined on this channel in the network configuration');
+				}
+			} else {
+				throw new Error('Channel name was not found in the network configuration');
+			}
+		} else {
+			throw new Error('Missing "orderer" request parameter');
+		}
+	}
+
+	return orderer;
 };
