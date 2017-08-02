@@ -10,6 +10,7 @@ var tape = require('gulp-tape');
 var tapColorize = require('tap-colorize');
 var istanbul = require('gulp-istanbul');
 var addsrc = require('gulp-add-src');
+var ts = require('gulp-typescript');
 
 var fs = require('fs-extra');
 var path = require('path');
@@ -24,6 +25,27 @@ process.env.HFC_LOGGING = util.format('{"debug":"%s"}', debugPath);
 console.log('\n####################################################');
 console.log(util.format('# debug log: %s', debugPath));
 console.log('####################################################\n');
+
+let arch = process.arch;
+let dockerImageTag = '';
+let release = require(path.join(__dirname, '../../fabric-client/package.json')).version;
+if (!/-snapshot/.test(release)) {
+	// this is a release build, need to build the proper docker image tag
+	// to run the tests against the corresponding fabric released docker images
+	if (arch.indexOf('x64') === 0)
+		dockerImageTag = ':x86_64';
+	else if (arch.indexOf('s390') === 0)
+		dockerImageTag = ':s390x';
+	else if (arch.indexOf('ppc64') === 0)
+		dockerImageTag = ':ppc64le';
+	else
+		throw new Error('Unknown architecture: ' + arch);
+
+	dockerImageTag += '-' + release;
+}
+
+process.env.DOCKER_IMG_TAG = dockerImageTag;
+
 
 gulp.task('pre-test', function() {
 	return gulp.src([
@@ -59,6 +81,25 @@ gulp.task('docker-ready', ['docker-clean'], shell.task([
 	// make sure that necessary containers are up by docker-compose
 	'docker-compose -f test/fixtures/docker-compose.yaml up -d'
 ]));
+
+gulp.task('compile-ts-tests', function() {
+	var tsProject = ts.createProject('tsconfig.json');
+	var tsResult = tsProject.src().pipe(tsProject());
+	return tsResult.pipe(gulp.dest('test/integration/e2e-ts-compiled'));
+});
+
+gulp.task('test-ts', ['clean-up', 'pre-test', 'docker-ready', 'ca', 'compile-ts-tests'], function() {
+
+	return gulp.src(['test/integration/e2e-ts-compiled/index.js'])
+		.pipe(tape({
+			reporter: tapColorize()
+		}))
+		.pipe(istanbul.writeReports({
+			reporters: ['lcov', 'json', 'text',
+				'text-summary', 'cobertura'
+			]
+		}));
+});
 
 gulp.task('test', ['clean-up', 'lint', 'pre-test', 'docker-ready', 'ca'], function() {
 	// use individual tests to control the sequence they get executed
