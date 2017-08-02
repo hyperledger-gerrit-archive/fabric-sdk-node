@@ -32,6 +32,7 @@ interface ConnectionOptions {
 interface ConfigSignature {
   signature_header: Buffer;
   signature: Buffer;
+  toBuffer(): Buffer;
 }
 
 interface ICryptoKey {
@@ -208,6 +209,15 @@ declare class Peer {
 
 }
 
+declare class EventHub {
+  connect(): void;
+  disconnect(): void;
+  getPeerAddr(): string;
+  setPeerAddr(url: string, opts: ConnectionOptions): void;
+  isConnected(): boolean;
+  registerBlockEvent(onEvent: (b: any) => void, onError?: (err: Error) => void): number;
+}
+
 declare class Channel {
   initialize(): Promise<void>;
   addOrderer(orderer: Orderer): void;
@@ -222,6 +232,8 @@ declare class Channel {
 }
 
 declare abstract class BaseClient {
+  static addConfigFile(path: string): void;
+  static getConfigSetting(name: string, default_value?: any): any;
   static newCryptoSuite(): ICryptoSuite;
   static newCryptoKeyStore(obj?: { path: string }): ICryptoKeyStore;
   static newDefaultKeyValueStore(obj?: { path: string }): Promise<IKeyValueStore>;
@@ -239,6 +251,7 @@ declare class Client extends BaseClient {
   newOrderer(url: string, opts: ConnectionOptions): Orderer;
   newChannel(name: string): Channel;
   newPeer(url: string, opts: ConnectionOptions): Peer;
+  newEventHub(): EventHub;
   newTransactionID(): TransactionId;
   extractChannelConfig(envelope: Buffer): Buffer;
   createChannel(request: ChannelRequest): Promise<BroadcastResponse>;
