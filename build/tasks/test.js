@@ -69,7 +69,7 @@ gulp.task('compile-ts-tests', function() {
 
 gulp.task('test-ts', ['clean-up', 'pre-test', 'docker-ready', 'ca', 'compile-ts-tests'], function() {
 
-	return gulp.src(['test/integration/e2e-ts-compiled/index.js'])		
+	return gulp.src(['test/integration/e2e-ts-compiled/index.js'])
 		.pipe(tape({
 			reporter: tapColorize()
 		}))
