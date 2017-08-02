@@ -10,6 +10,7 @@ var tape = require('gulp-tape');
 var tapColorize = require('tap-colorize');
 var istanbul = require('gulp-istanbul');
 var addsrc = require('gulp-add-src');
+var ts = require('gulp-typescript');
 
 var fs = require('fs-extra');
 var path = require('path');
@@ -59,6 +60,24 @@ gulp.task('docker-ready', ['docker-clean'], shell.task([
 	// make sure that necessary containers are up by docker-compose
 	'docker-compose -f test/fixtures/docker-compose.yaml up -d'
 ]));
+
+gulp.task('compile-ts-tests', function() {
+	var tsProject = ts.createProject('tsconfig.json');
+	var tsResult = tsProject.src().pipe(tsProject());
+	return tsResult.pipe(gulp.dest('test/integration/e2e-ts-compiled'));
+});
+
+gulp.task('test-ts', ['clean-up', 'pre-test', 'docker-ready', 'ca', 'compile-ts-tests'], function() {
+
+	return gulp.src(['test/integration/e2e-ts-compiled/index.js'])		
+		.pipe(tape({
+			reporter: tapColorize()
+		}))
+		.pipe(istanbul.writeReports({
+			reporters: ['lcov', 'json', 'text',
+				'text-summary', 'cobertura']
+		}));
+});
 
 gulp.task('test', ['clean-up', 'lint', 'pre-test', 'docker-ready', 'ca'], function() {
 	// use individual tests to control the sequence they get executed

@@ -1,0 +1,31 @@
+{
+  "compilerOptions": {
+    "removeComments": false,
+    "preserveConstEnums": true,
+    "sourceMap": true,
+    "declaration": false,
+    "noImplicitAny": true,
+    "noImplicitReturns": true,
+    "noImplicitThis": true,
+    "suppressImplicitAnyIndexErrors": true,
+    "moduleResolution": "node",
+    "module": "commonjs",
+    "target": "es6",
+    "baseUrl": ".",
+    "paths": {
+      "*": [
+        "node_modules/*"
+      ]
+    }
+  },
+  "files": [
+      "test/integration/e2e-ts/index.ts",
+      "test/integration/e2e-ts/create-channel.ts",
+      "test/integration/e2e-ts/join-channel.ts",
+      "test/integration/e2e-ts/install-chaincode.ts",
+      "test/integration/e2e-ts/instantiate-chaincode.ts",
+      "test/integration/e2e-ts/invoke-transaction.ts",
+      "test/integration/e2e-ts/query.ts",
+      "test/integration/e2e-ts/upgrade.ts"
+  ]
+}
