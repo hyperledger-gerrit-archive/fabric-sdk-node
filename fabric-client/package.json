@@ -2,6 +2,7 @@
   "name": "fabric-client",
   "version": "1.0.0-snapshot",
   "main": "index.js",
+  "types": "index.d.ts",
   "repository": {
     "type": "gerrit",
     "url": "http://gerrit.hyperledger.org/r/fabric-sdk-node"
@@ -39,7 +40,8 @@
     "tar-stream": "1.5.2",
     "url": "^0.11.0",
     "util": "^0.10.3",
-    "winston": "^2.2.0"
+    "winston": "^2.2.0",
+    "@types/bytebuffer": "^5.0.33"
   },
   "license": "Apache-2.0",
   "licenses": [
@@ -47,5 +49,5 @@
       "type": "Apache-2.0",
       "url": "https://github.com/hyperledger/fabric/blob/master/LICENSE"
     }
-  ]
+  ]  
 }
