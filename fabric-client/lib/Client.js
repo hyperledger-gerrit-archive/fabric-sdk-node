@@ -209,14 +209,21 @@ var Client = class extends BaseClient {
 	 * as a coherent pair.
 	 * <br><br>
 	 * This method requires the client instance to have been assigned a userContext.
+	 * @param {User} userContext -optional. An User object, if passed, TranssactionID will be consrtucted with it
 	 * @returns {TransactionID} An object that contains a transaction id based on the
 	 *           client's userContext and a randomly generated nonce value.
 	 */
-	newTransactionID() {
-		if (typeof this._userContext === 'undefined' || this._userContext === null) {
-			throw new Error('This client instance must be assigned an user context');
+	newTransactionID(userContext) {
+		if(!userContext){
+			if (typeof this._userContext === 'undefined' || this._userContext === null) {
+				throw new Error('This client instance must be assigned an user context');
+			}
+			else{
+				userContext = this._userContext
+			}
 		}
-		let trans_id = new TransactionID(this._userContext);
+
+		let trans_id = new TransactionID(userContext);
 
 		return trans_id;
 	}
@@ -271,9 +278,10 @@ var Client = class extends BaseClient {
 	 * included in the configuration update protobuf message to send to the orderer.
 	 *
 	 * @param {byte[]} config - The Configuration Update in byte form
+	 * @param {User} userContext - optional, if passed, config will signed by this user Object
 	 * @return {ConfigSignature} - The signature of the current user on the config bytes
 	 */
-	signChannelConfig(config) {
+	signChannelConfig(config, userContext) {
 		logger.debug('signChannelConfigUpdate - start');
 		if (typeof config === 'undefined' || config === null) {
 			throw new Error('Channel configuration update parameter is required.');
@@ -281,7 +289,7 @@ var Client = class extends BaseClient {
 		if(!(config instanceof Buffer)) {
 			throw new Error('Channel configuration update parameter is not in the correct form.');
 		}
-		var userContext = this.getUserContext();
+		userContext = userContext || this.getUserContext();
 
 		// signature is across a signature header and the config update
 		let proto_signature_header = new _commonProto.SignatureHeader();
@@ -333,18 +341,19 @@ var Client = class extends BaseClient {
 	 * [joinChannel()]{@link Channel#joinChannel} method.
 	 *
 	 * @param {ChannelRequest} request - The request object.
+	 * @param {User} userContext - Optional. If pass, the request will be signed by the User object
 	 * @returns {Promise} Promise for a result object with status on the acceptance of the create request
 	 *                    by the orderer. Note that this is not the confirmation of successful creation
 	 *                    of the channel. The client application must poll the orderer to discover whether
 	 *                    the channel has been created completely or not.
 	 */
-	createChannel(request) {
+	createChannel(request, userContext) {
 		var have_envelope = false;
 		if(request && request.envelope) {
 			logger.debug('createChannel - have envelope');
 			have_envelope = true;
 		}
-		return this._createOrUpdateChannel(request, have_envelope);
+		return this._createOrUpdateChannel(request, have_envelope, userContext);
 	}
 
 	/**
@@ -355,25 +364,26 @@ var Client = class extends BaseClient {
 	 * in the channel.
 	 *
 	 * @param {ChannelRequest} request - The request object.
+	 * @param {User} userContext - Optional. If pass, the request will be signed by the User object
 	 * @returns {Promise} Promise for a result object with status on the acceptance of the update request
 	 *                    by the orderer. A channel update is finally completed when the new channel configuration
 	 *                    block created by the orderer has been committed to the channel's peers. To be notified
 	 *                    of the successful update of the channel, an application should use the {@link EventHub}
 	 *                    to connect to the peers and register a block listener.
 	 */
-	updateChannel(request) {
+	updateChannel(request, userContext) {
 		var have_envelope = false;
 		if(request && request.envelope) {
 			logger.debug('createChannel - have envelope');
 			have_envelope = true;
 		}
-		return this._createOrUpdateChannel(request, have_envelope);
+		return this._createOrUpdateChannel(request, have_envelope, userContext);
 	}
 
 	/*
 	 * internal method to support create or update of a channel
 	 */
-	_createOrUpdateChannel(request, have_envelope) {
+	_createOrUpdateChannel(request, have_envelope, userContext) {
 		logger.debug('_createOrUpdateChannel - start');
 		var errorMsg = null;
 
@@ -416,7 +426,7 @@ var Client = class extends BaseClient {
 		var userContext = null;
 		var channel = null;
 
-		userContext = this.getUserContext();
+		userContext = userContext || this.getUserContext();
 
 		var signature = null;
 		var payload = null;
@@ -496,15 +506,17 @@ var Client = class extends BaseClient {
 	 * peer has joined.
 	 *
 	 * @param {Peer} peer - The target peer to send the query to
+	 * @param {User} userContext - Optional. If pass, the request will be signed by the User object
 	 * @returns {Promise} A promise to return a {@link ChannelQueryResponse}
 	 */
-	queryChannels(peer) {
+	queryChannels(peer, userContext) {
 		logger.debug('queryChannels - start');
 		if(!peer) {
 			return Promise.reject( new Error('Peer is required'));
 		}
 		var self = this;
-		var txId = new TransactionID(this._userContext);
+		userContext = userContext || this.getUserContext();
+		var txId = new TransactionID(userContext);
 		var request = {
 			targets: [peer],
 			chaincodeId : Constants.CSCC,
@@ -512,7 +524,7 @@ var Client = class extends BaseClient {
 			fcn : 'GetChannels',
 			args: []
 		};
-		return Channel.sendTransactionProposal(request, '' /* special channel id */, self)
+		return Channel.sendTransactionProposal(request, '' /* special channel id */, self, userContext)
 		.then(
 			function(results) {
 				var responses = results[0];
@@ -571,15 +583,17 @@ var Client = class extends BaseClient {
 	 * Queries the installed chaincodes on a peer.
 	 *
 	 * @param {Peer} peer - The target peer
+	 * @param {User} userContext - Optional. If pass, the request will be signed by the User object
 	 * @returns {Promise} Promise for a {@link ChaincodeQueryResponse} object
 	 */
-	queryInstalledChaincodes(peer) {
+	queryInstalledChaincodes(peer, userContext) {
 		logger.debug('queryInstalledChaincodes - start peer %s',peer);
 		if(!peer) {
 			return Promise.reject( new Error('Peer is required'));
 		}
 		var self = this;
-		var txId = new TransactionID(this._userContext);
+		userContext = userContext || this.getUserContext()
+		var txId = new TransactionID(userContext);
 		var request = {
 			targets: [peer],
 			chaincodeId : Constants.LSCC,
@@ -587,7 +601,7 @@ var Client = class extends BaseClient {
 			fcn : 'getinstalledchaincodes',
 			args: []
 		};
-		return Channel.sendTransactionProposal(request, '' /* special channel id */, self)
+		return Channel.sendTransactionProposal(request, '' /* special channel id */, self, userContext)
 		.then(
 			function(results) {
 				var responses = results[0];
@@ -663,9 +677,10 @@ var Client = class extends BaseClient {
 	 * identities are allowed to perform this operation.
 	 *
 	 * @param {ChaincodeInstallRequest} request - The request object
+	 * @param {User} userContext - Optional. If pass, the request will be signed by the User object
 	 * @returns {Promise} A Promise for a {@link ProposalResponseObject}
 	 */
-	installChaincode(request) {
+	installChaincode(request, userContext) {
 		logger.debug('installChaincode - start');
 
 		var errorMsg = null;
@@ -731,7 +746,7 @@ var Client = class extends BaseClient {
 			};
 
 			var header, proposal;
-			var userContext = self.getUserContext();
+			userContext = userContext || self.getUserContext();
 			var txId = new TransactionID(userContext);
 			var channelHeader = clientUtils.buildChannelHeader(
 				_commonProto.HeaderType.ENDORSER_TRANSACTION,

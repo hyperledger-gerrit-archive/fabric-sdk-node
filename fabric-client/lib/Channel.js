@@ -131,16 +131,21 @@ var Channel = class {
 	 * to the orderer.
 	 *
 	 * @param {byte[]} config - Optional. An encoded (a.k.a un-decoded) byte array of the protobuf "ConfigUpdate"
+	 * @param {User} userContext - optional. An User object. If userContext was exist, getConfig request will sign by it
 	 * @return {Promise} A Promise that will resolve when the action is complete
 	 */
-	initialize(config_update) {
+	initialize(config_update,userContext) {
+		if (config_update.hasOwnProperty("_identity")) {
+			userContext=config_update;
+			config_update = null
+		}
 		if(config_update) {
 			this.loadConfigUpdate(config_update);
 			return Promise.resolve(true);
 		}
 
 		var self = this;
-		return this.getChannelConfig()
+		return this.getChannelConfig(userContext)
 		.then(
 			function(config_envelope) {
 				logger.debug('initialize - got config envelope from getChannelConfig :: %j',config_envelope);
@@ -317,10 +322,12 @@ var Channel = class {
 	 * calls this method under the covers to automate the acquisition of the genesis block
 	 * and sending it to the target peer to join.
 	 *
-	 * @param {OrdererRequest} request - A transaction ID object
+	 * @param {OrdererRequest} request - A transaction ID
+	 * @param {User} userContext - A User object, If exist, request will be signed by it, if not
+	 * 							request will sign by current client userContext
 	 * @returns {Promise} A Promise for an encoded protobuf "Block"
 	 */
-	getGenesisBlock(request) {
+	getGenesisBlock(request,userContext) {
 		logger.debug('getGenesisBlock - start');
 		var errorMsg = null;
 
@@ -339,10 +346,11 @@ var Channel = class {
 		}
 
 		var self = this;
-		var userContext = null;
 		var orderer = self.getOrderers()[0];
 
-		userContext = this._clientContext.getUserContext();
+		if(!userContext){
+			userContext = this._clientContext.getUserContext()
+		}
 
 		// now build the seek info, will be used once the channel is created
 		// to get the genesis block back
@@ -433,9 +441,11 @@ var Channel = class {
 	 * includes the block in the proposal request.
 	 *
 	 * @param {JoinChannelRequest} request
+	 * @param {User} userContext - A User object, If exist, request will be signed by it, if not
+	 * 								 request will sign by current client userContext
 	 * @returns {Promise} A Promise for an array of {@link ProposalResponse} from the target peers
 	 */
-	joinChannel(request) {
+	joinChannel(request,userContext) {
 		logger.debug('joinChannel - start');
 		var errorMsg = null;
 
@@ -465,7 +475,7 @@ var Channel = class {
 		}
 
 		var self = this;
-		var userContext = this._clientContext.getUserContext();
+		userContext = userContext || this._clientContext.getUserContext()
 		var chaincodeInput = new _ccProto.ChaincodeInput();
 		var args = [];
 		args.push(Buffer.from('JoinChain', 'utf8'));
@@ -511,17 +521,16 @@ var Channel = class {
 	 * This is similar to [getGenesisBlock()]{@link Channel#getGenesisBlock}, except
 	 * that instead of getting block number 0 it gets the latest block that contains
 	 * the channel configuration, and only returns the decoded {@link ConfigEnvelope}.
-	 *
+	 * @param {User} userContext - A User object, If exist, request will be signed by it, if not
+	 *                             request will sign by current client userContext
 	 * @returns {Promise} A Promise for a {@link ConfigEnvelope} object containing the configuration items.
 	 */
-	getChannelConfig() {
+	getChannelConfig(userContext) {
 		logger.debug('getChannelConfig - start for channel %s',this._name);
 
 		var self = this;
-		var userContext = null;
 		var orderer = self.getOrderers()[0];
-
-		userContext = this._clientContext.getUserContext();
+		userContext = userContext || this._clientContext.getUserContext()
 		var txId = new TransactionID(userContext);
 
 		// seek the latest block
@@ -747,17 +756,19 @@ var Channel = class {
 	 *
 	 * @param {Peer} target - Optional. The peer that is the target for this query.  If no target is passed,
 	 *                        the query will use the first peer that was added to the channel object.
+	 * @param {User} userContext - A User object, If passed, request will be signed by it, if not
+	 *                              request will sign by current client userContext
 	 * @returns {Promise} A Promise for a {@link BlockchainInfo} object with blockchain height,
 	 *                        current block hash and previous block hash.
 	 */
-	queryInfo(target) {
+	queryInfo(target,userContext) {
 		logger.debug('queryInfo - start');
 		var peer = this._getPeerForQuery(target);
 		if (peer instanceof Error) {
 			throw peer;
 		}
 		var self = this;
-		var userContext = this._clientContext.getUserContext();
+		userContext = userContext || this._clientContext.getUserContext()
 		var txId = new TransactionID(userContext);
 		var request = {
 			targets: [peer],
@@ -767,7 +778,7 @@ var Channel = class {
 			fcn : 'GetChainInfo',
 			args: [ self._name]
 		};
-		return self.sendTransactionProposal(request)
+		return self.sendTransactionProposal(request,userContext)
 		.then(
 			function(results) {
 				var responses = results[0];
@@ -820,9 +831,11 @@ var Channel = class {
 	 * @param {byte[]} block hash of the Block in question.
 	 * @param {Peer} target - Optional. The peer to send the query to. If no target is passed,
 	 *                        the query is sent to the first peer that was added to the channel object.
+	 * @param {User} userContext - A User object, If passed, request will be signed by it, if not
+	 * 							   request will sign by current client userContext
 	 * @returns {Promise} A Promise for a {@link Block} matching the hash, fully decoded into an object.
 	 */
-	queryBlockByHash(blockHash, target) {
+	queryBlockByHash(blockHash, target,userContext) {
 		logger.debug('queryBlockByHash - start');
 		if(!blockHash) {
 			return Promise.reject( new Error('Blockhash bytes are required'));
@@ -832,7 +845,7 @@ var Channel = class {
 			throw peer;
 		}
 		var self = this;
-		var userContext = this._clientContext.getUserContext();
+		userContext = userContext || this._clientContext.getUserContext()
 		var txId = new TransactionID(userContext);
 		var request = {
 			targets: [peer],
@@ -843,7 +856,7 @@ var Channel = class {
 			args: [ self._name],
 			argbytes : blockHash
 		};
-		return self.sendTransactionProposal(request)
+		return self.sendTransactionProposal(request,userContext)
 		.then(
 			function(results) {
 				var responses = results[0];
@@ -882,9 +895,11 @@ var Channel = class {
 	 * @param {number} blockNumber - The number of the Block in question.
 	 * @param {Peer} target - Optional. The peer to send this query to. If no target is passed,
 	 *                        the query is sent to the first peer that was added to the channel object.
+	 * @param {User} userContext - Optional. A user Object, if passed the request will be signed by it,
+	 *                             if not, channel will fetch current client's userContext
 	 * @returns {Promise} A Promise for a {@link Block} at the blockNumber slot in the ledger, fully decoded into an object.
 	 */
-	queryBlock(blockNumber, target) {
+	queryBlock(blockNumber, target, userContext) {
 		logger.debug('queryBlock - start blockNumber %s',blockNumber);
 		var block_number = null;
 		if(Number.isInteger(blockNumber) && blockNumber >= 0) {
@@ -897,7 +912,7 @@ var Channel = class {
 			throw peer;
 		}
 		var self = this;
-		var userContext = self._clientContext.getUserContext();
+		userContext = userContext || self._clientContext.getUserContext()
 		var txId = new TransactionID(userContext);
 		var request = {
 			targets: [peer],
@@ -907,7 +922,7 @@ var Channel = class {
 			fcn : 'GetBlockByNumber',
 			args: [ self._name, block_number]
 		};
-		return self.sendTransactionProposal(request)
+		return self.sendTransactionProposal(request, userContext)
 		.then(
 			function(results) {
 				var responses = results[0];
@@ -946,9 +961,11 @@ var Channel = class {
 	 * @param {string} tx_id - The id of the transaction
 	 * @param {Peer} target - Optional. The peer to send this query to. If no target is passed,
 	 *                        the query is sent to the first peer that was added to the channel object.
+	 * @param {User} userContext - A User object, If passed, request will be signed by it, if not,
+	 * 								request will sign by current client userContext
 	 * @returns {Promise} A Promise for a fully decoded {@link ProcessedTransaction} object.
 	 */
-	queryTransaction(tx_id, target) {
+	queryTransaction(tx_id, target, userContext) {
 		logger.debug('queryTransaction - start transactionID %s',tx_id);
 		var transaction_id = null;
 		if(tx_id) {
@@ -961,7 +978,7 @@ var Channel = class {
 			throw peer;
 		}
 		var self = this;
-		var userContext = self._clientContext.getUserContext();
+		userContext = userContext || self._clientContext.getUserContext()
 		var txId = new TransactionID(userContext);
 		var request = {
 			targets: [peer],
@@ -1008,16 +1025,18 @@ var Channel = class {
 	 *
 	 * @param {Peer} target - Optional. The peer to send this query to. If no target is passed,
 	 *                        the query is sent to the first peer that was added to the channel object.
+	 * @param {User} userContext - A User object, If passed, request will be signed by it, if not
+	 *                             request will sign by current client userContext
 	 * @returns {Promise} A Promise for a fully decoded {@link ChaincodeQueryResponse} object.
 	 */
-	queryInstantiatedChaincodes(target) {
+	queryInstantiatedChaincodes(target, userContext) {
 		logger.debug('queryInstantiatedChaincodes - start');
 		var peer = this._getPeerForQuery(target);
 		if (peer instanceof Error) {
 			throw peer;
 		}
 		var self = this;
-		var userContext = self._clientContext.getUserContext();
+		userContext = userContext || this._clientContext.getUserContext()
 		var txId = new TransactionID(userContext);
 		var request = {
 			targets: [peer],
@@ -1027,7 +1046,7 @@ var Channel = class {
 			fcn : 'getchaincodes',
 			args: []
 		};
-		return self.sendTransactionProposal(request)
+		return self.sendTransactionProposal(request, userContext)
 		.then(
 			function(results) {
 				var responses = results[0];
@@ -1122,10 +1141,12 @@ var Channel = class {
 	 * activated and the peers are ready to take requests to process transactions.
 	 *
 	 * @param {ChaincodeInstantiateUpgradeRequest} request
+	 * @param {User} userContext - A User object, If passed, request will be signed by it, if not,
+	 * 								request will be signed by client userContext
 	 * @returns {Promise} A Promise for the {@link ProposalResponseObject}
 	 */
-	sendInstantiateProposal(request) {
-		return this._sendChaincodeProposal(request, 'deploy');
+	sendInstantiateProposal(request, userContext) {
+		return this._sendChaincodeProposal(request, 'deploy', userContext);
 	}
 
 	/**
@@ -1139,16 +1160,18 @@ var Channel = class {
 	 * operation.
 	 *
 	 * @param {ChaincodeInstantiateUpgradeRequest} request
+	 * @param {User} userContext - A User object, If passed, request will be signed by it, if not,
+	 * 								request will be signed by client userContext
 	 * @returns {Promise} A Promise for the {@link ProposalResponseObject}
 	 */
-	sendUpgradeProposal(request) {
-		return this._sendChaincodeProposal(request, 'upgrade');
+	sendUpgradeProposal(request, userContext) {
+		return this._sendChaincodeProposal(request, 'upgrade',userContext);
 	}
 
 	/*
 	 * Internal method to handle both chaincode calls
 	 */
-	_sendChaincodeProposal(request, command) {
+	_sendChaincodeProposal(request, command, userContext) {
 		var errorMsg = null;
 
 		var peers = null;
@@ -1203,7 +1226,7 @@ var Channel = class {
 		chaincodeDeploymentSpec.setChaincodeSpec(ccSpec);
 
 		var header, proposal;
-		var userContext = self._clientContext.getUserContext();
+		userContext = userContext || self._clientContext.getUserContext()
 		let lcccSpec = {
 			type: _ccProto.ChaincodeSpec.Type.GOLANG,
 			chaincode_id: {
@@ -1262,9 +1285,11 @@ var Channel = class {
 	 * executes successfully) or not (if the chaincode returns an error).
 	 *
 	 * @param {ChaincodeInvokeRequest} request
+	 * @param {User} userContext - A User object, If passed, request will be signed by it, if not,
+	 * 								request will be signed by client userContext
 	 * @returns {Promise} A Promise for the {@link ProposalResponseObject}
 	 */
-	sendTransactionProposal(request) {
+	sendTransactionProposal(request, userContext) {
 		logger.debug('sendTransactionProposal - start');
 
 		if(!request) {
@@ -1278,14 +1303,14 @@ var Channel = class {
 			logger.debug('sendTransactionProposal - request does not have targets using this channels endorsing peers');
 			request.targets = this.getPeers();
 		}
-		return Channel.sendTransactionProposal(request, this._name, this._clientContext);
+		return Channel.sendTransactionProposal(request, this._name, this._clientContext, userContext);
 	}
 
 	/*
 	 * Internal static method to allow transaction proposals to be called without
 	 * creating a new channel
 	 */
-	static sendTransactionProposal(request, channelId, clientContext) {
+	static sendTransactionProposal(request, channelId, clientContext, userContext) {
 		// Verify that a Peer has been added
 		var errorMsg = null;
 
@@ -1334,7 +1359,7 @@ var Channel = class {
 		};
 
 		var proposal, header;
-		var userContext = clientContext.getUserContext();
+		userContext = userContext || clientContext.getUserContext()
 		var channelHeader = clientUtils.buildChannelHeader(
 			_commonProto.HeaderType.ENDORSER_TRANSACTION,
 			channelId,
@@ -1388,11 +1413,13 @@ var Channel = class {
 	 * <li>[sendTransactionProposal()]{@link Channel#sendTransactionProposal}
 	 *
 	 * @param {TransactionRequest} request
+	 * @param {User} userContext - A User object, If passed, request will be signed by it, if not,
+	 * 								request will be signed by client userContext
 	 * @returns {Promise} A Promise for a "BroadcastResponse" message returned by the orderer that contains a
 	 *                    single "status" field for a standard [HTTP response code]{@link https://github.com/hyperledger/fabric/blob/v1.0.0/protos/common/common.proto#L27}.
 	 *                    This will be an acknowledgement from the orderer of successfully submitted transaction.
 	 */
-	sendTransaction(request) {
+	sendTransaction(request, userContext) {
 		logger.debug('sendTransaction - start :: channel %s',this);
 		var errorMsg = null;
 
@@ -1481,7 +1508,7 @@ var Channel = class {
 		let payload_bytes = payload.toBuffer();
 
 		var self = this;
-		var userContext = this._clientContext.getUserContext();
+		userContext = userContext || this._clientContext.getUserContext()
 		let sig = userContext.getSigningIdentity().sign(payload_bytes);
 		let signature = Buffer.from(sig);
 
@@ -1517,6 +1544,8 @@ var Channel = class {
 	 * these results.
 	 *
 	 * @param {ChaincodeQueryRequest} request
+	 * @param {User} userContext - A User object, If passed, request will be signed by it, if not,
+	 * 								request will be signed by client userContext
 	 * @returns {Promise} A Promise for an array of byte array results returned from the chaincode
 	 *                    on all Endorsing Peers
 	 * @example
@@ -1528,12 +1557,12 @@ var Channel = class {
 	 *		}
 	 *	});
 	 */
-	queryByChaincode(request) {
+	queryByChaincode(request, userContext) {
 		logger.debug('queryByChaincodel - start');
 		if(!request) {
 			return Promise.reject(new Error('Missing request object for this queryByChaincode call.'));
 		}
-		var userContext = this._clientContext.getUserContext();
+		userContext = userContext || this._clientContext.getUserContext()
 		var txId = new TransactionID(userContext);
 		// make a new request object so we can add in the txId and not change the user's
 		var trans_request = {
@@ -1546,7 +1575,7 @@ var Channel = class {
 			txId : txId
 		};
 
-		return this.sendTransactionProposal(trans_request)
+		return this.sendTransactionProposal(trans_request, userContext)
 		.then(
 			function(results) {
 				var responses = results[0];

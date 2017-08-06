@@ -241,11 +241,12 @@ var EventHub = class {
 	 * [registerTxEvent]{@link EventHub#registerTxEvent} or
 	 * [registerChaincodeEvent]{@link EventHub#registerChaincodeEvent}
 	 * methods, before calling connect().
+	 * @param {User} userContext -Optional. If passed, connect request will be signed by it.
 	 */
-	connect(){
+	connect(userContext){
 		logger.debug('connect - start');
 		this._connect_running = false; //override a running connect
-		this._connect();
+		this._connect(userContext);
 	}
 
 	/*
@@ -254,7 +255,11 @@ var EventHub = class {
 	 * @param {boolean} force - internal use only, will reestablish the
 	 *                  the connection to the peer event hub
 	 */
-	_connect(force) {
+	_connect(force, userContext) {
+		if(force && force.hasOwnProperty('_identity')){
+			userContext = force
+			force = null
+		}
 		this._connect_called = true;
 		if(this._connect_running) {
 			logger.debug('_connect - connect is running');
@@ -358,7 +363,7 @@ var EventHub = class {
 			}
 		});
 
-		this._sendRegistration(true);
+		this._sendRegistration(true, userContext);
 		logger.debug('_connect - end stream:',stream_id);
 	}
 
@@ -368,8 +373,8 @@ var EventHub = class {
 	 * with the message "EventHub has been shutdown" to
 	 * all listeners that provided an "onError" callback.
 	 */
-	disconnect() {
-		this._disconnect(new Error('EventHub has been shutdown'));
+	disconnect(userContext) {
+		this._disconnect(new Error('EventHub has been shutdown'),userContext);
 	}
 
 	/* Internal method
@@ -377,13 +382,14 @@ var EventHub = class {
 	 * Will close all event listeners and send an `Error` to
 	 * all listeners that provided an "onError" callback.
 	 */
-	_disconnect(err) {
+	_disconnect(err, user) {
+
 		logger.debug('_disconnect - start -- called due to:: %s',err.message);
 		this._connected = false;
 		this._closeAllCallbacks(err);
 		if(this._stream) {
 			logger.debug('_disconnect - shutdown existing stream');
-			this._sendRegistration(false);
+			this._sendRegistration(false,user);
 			this._stream.end();
 			this._stream = null;
 		}
@@ -395,8 +401,8 @@ var EventHub = class {
 	 * Builds a signed event registration
 	 * and sends it to the peer's event hub.
 	 */
-	_sendRegistration(register) {
-		var user = this._clientContext.getUserContext();
+	_sendRegistration(register,user) {
+		user = user || this._clientContext.getUserContext();
 		var signedEvent = new _events.SignedEvent();
 		var event = new _events.Event();
 		var reg = {events: [{event_type: 'BLOCK'}]};
