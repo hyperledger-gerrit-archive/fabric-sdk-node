@@ -38,6 +38,7 @@ var grpc = require('grpc');
 
 var tx_id = null;
 var the_user = null;
+var randomstring = require('randomstring');
 
 function init() {
 	if (!ORGS) {
@@ -453,6 +454,10 @@ function buildChaincodeProposal(client, the_user, chaincode_path, version, upgra
 
 module.exports.instantiateChaincode = instantiateChaincode;
 
+//var randomValue = randomstring.generate(1048576);
+var randomValue = randomstring.generate(2097152);
+//var randomValue = randomstring.generate(3145728);
+//var randomValue = randomstring.generate(4194304);
 
 function invokeChaincode(userOrg, version, t, useStore){
 	init();
@@ -569,8 +574,8 @@ function invokeChaincode(userOrg, version, t, useStore){
 		// send proposal to endorser
 		var request = {
 			chaincodeId : e2e.chaincodeId,
-			fcn: 'move',
-			args: ['a', 'b','100'],
+			fcn: 'put',
+			args: ['a', randomValue],
 			txId: tx_id,
 		};
 		return channel.sendTransactionProposal(request);
@@ -763,8 +768,8 @@ function queryChaincode(org, version, value, t, transientMap) {
 		var request = {
 			chaincodeId : e2e.chaincodeId,
 			txId: tx_id,
-			fcn: 'query',
-			args: ['b']
+			fcn: 'get',
+			args: ['a']
 		};
 
 		if (transientMap) {
@@ -781,15 +786,17 @@ function queryChaincode(org, version, value, t, transientMap) {
 		if (response_payloads) {
 			for(let i = 0; i < response_payloads.length; i++) {
 				if (transientMap) {
-					t.equal(
+					console.log(response_payloads[i].toString('utf8'));
+					/*t.equal(
 						response_payloads[i].toString(),
 						transientMap[Object.keys(transientMap)[0]].toString(),
-						'Checking the result has the transientMap value returned by the chaincode');
+						'Checking the result has the transientMap value returned by the chaincode');*/
 				} else {
-					t.equal(
+					console.log(response_payloads[i].toString('utf8'));
+					/*t.equal(
 						response_payloads[i].toString('utf8'),
 						value,
-						'checking query results are correct that user b has '+ value + ' now after the move');
+						'checking query results are correct that user b has '+ value + ' now after the move');*/
 				}
 			}
 			return true;
