@@ -110,6 +110,33 @@ gulp.task('test', ['clean-up', 'lint', 'pre-test', 'docker-ready', 'ca'], functi
 	}));
 });
 
+gulp.task('network', ['clean-up', 'lint', 'pre-test', 'docker-ready', 'ca'], function() {
+	// use individual tests to control the sequence they get executed
+	// first run the ca-tests that tests all the member registration
+	// and enrollment scenarios (good and bad calls). Then the rest
+	// of the tests will re-use the same key value store that has
+	// saved the user certificates so they can interact with the
+	// network
+	return gulp.src(shouldRunPKCS11Tests([
+		'test/unit/**/*.js',
+		'!test/unit/constants.js',
+		'!test/unit/util.js',
+		'!test/unit/logger.js',
+		// channel: mychannel, chaincode: end2endnodesdk:v0/v1
+		'test/integration/network-config.js'
+	]))
+	.pipe(addsrc.append(
+		'test/unit/logger.js' // put this to the last so the debugging levels are not mixed up
+	))
+	.pipe(tape({
+		reporter: tapColorize()
+	}))
+	.pipe(istanbul.writeReports({
+		reporters: ['lcov', 'json', 'text',
+			'text-summary', 'cobertura']
+	}));
+});
+
 gulp.task('test-headless', ['clean-up', 'lint', 'pre-test', 'ca'], function() {
 	// this is needed to avoid a problem in tape-promise with adding
 	// too many listeners
