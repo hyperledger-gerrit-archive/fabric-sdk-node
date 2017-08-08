@@ -429,7 +429,9 @@ var CryptoKeyStore = function(KVSImplClass, opts) {
 		superClass = KVSImplClass;
 	} else {
 		// no super class specified, use the default key value store implementation
-		superClass = require(module.exports.getConfigSetting('key-value-store'));
+		let impl_class = module.exports.getConfigSetting('crypto-value-store');
+		if(!impl_class) impl_class = module.exports.getConfigSetting('key-value-store');
+		superClass = require(impl_class);
 		this.logger.debug('constructor, no super class specified, using config: '+module.exports.getConfigSetting('key-value-store'));
 	}
 

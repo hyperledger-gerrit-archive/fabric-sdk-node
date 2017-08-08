@@ -1,5 +1,5 @@
 /*
- Copyright 2016 IBM All Rights Reserved.
+ Copyright 2016, 2017 IBM All Rights Reserved.
 
  Licensed under the Apache License, Version 2.0 (the "License");
  you may not use this file except in compliance with the License.
@@ -30,10 +30,16 @@ var EventHub = require('./EventHub.js');
 var Orderer = require('./Orderer.js');
 var TransactionID = require('./TransactionID.js');
 var MSP = require('./msp/msp.js');
+var idModule = require('./msp/identity.js');
+var Identity = idModule.Identity;
+var SigningIdentity = idModule.SigningIdentity;
+var Signer = idModule.Signer;
 
 var logger = sdkUtils.getLogger('Client.js');
 var util = require('util');
 var fs = require('fs-extra');
+var path = require('path');
+var yaml = require('js-yaml');
 var Constants = require('./Constants.js');
 
 var grpc = require('grpc');
@@ -77,11 +83,44 @@ var Client = class extends BaseClient {
 		this._channels = {};
 		this._stateStore = null;
 		this._userContext = null;
+		this._network_config = null;
 		// keep a collection of MSP's
 		this._msps = new Map();
 
 		// Is in dev mode or network mode
 		this._devMode = false;
+
+		// When using a network configuration there may be
+		// an admin defined for the current user's organization.
+		// This will get set during the setUserFromConfig
+		this._adminSigningIdentity = null;
+	}
+
+	/**
+	 * Load a network configuration object or load a JSON file and return a Client object.
+	 *
+	 * @param {object | string} config - This may be the config object or a path to the configuration file
+	 * @return {Client} An instance of this class initialized with the network end points.
+	 */
+	static loadFromConfig(config) {
+		var client = new Client();
+		client._network_config = _getNetworkConfig(config, client);
+		return client;
+	}
+
+	/**
+	 * Load a network configuration object or load a JSON file and update this client with
+	 * any values in the config.
+	 *
+	 * @param {object | string} config - This may be the config object or a path to the configuration file
+	 */
+	loadFromConfig(config) {
+		var additional_network_config = _getNetworkConfig(config, this);
+		if(!this._network_config) {
+			this._network_config = additional_network_config;
+		} else {
+			this._network_config.addSettings(additional_network_config);
+		}
 	}
 
 	/**
@@ -119,25 +158,48 @@ var Client = class extends BaseClient {
 		if (channel)
 			throw new Error(util.format('Channel %s already exists', name));
 
-		var channel = new Channel(name, this);
+		channel = new Channel(name, this);
+
 		this._channels[name] = channel;
 		return channel;
 	}
 
 	/**
 	 * Get a {@link Channel} instance from the client instance. This is a memory-only lookup.
+	 * If the loaded network configuration has a channel by the 'name', a new channel instance
+	 * will be created and populated with {@link Orderer} objects and {@link Peer} objects
+	 * as defined in the network configuration.
 	 *
-	 * @param {string} name The name of the channel.
+	 * @param {string} name - The name of the channel.
+	 * @param {boolean} throwError - Indicates if this method will throw an error if the channel
+	 *                  is not found. Default is true.
 	 * @returns {Channel} The channel instance
 	 */
-	getChannel(name) {
-		var ret = this._channels[name];
+	getChannel(name, throwError) {
+		var channel = this._channels[name];
 
-		if (ret)
-			return ret;
+		if (channel)
+			return channel;
 		else {
+			// maybe it is defined in the network config
+			if(this._network_config) {
+				channel = this._network_config.getChannel(name);
+				this._channels[name] = channel;
+			}
+			if(channel) {
+				return channel;
+			}
+
 			logger.error('Channel not found for name '+name+'.');
-			throw new Error('Channel not found for name '+name+'.');
+
+			if(typeof throwError === 'undefined') {
+				throwError = true;
+			}
+			if(throwError) {
+				throw new Error('Channel not found for name '+name+'.');
+			} else {
+				return null;
+			}
 		}
 	}
 
@@ -186,6 +248,15 @@ var Client = class extends BaseClient {
 		return event_hub;
 	}
 
+	getEventHub(name) {
+		var event_hub = null;
+		if(this._network_config) {
+			event_hub = this._network_config.getEventHub(name);
+		}
+
+		return event_hub;
+	}
+
     /**
 	 * Returns an {@link Orderer} object with the given url and opts. An orderer object
 	 * encapsulates the properties of an orderer node and the interactions with it via
@@ -216,7 +287,7 @@ var Client = class extends BaseClient {
 		if (typeof this._userContext === 'undefined' || this._userContext === null) {
 			throw new Error('This client instance must be assigned an user context');
 		}
-		let trans_id = new TransactionID(this._userContext);
+		let trans_id = new TransactionID(this._userContext, this._adminSigningIdentity);
 
 		return trans_id;
 	}
@@ -281,17 +352,17 @@ var Client = class extends BaseClient {
 		if(!(config instanceof Buffer)) {
 			throw new Error('Channel configuration update parameter is not in the correct form.');
 		}
-		var userContext = this.getUserContext();
+		var signing_identity = this.getAdminSigningIdentity();
 
 		// signature is across a signature header and the config update
 		let proto_signature_header = new _commonProto.SignatureHeader();
-		proto_signature_header.setCreator(userContext.getIdentity().serialize());
+		proto_signature_header.setCreator(signing_identity.serialize());
 		proto_signature_header.setNonce(sdkUtils.getNonce());
 		var signature_header_bytes = proto_signature_header.toBuffer();
 
 		// get all the bytes to be signed together, then sign
 		let signing_bytes = Buffer.concat([signature_header_bytes, config]);
-		let sig = userContext.getSigningIdentity().sign(signing_bytes);
+		let sig = signing_identity.sign(signing_bytes);
 		let signature_bytes = Buffer.from(sig);
 
 		// build the return object
@@ -375,48 +446,48 @@ var Client = class extends BaseClient {
 	 */
 	_createOrUpdateChannel(request, have_envelope) {
 		logger.debug('_createOrUpdateChannel - start');
-		var errorMsg = null;
+		var error_msg = null;
+		var orderer = null;
 
 		if(!request) {
-			errorMsg = 'Missing all required input request parameters for initialize channel';
+			error_msg = 'Missing all required input request parameters for initialize channel';
 		}
-		else {
-			// Verify that a config envelope or config has been included in the request object
-			if (!request.config && !have_envelope) {
-				errorMsg = 'Missing config request parameter containing the configuration of the channel';
-			}
-			if(!request.signatures && !have_envelope) {
-				errorMsg = 'Missing signatures request parameter for the new channel';
-			}
-			else if(!Array.isArray(request.signatures ) && !have_envelope) {
-				errorMsg = 'Signatures request parameter must be an array of signatures';
-			}
-			if(!request.txId && !have_envelope) {
-				errorMsg = 'Missing txId request parameter';
-			}
-
-			// verify that we have an orderer configured
-			if(!request.orderer) {
-				errorMsg = 'Missing orderer request parameter';
-			}
-			// verify that we have the name of the new channel
-			if(!request.name) {
-				errorMsg = 'Missing name request parameter';
-			}
+		// Verify that a config envelope or config has been included in the request object
+		else if (!request.config && !have_envelope) {
+			error_msg = 'Missing config request parameter containing the configuration of the channel';
+		}
+		else if(!request.signatures && !have_envelope) {
+			error_msg = 'Missing signatures request parameter for the new channel';
+		}
+		else if(!Array.isArray(request.signatures ) && !have_envelope) {
+			error_msg = 'Signatures request parameter must be an array of signatures';
+		}
+		else if(!request.txId && !have_envelope) {
+			error_msg = 'Missing txId request parameter';
+		}
+		// verify that we have the name of the new channel
+		else if(!request.name) {
+			error_msg = 'Missing name request parameter';
 		}
 
-		if(errorMsg) {
-			logger.error('_createOrUpdateChannel error %s',errorMsg);
-			return Promise.reject(new Error(errorMsg));
+		if(error_msg) {
+			logger.error('_createOrUpdateChannel error %s',error_msg);
+			return Promise.reject(new Error(error_msg));
+		}
+
+		try {
+			orderer = clientUtils.getOrderer(request.orderer, request.name, this);
+			if(!orderer) throw new Error('Missing "orderer" request parameter');
+		} catch (err) {
+			return Promise.reject(err);
 		}
 
 		var self = this;
 		var channel_id = request.name;
-		var orderer = request.orderer;
 		var userContext = null;
 		var channel = null;
 
-		userContext = this.getUserContext();
+		let signing_identity = self.getAdminSigningIdentity();
 
 		var signature = null;
 		var payload = null;
@@ -436,16 +507,16 @@ var Client = class extends BaseClient {
 			var proto_channel_header = clientUtils.buildChannelHeader(
 				_commonProto.HeaderType.CONFIG_UPDATE,
 				request.name,
-				request.txId.getTransactionID()
+				request.txId.getAdminTransactionID()
 			);
 
-			var proto_header = clientUtils.buildHeader(userContext.getIdentity(), proto_channel_header, request.txId.getNonce());
+			var proto_header = clientUtils.buildHeader(signing_identity, proto_channel_header, request.txId.getNonce());
 			var proto_payload = new _commonProto.Payload();
 			proto_payload.setHeader(proto_header);
 			proto_payload.setData(proto_config_Update_envelope.toBuffer());
 			var payload_bytes = proto_payload.toBuffer();
 
-			let sig = userContext.getSigningIdentity().sign(payload_bytes);
+			let sig = signing_identity.sign(payload_bytes);
 			let signature_bytes = Buffer.from(sig);
 
 			signature = signature_bytes;
@@ -500,13 +571,20 @@ var Client = class extends BaseClient {
 	 */
 	queryChannels(peer) {
 		logger.debug('queryChannels - start');
+		var targets = null;
 		if(!peer) {
 			return Promise.reject( new Error('Peer is required'));
+		} else {
+			try {
+				targets = clientUtils.getTargets(peer, this);
+			} catch (err) {
+				return Promise.reject(err);
+			}
 		}
 		var self = this;
-		var txId = new TransactionID(this._userContext);
+		var txId = self.newTransactionID();
 		var request = {
-			targets: [peer],
+			targets: targets,
 			chaincodeId : Constants.CSCC,
 			txId: txId,
 			fcn : 'GetChannels',
@@ -575,13 +653,20 @@ var Client = class extends BaseClient {
 	 */
 	queryInstalledChaincodes(peer) {
 		logger.debug('queryInstalledChaincodes - start peer %s',peer);
+		var targets = null;
 		if(!peer) {
 			return Promise.reject( new Error('Peer is required'));
+		} else {
+			try {
+				targets = clientUtils.getTargets(peer, this);
+			} catch (err) {
+				return Promise.reject(err);
+			}
 		}
 		var self = this;
-		var txId = new TransactionID(this._userContext);
+		var txId = self.newTransactionID();
 		var request = {
-			targets: [peer],
+			targets: targets,
 			chaincodeId : Constants.LSCC,
 			txId: txId,
 			fcn : 'getinstalledchaincodes',
@@ -668,29 +753,34 @@ var Client = class extends BaseClient {
 	installChaincode(request) {
 		logger.debug('installChaincode - start');
 
-		var errorMsg = null;
+		var error_msg = null;
 
 		var peers = null;
 		if (request) {
-			peers = request.targets;
+			try {
+				peers = clientUtils.getTargets(request.targets, this);
+			} catch (err) {
+				return Promise.reject(err);
+			}
+
 			// Verify that a Peer has been added
 			if (peers && peers.length > 0) {
 				logger.debug('installChaincode - found peers ::%s',peers.length);
 			}
 			else {
-				errorMsg = 'Missing peer objects in install chaincode request';
+				error_msg = 'Missing peer objects in install chaincode request';
 			}
 		}
 		else {
-			errorMsg = 'Missing input request object on install chaincode request';
+			error_msg = 'Missing input request object on install chaincode request';
 		}
 
-		if (!errorMsg) errorMsg = clientUtils.checkProposalRequest(request, true);
-		if (!errorMsg) errorMsg = clientUtils.checkInstallRequest(request);
+		if (!error_msg) error_msg = clientUtils.checkProposalRequest(request, true);
+		if (!error_msg) error_msg = clientUtils.checkInstallRequest(request);
 
-		if (errorMsg) {
-			logger.error('installChaincode error ' + errorMsg);
-			return Promise.reject(new Error(errorMsg));
+		if (error_msg) {
+			logger.error('installChaincode error ' + error_msg);
+			return Promise.reject(new Error(error_msg));
 		}
 
 		let self = this;
@@ -731,18 +821,18 @@ var Client = class extends BaseClient {
 			};
 
 			var header, proposal;
-			var userContext = self.getUserContext();
-			var txId = new TransactionID(userContext);
+			let signing_identity = self.getAdminSigningIdentity();
+			var txId = self.newTransactionID();
 			var channelHeader = clientUtils.buildChannelHeader(
 				_commonProto.HeaderType.ENDORSER_TRANSACTION,
 				'', //install does not target a channel
-				txId.getTransactionID(),
+				txId.getAdminTransactionID(),
 				null,
 				Constants.LSCC
 			);
-			header = clientUtils.buildHeader(userContext.getIdentity(), channelHeader, txId.getNonce());
+			header = clientUtils.buildHeader(signing_identity, channelHeader, txId.getNonce());
 			proposal = clientUtils.buildProposal(lcccSpec, header);
-			let signed_proposal = clientUtils.signProposal(userContext.getSigningIdentity(), proposal);
+			let signed_proposal = clientUtils.signProposal(signing_identity, proposal);
 			logger.debug('installChaincode - about to sendPeersProposal');
 			return clientUtils.sendPeersProposal(peers, signed_proposal)
 			.then(
@@ -751,6 +841,76 @@ var Client = class extends BaseClient {
 				}
 			);
 		});
+	}
+	/**
+	 * Get the {@link SigningIdentity} object for this User's organization's admin, used to generate signatures.
+	 * Will return the current user's SigningIdentity when the organizational admin has not been assigned to this client.
+	 * @returns {SigningIdentity} the signing identity object that encapsulates the private key for signing
+	 */
+	getAdminSigningIdentity() {
+		if(this._adminSigningIdentity) {
+			return this._adminSigningIdentity;
+		} else {
+			return this._userContext.getSigningIdentity();
+		}
+	}
+
+	/**
+	 * Set the admin signing identity object for the current User's organization.
+	 * @param {string} private_key - the private key PEM string
+	 * @param {string} certificate the PEM-encoded string of certificate
+	 * @param {string} mpsid The Member Service Provider id for the local signing identity
+	 */
+	setAdminSigningIdentity(private_key, certificate, mspid) {
+		logger.debug('setAdminSigningIdentity - start mspid:%s',mspid);
+		if (typeof private_key === 'undefined' || private_key === null || private_key === '') {
+			throw new Error('Invalid parameter. Must have a valid private key.');
+		}
+		if (typeof certificate === 'undefined' || certificate === null || certificate === '') {
+			throw new Error('Invalid parameter. Must have a valid certificate.');
+		}
+		if (typeof mspid === 'undefined' || mspid === null || mspid === '') {
+			throw new Error('Invalid parameter. Must have a valid mspid.');
+		}
+
+		let key = this.getCryptoSuite().importKey(private_key, {ephemeral : true});
+		var public_key = this._cryptoSuite.importKey(certificate, {ephemeral: true});
+
+		this._adminSigningIdentity = new SigningIdentity(certificate, public_key, mspid, this._cryptoSuite, new Signer(this._cryptoSuite, key));
+	}
+
+	/**
+	 * Sets the state and crypto stores for use by this client.
+	 * This requires that a network config has been loaded. Will use the settings
+	 * from the network configuration along with the system configuration to build
+	 * instances of the stores and assign them to this client.
+	 *
+	 * @returns {Promise} - A promise to build a key value store and crypto store.
+	 */
+	setStoresFromConfig() {
+		if(this._network_config) {
+			let client_config = this._network_config.getClientConfig();
+			if(client_config && client_config.credentialStore) {
+				var self = this;
+				return BaseClient.newDefaultKeyValueStore(client_config.credentialStore)
+				.then((key_value_store) =>{
+					self.setStateStore(key_value_store);
+					var crypto_suite = BaseClient.newCryptoSuite();
+					// not all crypto suites require a crypto store
+					if (typeof crypto_suite.setCryptoKeyStore == 'function') {
+						crypto_suite.setCryptoKeyStore(BaseClient.newCryptoKeyStore(client_config.credentialStore.cryptoStore));
+					}
+					self.setCryptoSuite(crypto_suite);
+					return Promise.resolve(true);
+				}).catch((err)=>{
+					return Promise.reject(err);
+				});
+			} else {
+				return Promise.reject(new Error('No credentialStore settings found'));
+			}
+		} else {
+			return Promise.reject(new Error('No network configuration settings found'));
+		}
 	}
 
 	/**
@@ -783,6 +943,96 @@ var Client = class extends BaseClient {
 		this._userContext = null;
 	}
 
+	/**
+	 * Sets the user context based on the passed in username and password
+	 * and the organization in the client section of the network configuration
+	 * settings.
+	 *
+	 * @param {string} username - username of the user
+	 * @param {string} password - password of the user
+	 * @param {boolean} clear_existing_user - to clear out any current
+	 *                  user context of this client. The default will
+	 *                  be to use the current user if they have the same
+	 *                  username.
+	 */
+	setUserFromConfig(username, password, clear_existing_user) {
+		var mspid = null;
+		var admin_cert = null;
+		var admin_key = null;
+		if(!this._network_config || !this._stateStore || !this._cryptoSuite ) {
+			return Promise.reject(new Error('Client requires a network configuration loaded, stores attached, and crypto suite.'));
+		}
+		if(clear_existing_user) {
+			this._userContext = null;
+			this._adminSigningIdentity = null;
+		}
+		var self = this;
+		return self.getUserContext(username, true)
+		.then((user) => {
+			return new Promise((resolve, reject) => {
+
+				let ca_url, tls_options, ca_name = null;
+				let client_config = self._network_config.getClientConfig();
+				if(client_config && client_config.organization) {
+					let organization_config = self._network_config.getOrganization(client_config.organization);
+					if(organization_config) {
+						mspid = organization_config.getMspid();
+						admin_key = organization_config.getAdminPrivateKey();
+						admin_cert = organization_config.getAdminCert();
+						let cas = organization_config.getCertificateAuthorities();
+						if(cas.length > 0) {
+							let ca = cas[0];
+							tls_options = {
+								//trustedRoots: [ca.getTlsCACerts()], //TODO handle non existent
+								trustedRoots: [], //TODO handle non existent
+								verify: ca.getConnectionOptions().verify //TODO handle non existent
+							};
+							ca_url = ca.getUrl();
+							ca_name = ca.getName();
+						}
+					}
+				}
+				if(admin_key && admin_cert && mspid) {
+					self.setAdminSigningIdentity(admin_key, admin_cert, mspid);
+				}
+
+				if (user && user.isEnrolled()) {
+					logger.debug('Successfully loaded member from persistence');
+					return resolve(user);
+				}
+
+				var member = new User(username);
+				var crypto_suite = self.getCryptoSuite();
+				member.setCryptoSuite(crypto_suite);
+
+				if(!ca_url || !tls_options || !mspid) {
+					return reject(new Error('Configuration is missing this client\'s organization and certificate authority'));
+				}
+
+				let ca_service_class = Client.getConfigSetting('certificate-authority-software');
+				var ca_service_impl = require(ca_service_class);
+				var ca_service = new ca_service_impl(ca_url, tls_options, ca_name, crypto_suite);
+
+				return ca_service.enroll({
+					enrollmentID: username,
+					enrollmentSecret: password
+				}).then((enrollment) => {
+					logger.debug('Successfully enrolled user \'' + username + '\'');
+
+					return member.setEnrollment(enrollment.key, enrollment.certificate, mspid);
+				}).then(() => {
+
+					return self.setUserContext(member, false);
+				}).then(() => {
+
+					return resolve(member);
+				}).catch((err) => {
+					logger.error('Failed to enroll and persist user. Error: ' + err.stack ? err.stack : err);
+					reject(err);
+				});
+			});
+		});
+	}
 	/**
 	 * Persist the current <code>userContext</code> to the key value store.
 	 *
@@ -1173,4 +1423,45 @@ function _stringToSignature(string_signatures) {
 	return signatures;
 }
 
+//internal utility method to get a NetworkConfig
+function _getNetworkConfig(config, client) {
+	var method = '_getNetworkConfig';
+	var network_config = null;
+	var network_data = null;
+	if(typeof config === 'string') {
+		var config_loc = path.resolve(config);
+		logger.debug('%s - looking at absolute path of ==>%s<==',method,config_loc);
+		var file_data = fs.readFileSync(config_loc);
+		let file_ext = path.extname(config_loc);
+		// maybe the file is yaml else has to be JSON
+		if(file_ext.indexOf('y') > -1) {
+			network_data = yaml.safeLoad(file_data);
+		} else {
+			network_data = JSON.parse(file_data);
+		}
+	} else {
+		network_data = config;
+	}
+
+	var error_msg = null;
+	if(network_data && network_data.version) {
+		var parsing_file_name = Client.getConfigSetting('network-config-schema-'+network_data.version);
+		if(parsing_file_name) {
+			var NetworkConfig = require(parsing_file_name);
+			network_config = new NetworkConfig(network_data, client);
+		} else {
+			error_msg = '"version" is an unknown value';
+		}
+	} else {
+		error_msg = '"version" is missing';
+	}
+
+	if(error_msg) {
+		let out_message = util.format('Invalid network configuration with %s',error_msg);
+		logger.error(out_message);
+		throw new Error(out_message);
+	}
+
+	return network_config;
+}
 module.exports = Client;

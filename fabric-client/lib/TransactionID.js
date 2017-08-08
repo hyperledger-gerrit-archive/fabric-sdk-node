@@ -36,8 +36,11 @@ var TransactionID = class {
 	 * generated nonce value.
 	 * @param {User} userContext - An instance of {@link User} that provides an unique
 	 *                 base for this transaction id.
+	 * @param {Identity} adminIdentity - An of {@link Identity} that provides an unique
+	 *                 base for another transaction id to be used when the action will
+	 *                 an admin type action.
 	 */
-	constructor(userContext) {
+	constructor(userContext, adminIdentity) {
 		logger.debug('const - start');
 		if (typeof userContext === 'undefined' || userContext === null) {
 			throw new Error('Missing userContext parameter');
@@ -46,11 +49,22 @@ var TransactionID = class {
 			throw new Error('Parameter "userContext" must be an instance of the "User" class');
 		}
 		this._nonce = sdkUtils.getNonce(); //nonce is in bytes
+		// build the user transaction id
 		let creator_bytes = userContext.getIdentity().serialize();//same as signatureHeader.Creator
 		let trans_bytes = Buffer.concat([this._nonce, creator_bytes]);
 		let trans_hash = hashPrimitives.sha2_256(trans_bytes);
 		this._transaction_id = Buffer.from(trans_hash).toString();
-		logger.debug('const - transaction_id %s',this._transaction_id);
+		// build the admin transaction id, might just be the same
+		if(adminIdentity) {
+			creator_bytes = adminIdentity.serialize();
+			trans_bytes = Buffer.concat([this._nonce, creator_bytes]);
+			trans_hash = hashPrimitives.sha2_256(trans_bytes);
+			this._admin_transaction_id = Buffer.from(trans_hash).toString();
+		} else {
+			this._admin_transaction_id = this._transaction_id;
+		}
+
+		logger.debug('const - transaction_id %s :: %s',this._transaction_id, this._admin_transaction_id);
 	}
 
 	/**
@@ -58,6 +72,13 @@ var TransactionID = class {
 	 */
 	getTransactionID() {
 		return this._transaction_id;
+	}
+
+	/**
+	 * The transaction ID for admin actions
+	 */
+	getAdminTransactionID() {
+		return this._admin_transaction_id;
 	}
 
 	/**

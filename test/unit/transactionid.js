@@ -59,6 +59,8 @@ test('\n\n ** Transaction - constructor set get tests **\n\n', function (t) {
 	}).then(() =>{
 		var trans_id = new TransactionID(member);
 		t.pass('Successfully created a new TransactionID');
+		t.equals(trans_id.getTransactionID(), trans_id.getAdminTransactionID(),
+			'test equals of transids when no admin identity passed in');
 		t.end();
 	}).catch((err) => {
 		t.fail(err.stack ? err.stack : err);
