@@ -1264,7 +1264,7 @@ var Channel = class {
 	 * @param {ChaincodeInvokeRequest} request
 	 * @returns {Promise} A Promise for the {@link ProposalResponseObject}
 	 */
-	sendTransactionProposal(request) {
+	sendTransactionProposal(request,opt) {
 		logger.debug('sendTransactionProposal - start');
 
 		if(!request) {
@@ -1278,14 +1278,14 @@ var Channel = class {
 			logger.debug('sendTransactionProposal - request does not have targets using this channels endorsing peers');
 			request.targets = this.getPeers();
 		}
-		return Channel.sendTransactionProposal(request, this._name, this._clientContext);
+		return Channel.sendTransactionProposal(request, this._name, this._clientContext,opt);
 	}
 
 	/*
 	 * Internal static method to allow transaction proposals to be called without
 	 * creating a new channel
 	 */
-	static sendTransactionProposal(request, channelId, clientContext) {
+	static sendTransactionProposal(request, channelId, clientContext, opt) {
 		// Verify that a Peer has been added
 		var errorMsg = null;
 
@@ -1342,8 +1342,13 @@ var Channel = class {
 			null,
 			request.chaincodeId
 			);
-		header = clientUtils.buildHeader(userContext.getIdentity(), channelHeader, request.txId.getNonce());
-		proposal = clientUtils.buildProposal(invokeSpec, header, request.transientMap);
+		if(opt&&opt.header&&opt.proposal){
+			header = opt.header;
+			proposal = opt.proposal;
+		}else{
+			header = clientUtils.buildHeader(userContext.getIdentity(), channelHeader, request.txId.getNonce());
+			proposal = clientUtils.buildProposal(invokeSpec, header, request.transientMap);
+		}
 		let signed_proposal = clientUtils.signProposal(userContext.getSigningIdentity(), proposal);
 
 		return clientUtils.sendPeersProposal(request.targets, signed_proposal)
