@@ -1,5 +1,5 @@
 /*
- Copyright 2016 IBM All Rights Reserved.
+ Copyright 2016, 2017 IBM All Rights Reserved.
 
  Licensed under the Apache License, Version 2.0 (the "License");
  you may not use this file except in compliance with the License.
@@ -34,6 +34,8 @@ var MSP = require('./msp/msp.js');
 var logger = sdkUtils.getLogger('Client.js');
 var util = require('util');
 var fs = require('fs-extra');
+var path = require('path');
+var yaml = require('js-yaml');
 var Constants = require('./Constants.js');
 
 var grpc = require('grpc');
@@ -77,11 +79,44 @@ var Client = class extends BaseClient {
 		this._channels = {};
 		this._stateStore = null;
 		this._userContext = null;
+		this._network_config = null;
 		// keep a collection of MSP's
 		this._msps = new Map();
 
 		// Is in dev mode or network mode
 		this._devMode = false;
+
+		// When using a network configuration there may be
+		// an admin defined for the current user's organization.
+		// This will get set during the setUserFromConfig
+		this._adminSigningIdentity = null;
+	}
+
+	/**
+	 * Load a network configuration object or load a JSON file and return a Client object.
+	 *
+	 * @param {object | string} config - This may be the config object or a path to the configuration file
+	 * @return {Client} An instance of this class initialized with the network end points.
+	 */
+	static loadFromConfig(config) {
+		var client = new Client();
+		client._network_config = _getNetworkConfig(config, client);
+		return client;
+	}
+
+	/**
+	 * Load a network configuration object or load a JSON file and update this client with
+	 * any values in the config.
+	 *
+	 * @param {object | string} config - This may be the config object or a path to the configuration file
+	 */
+	loadFromConfig(config) {
+		var additional_network_config = _getNetworkConfig(config, this);
+		if(!this._network_config) {
+			this._network_config = additional_network_config;
+		} else {
+			this._network_config.addSettings(additional_network_config);
+		}
 	}
 
 	/**
@@ -119,25 +154,47 @@ var Client = class extends BaseClient {
 		if (channel)
 			throw new Error(util.format('Channel %s already exists', name));
 
-		var channel = new Channel(name, this);
+		channel = new Channel(name, this);
 		this._channels[name] = channel;
 		return channel;
 	}
 
 	/**
 	 * Get a {@link Channel} instance from the client instance. This is a memory-only lookup.
+	 * If the loaded network configuration has a channel by the 'name', a new channel instance
+	 * will be created and populated with {@link Orderer} objects and {@link Peer} objects
+	 * as defined in the network configuration.
 	 *
-	 * @param {string} name The name of the channel.
+	 * @param {string} name - The name of the channel.
+	 * @param {boolean} throwError - Indicates if this method will throw an error if the channel
+	 *                  is not found. Default is true.
 	 * @returns {Channel} The channel instance
 	 */
-	getChannel(name) {
-		var ret = this._channels[name];
+	getChannel(name, throwError) {
+		var channel = this._channels[name];
 
-		if (ret)
-			return ret;
+		if (channel)
+			return channel;
 		else {
+			// maybe it is defined in the network config
+			if(this._network_config) {
+				channel = this._network_config.getChannel(name);
+				this._channels[name] = channel;
+			}
+			if(channel) {
+				return channel;
+			}
+
 			logger.error('Channel not found for name '+name+'.');
-			throw new Error('Channel not found for name '+name+'.');
+
+			if(typeof throwError === 'undefined') {
+				throwError = true;
+			}
+			if(throwError) {
+				throw new Error('Channel not found for name '+name+'.');
+			} else {
+				return null;
+			}
 		}
 	}
 
@@ -754,6 +811,40 @@ var Client = class extends BaseClient {
 	}
 
 	/**
+	 * Sets the state and crypto stores for use by this client.
+	 * This requires that a network config has been loaded. Will use the settings
+	 * from the network configuration along with the system configuration to build
+	 * instances of the stores and assign them to this client.
+	 *
+	 * @returns {Promise} - A promise to build a key value store and crypto store.
+	 */
+	setStoresFromConfig() {
+		if(this._network_config) {
+			let client_config = this._network_config.getClientConfig();
+			if(client_config && client_config.credentialStore) {
+				var self = this;
+				return BaseClient.newDefaultKeyValueStore(client_config.credentialStore)
+				.then((key_value_store) =>{
+					self.setStateStore(key_value_store);
+					var crypto_suite = BaseClient.newCryptoSuite();
+					// not all crypto suites require a crypto store
+					if (typeof crypto_suite.setCryptoKeyStore == 'function') {
+						crypto_suite.setCryptoKeyStore(BaseClient.newCryptoKeyStore(client_config.credentialStore.cryptoStore));
+					}
+					self.setCryptoSuite(crypto_suite);
+					return Promise.resolve(true);
+				}).catch((err)=>{
+					return Promise.reject(err);
+				});
+			} else {
+				return Promise.reject(new Error('No credentialStore settings found'));
+			}
+		} else {
+			return Promise.reject(new Error('No network configuration settings found'));
+		}
+	}
+
+	/**
 	 * Set an optional state store to persist application states. The state store must implement the
 	 * {@link module:api.KeyValueStore} interface.
 	 * <br><br>
@@ -783,6 +874,96 @@ var Client = class extends BaseClient {
 		this._userContext = null;
 	}
 
+	/**
+	 * Sets the user context based on the passed in username and password
+	 * and the organization in the client section of the network configuration
+	 * settings.
+	 *
+	 * @param {string} username - username of the user
+	 * @param {string} password - password of the user
+	 * @param {boolean} clear_existing_user - to clear out any current
+	 *                  user context of this client. The default will
+	 *                  be to use the current user if they have the same
+	 *                  username.
+	 */
+	setUserFromConfig(username, password, clear_existing_user) {
+		var mspid = null;
+		var admin_cert = null;
+		var admin_key = null;
+		if(!this._network_config || !this._stateStore || !this._cryptoSuite ) {
+			return Promise.reject(new Error('Client requires a network configuration loaded, stores attached, and crypto suite.'));
+		}
+		if(clear_existing_user) {
+			this._userContext = null;
+			this._adminSigningIdentity = null;
+		}
+		var self = this;
+		return self.getUserContext(username, true)
+		.then((user) => {
+			return new Promise((resolve, reject) => {
+
+				let ca_url, tls_options, ca_name = null;
+				let client_config = self._network_config.getClientConfig();
+				if(client_config && client_config.organization) {
+					let organization_config = self._network_config.getOrganization(client_config.organization);
+					if(organization_config) {
+						mspid = organization_config.getMspid();
+						admin_key = organization_config.getAdminPrivateKey();
+						admin_cert = organization_config.getAdminCert();
+						let cas = organization_config.getCertificateAuthorities();
+						if(cas.length > 0) {
+							let ca = cas[0];
+							tls_options = {
+								//trustedRoots: [ca.getTlsCACerts()], //TODO handle non existent
+								trustedRoots: [], //TODO handle non existent
+								verify: ca.getConnectionOptions().verify //TODO handle non existent
+							};
+							ca_url = ca.getUrl();
+							ca_name = ca.getName();
+						}
+					}
+				}
+				if(admin_key && admin_cert && mspid) {
+					self.setAdminSigningIdentity(admin_key, admin_cert, mspid);
+				}
+
+				if (user && user.isEnrolled()) {
+					logger.debug('Successfully loaded member from persistence');
+					return resolve(user);
+				}
+
+				var member = new User(username);
+				var crypto_suite = self.getCryptoSuite();
+				member.setCryptoSuite(crypto_suite);
+
+				if(!ca_url || !tls_options || !mspid) {
+					return reject(new Error('Configuration is missing this client\'s organization and certificate authority'));
+				}
+
+				let ca_service_class = Client.getConfigSetting('certificate-authority-software');
+				var ca_service_impl = require(ca_service_class);
+				var ca_service = new ca_service_impl(ca_url, tls_options, ca_name, crypto_suite);
+
+				return ca_service.enroll({
+					enrollmentID: username,
+					enrollmentSecret: password
+				}).then((enrollment) => {
+					logger.debug('Successfully enrolled user \'' + username + '\'');
+
+					return member.setEnrollment(enrollment.key, enrollment.certificate, mspid);
+				}).then(() => {
+
+					return self.setUserContext(member, false);
+				}).then(() => {
+
+					return resolve(member);
+				}).catch((err) => {
+					logger.error('Failed to enroll and persist user. Error: ' + err.stack ? err.stack : err);
+					reject(err);
+				});
+			});
+		});
+	}
 	/**
 	 * Persist the current <code>userContext</code> to the key value store.
 	 *
@@ -1173,4 +1354,45 @@ function _stringToSignature(string_signatures) {
 	return signatures;
 }
 
+//internal utility method to get a NetworkConfig
+function _getNetworkConfig(config, client) {
+	var method = '_getNetworkConfig';
+	var network_config = null;
+	var network_data = null;
+	if(typeof config === 'string') {
+		var config_loc = path.resolve(config);
+		logger.debug('%s - looking at absolute path of ==>%s<==',method,config_loc);
+		var file_data = fs.readFileSync(config_loc);
+		let file_ext = path.extname(config_loc);
+		// maybe the file is yaml else has to be JSON
+		if(file_ext.indexOf('y') > -1) {
+			network_data = yaml.safeLoad(file_data);
+		} else {
+			network_data = JSON.parse(file_data);
+		}
+	} else {
+		network_data = config;
+	}
+
+	var error_msg = null;
+	if(network_data && network_data.version) {
+		var parsing_file_name = Client.getConfigSetting('network-config-schema-'+network_data.version);
+		if(parsing_file_name) {
+			var NetworkConfig = require(parsing_file_name);
+			network_config = new NetworkConfig(network_data, client);
+		} else {
+			error_msg = '"version" is an unknown value';
+		}
+	} else {
+		error_msg = '"version" is missing';
+	}
+
+	if(error_msg) {
+		let out_message = util.format('Invalid network configuration with %s',error_msg);
+		logger.error(out_message);
+		throw new Error(out_message);
+	}
+
+	return network_config;
+}
 module.exports = Client;

@@ -1,5 +1,5 @@
 /*
- Copyright 2016 IBM All Rights Reserved.
+ Copyright 2016, 2017 IBM All Rights Reserved.
 
  Licensed under the Apache License, Version 2.0 (the "License");
  you may not use this file except in compliance with the License.
@@ -24,6 +24,105 @@
 
 var utils = require('./utils.js');
 var Remote = require('./Remote');
+
+/**
+ * Abstract class for a Network Configuration.
+ *
+ * @class
+ */
+module.exports.NetworkConfig = class {
+	/**
+	 *  Get a {@link Channel} instance based on the definition in
+	 *  the network configuration. The object will be populated with
+	 *  the {@link Orderer} objects and {@link Peer} objects as defined
+	 *  for this channel.
+	 *
+	 *  @param {string} name - The name of the channel
+	 *  @returns {Channel}
+	 */
+	getChannel(name) {}
+
+	/**
+	 *  Get a {@link Peer} instance based on the definition in
+	 *  the network configuration.
+	 *
+	 *  @param {string} name - The name of the peer
+	 *  @returns {Peer}
+	 */
+	getPeer(name) {}
+
+	/**
+	 *  Get a {@link Orderer} instance based on the definition in
+	 *  the network configuration.
+	 *
+	 *  @param {string} name - The name of the orderer
+	 *  @returns {Orderer}
+	 */
+	getOrderer(name) {}
+
+	/**
+	 *  Get a {@link EventHub} instance based on the definition in
+	 *  the network configuration.
+	 *
+	 *  @param {string} name - The name of the peer
+	 *  @returns {EventHub}
+	 */
+	getEventHub(name) {}
+
+	/**
+	 * Get a {@link CertificateAuthority} instance based on the definition in
+	 * the network configuration
+	 *
+	 *  @param {string} name - The name of the certificate authority
+	 *  @returns {CertificateAuthority}
+	 */
+	getCertificateAuthority(name) {}
+
+	/**
+	 * Get a {@link Organization} instance based on the definition in
+	 * the network configuration.
+	 *
+	 * @param {string} name - The name of the organization
+	 * @returns {Organization}
+	 */
+	getOrganization(name) {}
+
+	/**
+	 * Get a list of {@link Organization} instances based on all
+	 * the definitions of organizations in the network configuration.
+	 *
+	 * @returns {Organization}
+	 */
+	getOrganizations() {}
+
+	/**
+	 * Get the client settings as an object
+	 *
+	 * @returns {object}
+	 */
+	getClientConfig() {}
+
+	/**
+	 * Add or update to the current network configuration with settings from another
+	 * network configuration. This will update all settings at the top level grouping,
+	 * for example all settings from the passed in 'channels' will be replaced in
+	 * the active configuration.
+	 *
+	 * @param {NetworkConfiguration} additions - The network configuration to pull new
+	 *                               setting values from.
+	 */
+	addSettings(additions) {}
+};
+module.exports.NetworkConfig.ENDORSING_PEER_ROLE = 'endorsingPeer';
+module.exports.NetworkConfig.CHAINCODE_QUERY_ROLE = 'chaincodeQuery';
+module.exports.NetworkConfig.LEDGER_QUERY_ROLE = 'ledgerQuery';
+module.exports.NetworkConfig.EVENT_SOURCE_ROLE = 'eventSource';
+module.exports.NetworkConfig.ROLES = [
+	module.exports.NetworkConfig.ENDORSING_PEER_ROLE,
+	module.exports.NetworkConfig.CHAINCODE_QUERY_ROLE,
+	module.exports.NetworkConfig.LEDGER_QUERY_ROLE,
+	module.exports.NetworkConfig.EVENT_SOURCE_ROLE
+];
 
 /**
  * Abstract class for a Key-Value store. The Channel class uses this store
