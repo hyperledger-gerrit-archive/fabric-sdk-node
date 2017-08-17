@@ -33,24 +33,24 @@ var TransactionID = class {
 
 	/**
 	 * Builds a new tranaction Id based on a user's certificate and an automatically
-	 * generated nonce value.
-	 * @param {User} userContext - An instance of {@link User} that provides an unique
+	 * generates a nonce value.
+	 * @param {User} signer - An instance of {@link Identity} that provides an unique
 	 *                 base for this transaction id.
 	 */
-	constructor(userContext) {
+	constructor(signer, admin) {
 		logger.debug('const - start');
-		if (typeof userContext === 'undefined' || userContext === null) {
-			throw new Error('Missing userContext parameter');
+		if (typeof signer === 'undefined' || signer === null) {
+			throw new Error('Missing signer parameter');
 		}
-		if(!(User.isInstance(userContext))) {
-			throw new Error('Parameter "userContext" must be an instance of the "User" class');
-		}
+
 		this._nonce = sdkUtils.getNonce(); //nonce is in bytes
-		let creator_bytes = userContext.getIdentity().serialize();//same as signatureHeader.Creator
+		let creator_bytes = signer.serialize();//same as signatureHeader.Creator
 		let trans_bytes = Buffer.concat([this._nonce, creator_bytes]);
 		let trans_hash = hashPrimitives.sha2_256(trans_bytes);
 		this._transaction_id = Buffer.from(trans_hash).toString();
 		logger.debug('const - transaction_id %s',this._transaction_id);
+
+		this._admin = admin;
 	}
 
 	/**
@@ -66,7 +66,17 @@ var TransactionID = class {
 	getNonce() {
 		return this._nonce;
 	}
+
+	/**
+	 * indicates if this transactionID was generated for an admin
+	 */
+	isAdmin() {
+		if(this._admin) {
+			return true;
+		} else {
+			return false;
+		}
+	}
 };
 
 module.exports = TransactionID;
-

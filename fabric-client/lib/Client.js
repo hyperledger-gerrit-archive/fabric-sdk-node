@@ -247,6 +247,15 @@ var Client = class extends BaseClient {
 		return event_hub;
 	}
 
+	getEventHub(name) {
+		var event_hub = null;
+		if(this._network_config) {
+			event_hub = this._network_config.getEventHub(name);
+		}
+
+		return event_hub;
+	}
+
     /**
 	 * Returns an {@link Orderer} object with the given url and opts. An orderer object
 	 * encapsulates the properties of an orderer node and the interactions with it via
@@ -270,16 +279,27 @@ var Client = class extends BaseClient {
 	 * as a coherent pair.
 	 * <br><br>
 	 * This method requires the client instance to have been assigned a userContext.
+	 * @param {boolean} If this transactionID should be built based on the admin credentials
+	 *                  Default is a non admin TransactionID
 	 * @returns {TransactionID} An object that contains a transaction id based on the
 	 *           client's userContext and a randomly generated nonce value.
 	 */
-	newTransactionID() {
-		if (typeof this._userContext === 'undefined' || this._userContext === null) {
-			throw new Error('This client instance must be assigned an user context');
+	newTransactionID(admin) {
+		if(admin) {
+			if(typeof admin === 'boolean') {
+				if(admin) {
+					logger.debug('newTransactionID - getting an admin TransactionID');
+				} else {
+					logger.debug('newTransactionID - getting non admin TransactionID');
+				}
+			} else {
+				throw new Error('"admin" parameter must be of type boolean');
+			}
+		} else {
+			admin = false;
+			logger.debug('newTransactionID - no admin parameter, returning non admin TransactionID');
 		}
-		let trans_id = new TransactionID(this._userContext);
-
-		return trans_id;
+		return new TransactionID(this.getSigningIdentity(admin), admin);
 	}
 
 	/**
@@ -342,17 +362,19 @@ var Client = class extends BaseClient {
 		if(!(config instanceof Buffer)) {
 			throw new Error('Channel configuration update parameter is not in the correct form.');
 		}
-		var userContext = this.getUserContext();
+		// should try to use the admin signer if assigned
+		// then use the assigned user
+		var signer = this.getSigningIdentity(true);
 
 		// signature is across a signature header and the config update
 		let proto_signature_header = new _commonProto.SignatureHeader();
-		proto_signature_header.setCreator(userContext.getIdentity().serialize());
+		proto_signature_header.setCreator(signer.serialize());
 		proto_signature_header.setNonce(sdkUtils.getNonce());
 		var signature_header_bytes = proto_signature_header.toBuffer();
 
 		// get all the bytes to be signed together, then sign
 		let signing_bytes = Buffer.concat([signature_header_bytes, config]);
-		let sig = userContext.getSigningIdentity().sign(signing_bytes);
+		let sig = signer.sign(signing_bytes);
 		let signature_bytes = Buffer.from(sig);
 
 		// build the return object
@@ -436,48 +458,49 @@ var Client = class extends BaseClient {
 	 */
 	_createOrUpdateChannel(request, have_envelope) {
 		logger.debug('_createOrUpdateChannel - start');
-		var errorMsg = null;
+		var error_msg = null;
+		var orderer = null;
 
 		if(!request) {
-			errorMsg = 'Missing all required input request parameters for initialize channel';
+			error_msg = 'Missing all required input request parameters for initialize channel';
 		}
-		else {
-			// Verify that a config envelope or config has been included in the request object
-			if (!request.config && !have_envelope) {
-				errorMsg = 'Missing config request parameter containing the configuration of the channel';
-			}
-			if(!request.signatures && !have_envelope) {
-				errorMsg = 'Missing signatures request parameter for the new channel';
-			}
-			else if(!Array.isArray(request.signatures ) && !have_envelope) {
-				errorMsg = 'Signatures request parameter must be an array of signatures';
-			}
-			if(!request.txId && !have_envelope) {
-				errorMsg = 'Missing txId request parameter';
-			}
-
-			// verify that we have an orderer configured
-			if(!request.orderer) {
-				errorMsg = 'Missing orderer request parameter';
-			}
-			// verify that we have the name of the new channel
-			if(!request.name) {
-				errorMsg = 'Missing name request parameter';
-			}
+		// Verify that a config envelope or config has been included in the request object
+		else if (!request.config && !have_envelope) {
+			error_msg = 'Missing config request parameter containing the configuration of the channel';
+		}
+		else if(!request.signatures && !have_envelope) {
+			error_msg = 'Missing signatures request parameter for the new channel';
+		}
+		else if(!Array.isArray(request.signatures ) && !have_envelope) {
+			error_msg = 'Signatures request parameter must be an array of signatures';
+		}
+		else if(!request.txId && !have_envelope) {
+			error_msg = 'Missing txId request parameter';
+		}
+		// verify that we have the name of the new channel
+		else if(!request.name) {
+			error_msg = 'Missing name request parameter';
 		}
 
-		if(errorMsg) {
-			logger.error('_createOrUpdateChannel error %s',errorMsg);
-			return Promise.reject(new Error(errorMsg));
+		if(error_msg) {
+			logger.error('_createOrUpdateChannel error %s',error_msg);
+			return Promise.reject(new Error(error_msg));
+		}
+
+		try {
+			orderer = clientUtils.getOrderer(request.orderer, request.name, this);
+			if(!orderer) throw new Error('Missing "orderer" request parameter');
+		} catch (err) {
+			return Promise.reject(err);
 		}
 
 		var self = this;
 		var channel_id = request.name;
-		var orderer = request.orderer;
-		var userContext = null;
 		var channel = null;
 
-		userContext = this.getUserContext();
+		// caller should have gotten a admin based TransactionID
+		// but maybe not, so go with whatever they have decided
+		var signer = this.getSigningIdentity(request.txId.isAdmin());
 
 		var signature = null;
 		var payload = null;
@@ -500,13 +523,13 @@ var Client = class extends BaseClient {
 				request.txId.getTransactionID()
 			);
 
-			var proto_header = clientUtils.buildHeader(userContext.getIdentity(), proto_channel_header, request.txId.getNonce());
+			var proto_header = clientUtils.buildHeader(signer, proto_channel_header, request.txId.getNonce());
 			var proto_payload = new _commonProto.Payload();
 			proto_payload.setHeader(proto_header);
 			proto_payload.setData(proto_config_Update_envelope.toBuffer());
 			var payload_bytes = proto_payload.toBuffer();
 
-			let sig = userContext.getSigningIdentity().sign(payload_bytes);
+			let sig = signer.sign(payload_bytes);
 			let signature_bytes = Buffer.from(sig);
 
 			signature = signature_bytes;
@@ -556,20 +579,31 @@ var Client = class extends BaseClient {
 	 * Queries the target peer for the names of all the channels that a
 	 * peer has joined.
 	 *
-	 * @param {Peer} peer - The target peer to send the query to
+	 * @param {Peer} peer - The target peer to send the query
+	 * @param {boolean} useAdmin - Optional. Indicates that the admin credentials
+	 *        should be used in making this call to the peer.
 	 * @returns {Promise} A promise to return a {@link ChannelQueryResponse}
 	 */
-	queryChannels(peer) {
+	queryChannels(peer, useAdmin) {
 		logger.debug('queryChannels - start');
+		var targets = null;
 		if(!peer) {
 			return Promise.reject( new Error('Peer is required'));
+		} else {
+			try {
+				targets = clientUtils.getTargets(peer, this);
+			} catch (err) {
+				return Promise.reject(err);
+			}
 		}
 		var self = this;
-		var txId = new TransactionID(this._userContext);
+		var signer = this.getSigningIdentity(useAdmin);
+		var txId = new TransactionID(signer, useAdmin);
 		var request = {
-			targets: [peer],
+			targets: targets,
 			chaincodeId : Constants.CSCC,
 			txId: txId,
+			signer: signer,
 			fcn : 'GetChannels',
 			args: []
 		};
@@ -632,19 +666,30 @@ var Client = class extends BaseClient {
 	 * Queries the installed chaincodes on a peer.
 	 *
 	 * @param {Peer} peer - The target peer
+	 * @param {boolean} useAdmin - Optional. Indicates that the admin credentials
+	 *        should be used in making this call to the peer.
 	 * @returns {Promise} Promise for a {@link ChaincodeQueryResponse} object
 	 */
-	queryInstalledChaincodes(peer) {
+	queryInstalledChaincodes(peer, useAdmin) {
 		logger.debug('queryInstalledChaincodes - start peer %s',peer);
+		var targets = null;
 		if(!peer) {
 			return Promise.reject( new Error('Peer is required'));
+		} else {
+			try {
+				targets = clientUtils.getTargets(peer, this);
+			} catch (err) {
+				return Promise.reject(err);
+			}
 		}
 		var self = this;
-		var txId = new TransactionID(this._userContext);
+		var signer = this.getSigningIdentity(useAdmin);
+		var txId = new TransactionID(signer, useAdmin);
 		var request = {
-			targets: [peer],
+			targets: targets,
 			chaincodeId : Constants.LSCC,
 			txId: txId,
+			signer: signer,
 			fcn : 'getinstalledchaincodes',
 			args: []
 		};
@@ -729,29 +774,34 @@ var Client = class extends BaseClient {
 	installChaincode(request) {
 		logger.debug('installChaincode - start');
 
-		var errorMsg = null;
+		var error_msg = null;
 
 		var peers = null;
 		if (request) {
-			peers = request.targets;
+			try {
+				peers = clientUtils.getTargets(request.targets, this);
+			} catch (err) {
+				return Promise.reject(err);
+			}
+
 			// Verify that a Peer has been added
 			if (peers && peers.length > 0) {
 				logger.debug('installChaincode - found peers ::%s',peers.length);
 			}
 			else {
-				errorMsg = 'Missing peer objects in install chaincode request';
+				error_msg = 'Missing peer objects in install chaincode request';
 			}
 		}
 		else {
-			errorMsg = 'Missing input request object on install chaincode request';
+			error_msg = 'Missing input request object on install chaincode request';
 		}
 
-		if (!errorMsg) errorMsg = clientUtils.checkProposalRequest(request, true);
-		if (!errorMsg) errorMsg = clientUtils.checkInstallRequest(request);
+		if (!error_msg) error_msg = clientUtils.checkProposalRequest(request, true);
+		if (!error_msg) error_msg = clientUtils.checkInstallRequest(request);
 
-		if (errorMsg) {
-			logger.error('installChaincode error ' + errorMsg);
-			return Promise.reject(new Error(errorMsg));
+		if (error_msg) {
+			logger.error('installChaincode error ' + error_msg);
+			return Promise.reject(new Error(error_msg));
 		}
 
 		let self = this;
@@ -791,19 +841,25 @@ var Client = class extends BaseClient {
 				}
 			};
 
-			var header, proposal;
-			var userContext = self.getUserContext();
-			var txId = new TransactionID(userContext);
+			var header, proposal, signer;
+			var tx_id = request.txId;
+			if(!tx_id) {
+				signer = self.getSigningIdentity(true);
+				tx_id = new TransactionID(signer, true);
+			} else {
+				signer = self.getSigningIdentity(tx_id.isAdmin());
+			}
+
 			var channelHeader = clientUtils.buildChannelHeader(
 				_commonProto.HeaderType.ENDORSER_TRANSACTION,
 				'', //install does not target a channel
-				txId.getTransactionID(),
+				tx_id.getTransactionID(),
 				null,
 				Constants.LSCC
 			);
-			header = clientUtils.buildHeader(userContext.getIdentity(), channelHeader, txId.getNonce());
+			header = clientUtils.buildHeader(signer, channelHeader, tx_id.getNonce());
 			proposal = clientUtils.buildProposal(lcccSpec, header);
-			let signed_proposal = clientUtils.signProposal(userContext.getSigningIdentity(), proposal);
+			let signed_proposal = clientUtils.signProposal(signer, proposal);
 			logger.debug('installChaincode - about to sendPeersProposal');
 			return clientUtils.sendPeersProposal(peers, signed_proposal)
 			.then(
@@ -879,12 +935,21 @@ var Client = class extends BaseClient {
 	}
 
 	/**
-	 * Get the {@link SigningIdentity} object for this User's organization's admin.
-	 * Will return the current user's SigningIdentity when the organizational admin has not been assigned to this client.
+	 * Get the {@link SigningIdentity} object for this organization.
+	 * Will return a SigningIdentity of either the admin for this organizational admin if requested and it has
+	 * been assigned or the SigningIdentity of the currently assigned user.
+	 * @param admin - To indicate would prefer the admin signer
+	 *                Default is to return a non admin signer
 	 * @returns {SigningIdentity} the signing identity object that encapsulates the private key for signing
 	 */
-	getAdminSigningIdentity() {
-		if(this._adminSigningIdentity) {
+	getSigningIdentity(admin) {
+		if(typeof admin === 'boolean') {
+			logger.debug('getSigningIdentity - admin parameter is boolean :%s',admin);
+		} else {
+			admin = false;
+			logger.debug('getSigningIdentity - admin parameter missing, default is false');
+		}
+		if(admin && this._adminSigningIdentity) {
 			return this._adminSigningIdentity;
 		} else {
 			if(this._userContext) {
