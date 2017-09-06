@@ -33,6 +33,8 @@ var testUtil = require('../unit/util.js');
 var channel_name = 'mychannel2';
 
 test('\n\n***** use the network configuration file  *****\n\n', function(t) {
+	var memoryUsage = process.memoryUsage();
+	logger.info(' Memory usage :: %j',memoryUsage);
 	testUtil.resetDefaults();
 	Client.setConfigSetting('request-timeout', 60000);
 
@@ -88,6 +90,9 @@ test('\n\n***** use the network configuration file  *****\n\n', function(t) {
 		return client.initCredentialStores();
 	}).then((nothing) =>{
 		t.pass('Successfully set the stores for org2');
+
+		var memoryUsage = process.memoryUsage();
+		logger.info(' Memory usage :: %j',memoryUsage);
 
 		// sign the config by admin from org2
 		var signature = client.signChannelConfig(config);
@@ -200,6 +205,9 @@ test('\n\n***** use the network configuration file  *****\n\n', function(t) {
 	}).then(()=>{
 		t.pass('Successfully waited for peers to join the channel');
 
+		var memoryUsage = process.memoryUsage();
+		logger.info(' Memory usage :: %j',memoryUsage);
+
 		process.env.GOPATH = path.join(__dirname, '../fixtures');
 		let tx_id = client.newTransactionID(true);
 		// send proposal to endorser
@@ -298,10 +306,13 @@ test('\n\n***** use the network configuration file  *****\n\n', function(t) {
 	}).then((results) => {
 		t.pass('Successfully waited for chaincodes to startup');
 
+		var memoryUsage = process.memoryUsage();
+		logger.info(' Memory usage :: %j',memoryUsage);
+
 		/*
 		 *  S T A R T   U S I N G
 		 */
-		return client.setUserFromConfig('admin', 'adminpw', true);
+		return client.setUserContext({username:'admin', password:'adminpw'});
 	}).then((admin) => {
 		t.pass('Successfully enrolled user \'admin\' for org2');
 
@@ -353,6 +364,15 @@ test('\n\n***** use the network configuration file  *****\n\n', function(t) {
 			throw new Error('Failed to order the transaction to invoke the chaincode. Error code: ' + response.status);
 		}
 	}).then((results) => {
+		t.pass('Successfully waited for moved to take place');
+
+		// check that we can get the user again without password
+		// also verifies that we can get a complete user properly stored
+		// when using a network config
+		return client.setUserContext({username:'admin'});
+	}).then((admin) => {
+		t.pass('Successfully loaded user \'admin\' from store for org2');
+
 		var request = {
 			chaincodeId : 'example',
 			fcn: 'query',
@@ -372,6 +392,9 @@ test('\n\n***** use the network configuration file  *****\n\n', function(t) {
 			t.fail('response_payloads is null');
 			throw new Error('Failed to get response on query');
 		}
+
+		var memoryUsage = process.memoryUsage();
+		logger.info(' Memory usage :: %j',memoryUsage);
 
 		return client.queryChannels('peer0.org2.example.com');
 	}).then((results) => {
@@ -467,6 +490,9 @@ test('\n\n***** use the network configuration file  *****\n\n', function(t) {
 
 		return true;
 	}).then((results) => {
+		var memoryUsage = process.memoryUsage();
+		logger.info(' Memory usage :: %j',memoryUsage);
+
 		t.end();
 	}).catch((error) =>{
 		logger.error('catch network config test error:: %s', error.stack ? error.stack : error);
