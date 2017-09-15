@@ -49,5 +49,9 @@
       "type": "Apache-2.0",
       "url": "https://github.com/hyperledger/fabric/blob/master/LICENSE"
     }
-  ]
+  ],
+  "dependencies": {
+    "eslint": "^4.6.1",
+    "heapdump": "^0.3.9"
+  }
 }
