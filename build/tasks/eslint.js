@@ -12,6 +12,7 @@ gulp.task('lint', function () {
 		'fabric-client/**/*.js',
 		'fabric-ca-client/lib/*.js',
 		'examples/**/*.js',
+		'!test/integration/e2e-ts-compiled/**/*.js',
 		'!examples/balance-transfer/node_modules/**',
 		'!node_modules/**',
 		'!fabric-client/node_modules/**',

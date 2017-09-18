@@ -10,6 +10,8 @@
     "test": "gulp test-headless"
   },
   "devDependencies": {
+    "@types/bytebuffer": "^5.0.34",
+    "@types/tape": "^4.2.30",
     "bn.js": "^4.11.8",
     "bunyan": "^1.8.10",
     "cloudant": "^1.7.0",
@@ -26,6 +28,7 @@
     "gulp-jsdoc3": "^0.3.0",
     "gulp-shell": "^0.6.3",
     "gulp-tape": "0.0.9",
+    "gulp-typescript": "^3.2.2",
     "gulp-watch": "^4.3.11",
     "gunzip-maybe": "^1.3.1",
     "intercept-stdout": "^0.1.2",
@@ -40,6 +43,7 @@
     "tape": "^4.5.1",
     "tape-promise": "^1.1.0",
     "tar-fs": "^1.13.0",
+    "typescript": "^2.5.2",
     "winston": "^2.2.0",
     "x509": "^0.3.2"
   },
