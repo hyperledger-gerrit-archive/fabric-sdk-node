@@ -19,35 +19,40 @@
 'use strict';
 
 var utils = require('fabric-client/lib/utils.js');
-var logger = utils.getLogger('E2E install-chaincode-fail');
+var logger = utils.getLogger('E2E instantiate-chaincode');
+logger.level = 'debug';
 
 var tape = require('tape');
 var _test = require('tape-promise');
 var test = _test(tape);
 
-var e2eUtils = require('./e2eUtils.js');
+var e2eUtils = require('../e2e/e2eUtils.js');
 var testUtil = require('../../unit/util.js');
 
-test('\n\n***** End-to-end flow: chaincode install *****\n\n', (t) => {
-	testUtil.setupChaincodeDeploy();
+test('\n\n***** Node-Chaincode End-to-end flow: instantiate chaincode *****\n\n', (t) => {
+	e2eUtils.instantiateChaincode('org1', testUtil.NODE_CHAINCODE_PATH, 'v0', false, t)
+	.then((result) => {
+		if(result){
+			t.pass('Successfully instantiated chaincode on the channel');
 
-	e2eUtils.installChaincode('org1', testUtil.CHAINCODE_PATH, 'v0', 'golang', t, false)
-	.then(() => {
-		t.fail('Successfully installed chaincode in peers of organization "org1"');
-		return e2eUtils.installChaincode('org2', testUtil.CHAINCODE_PATH, 'v0', 'golang', t, false);
+			return sleep(5000);
+		}
+		else {
+			t.fail('Failed to instantiate chaincode ');
+			t.end();
+		}
 	}, (err) => {
-		t.pass('Failed to install chaincode in peers of organization "org1". ' + err.stack ? err.stack : err);
-		logger.error('Failed to install chaincode in peers of organization "org1". ');
-		return e2eUtils.installChaincode('org2', testUtil.CHAINCODE_PATH, 'v0', 'golang', t, false);
-	}).then(() => {
-		t.fail('Successfully installed chaincode in peers of organization "org2"');
+		t.fail('Failed to instantiate chaincode on the channel. ' + err.stack ? err.stack : err);
 		t.end();
-	}, (err) => {
-		t.pass('Failed to install chaincode in peers of organization "org2". ' + err.stack ? err.stack : err);
-		logger.error('Failed to install chaincode in peers of organization "org2". ');
+	}).then(() => {
+		logger.debug('Successfully slept 5s to wait for chaincode instantiate to be completed and committed in all peers');
 		t.end();
 	}).catch((err) => {
 		t.fail('Test failed due to unexpected reasons. ' + err.stack ? err.stack : err);
 		t.end();
 	});
 });
+
+function sleep(ms) {
+	return new Promise(resolve => setTimeout(resolve, ms));
+}

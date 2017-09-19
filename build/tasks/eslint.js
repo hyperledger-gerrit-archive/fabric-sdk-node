@@ -3,8 +3,8 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 */
-var gulp = require('gulp');
-var eslint = require('gulp-eslint');
+var gulp = require('gulp')
+var eslint = require('gulp-eslint')
 
 gulp.task('lint', function () {
 	return gulp.src([
@@ -18,14 +18,14 @@ gulp.task('lint', function () {
 		'!fabric-ca-client/node_modules/**',
 		'!docs/**',
 		'!coverage/**',
-		'!tmp/**'
-	])
-	.pipe(eslint(
+		'!tmp/**',
+	]).pipe(eslint(
 		{
 			env: ['es6', 'node'],
 			extends: 'eslint:recommended',
 			parserOptions: {
-				sourceType: 'module'
+				ecmaVersion: 2017,
+				sourceType: 'module',
 			},
 			rules: {
 				indent: ['error', 'tab'],
@@ -41,12 +41,11 @@ gulp.task('lint', function () {
 						'ignoreUrls': true,
 						'ignoreStrings': true,
 						'ignoreTemplateLiterals': true,
-						'ignoreRegExpLiterals': true
-					}
-				]
-			}
-		}
-	))
-	.pipe(eslint.format())
-	.pipe(eslint.failAfterError());
+						'ignoreRegExpLiterals': true,
+					},
+				],
+			},
+			fix: true,
+		},
+	)).pipe(eslint.format()).pipe(eslint.failAfterError())
 });

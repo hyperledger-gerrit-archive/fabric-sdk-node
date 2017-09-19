@@ -46,7 +46,7 @@ function init() {
 	}
 }
 
-function installChaincode(org, chaincode_path, version, t, get_admin) {
+function installChaincode(org, chaincode_path, version, language, t, get_admin) {
 	init();
 	Client.setConfigSetting('request-timeout', 60000);
 	var channel_name = Client.getConfigSetting('E2E_CONFIGTX_CHANNEL_NAME', testUtil.END2END.channel);
@@ -112,6 +112,7 @@ function installChaincode(org, chaincode_path, version, t, get_admin) {
 			targets: targets,
 			chaincodePath: chaincode_path,
 			chaincodeId: e2e.chaincodeId,
+			chaincodeType: language,
 			chaincodeVersion: version
 		};
 
@@ -198,7 +199,7 @@ function instantiateChaincode(userOrg, chaincode_path, version, upgrade, t){
 		)
 	);
 
-	var targets = [];
+	targets = [];
 	var badTransientMap = { 'test1': 'transientValue' }; // have a different key than what the chaincode example_cc1.go expects in Init()
 	var transientMap = { 'test': 'transientValue' };
 
@@ -413,7 +414,7 @@ function instantiateChaincode(userOrg, chaincode_path, version, upgrade, t){
 	});
 };
 
-function buildChaincodeProposal(client, the_user, chaincode_path, version, upgrade, transientMap) {
+function buildChaincodeProposal(client, the_user, chaincode_path, version, upgrade, transientMap, type) {
 	var tx_id = client.newTransactionID();
 
 	// send proposal to endorser
@@ -424,6 +425,7 @@ function buildChaincodeProposal(client, the_user, chaincode_path, version, upgra
 		fcn: 'init',
 		args: ['a', '100', 'b', '200'],
 		txId: tx_id,
+		chaincodeType: type,
 		// use this to demonstrate the following policy:
 		// 'if signed by org1 admin, then that's the only signature required,
 		// but if that signature is missing, then the policy can also be fulfilled
@@ -511,7 +513,7 @@ function invokeChaincode(userOrg, version, t, useStore){
 		)
 	);
 
-	var orgName = ORGS[userOrg].name;
+	orgName = ORGS[userOrg].name;
 
 	var promise;
 	if (useStore) {
@@ -828,7 +830,6 @@ function readAllFiles(dir) {
 	var certs = [];
 	files.forEach((file_name) => {
 		let file_path = path.join(dir,file_name);
-		console.debug(' looking at file ::'+file_path);
 		let data = fs.readFileSync(file_path);
 		certs.push(data);
 	});
