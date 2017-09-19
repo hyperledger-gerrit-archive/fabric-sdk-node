@@ -156,6 +156,25 @@ gulp.task('test-headless', ['clean-up', 'lint', 'pre-test', 'ca'], function() {
 	}));
 });
 
+gulp.task('test-node', ['clean-up', 'pre-test', 'docker-ready', 'ca'], function() {
+	// use individual tests to control the sequence they get executed
+	// first run the ca-tests that tests all the member registration
+	// and enrollment scenarios (good and bad calls). Then the rest
+	// of the tests will re-use the same key value store that has
+	// saved the user certificates so they can interact with the
+	// network
+	return gulp.src(shouldRunPKCS11Tests([
+		'test/integration/nodechaincode/e2e.js'
+	]))
+	.pipe(tape({
+		reporter: tapColorize()
+	}))
+	.pipe(istanbul.writeReports({
+		reporters: ['lcov', 'json', 'text',
+			'text-summary', 'cobertura']
+	}));
+});
+
 // currently only the x64 CI jobs are configured with SoftHSM
 // disable the pkcs11.js test for s390 or other jobs
 // also skip it by default and allow it to be turned on manuall
