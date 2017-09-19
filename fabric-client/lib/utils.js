@@ -137,7 +137,8 @@ module.exports.getLogger = function(name) {
 		return new winston.Logger({
 			transports: [
 				new (winston.transports.Console)({ colorize: true })
-			]
+			],
+			level: 'debug' // TODO: remove this
 		});
 	};
 

@@ -210,6 +210,8 @@ module.exports.translateCCType = function(type) {
 		return _ccProto.ChaincodeSpec.Type.CAR;
 	case 'java':
 		return _ccProto.ChaincodeSpec.Type.JAVA;
+	case 'node':
+	    return _ccProto.ChaincodeSpec.Type.NODE;
 	}
 };
 

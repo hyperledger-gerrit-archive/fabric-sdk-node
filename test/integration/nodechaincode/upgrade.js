@@ -21,52 +21,52 @@
 var tape = require('tape');
 var _test = require('tape-promise');
 var test = _test(tape);
-var e2eUtils = require('./e2eUtils.js');
+var e2eUtils = require('../e2e/e2eUtils.js');
 var testUtil = require('../../unit/util.js');
 
-test('\n\n***** U P G R A D E flow: chaincode install *****\n\n', (t) => {
-	testUtil.setupChaincodeDeploy();
+var version = 'v1';
 
-	e2eUtils.installChaincode('org1', testUtil.CHAINCODE_UPGRADE_PATH, 'v1', 'golang', t, true)
-	.then(() => {
-		t.pass('Successfully installed chaincode in peers of organization "org1"');
-		return e2eUtils.installChaincode('org2', testUtil.CHAINCODE_UPGRADE_PATH, 'v1', 'golang', t, true);
-	}, (err) => {
-		t.fail('Failed to install chaincode in peers of organization "org1". ' + err.stack ? err.stack : err);
-		t.end();
-	}).then(() => {
-		t.pass('Successfully installed chaincode in peers of organization "org2"');
-		t.end();
-	}, (err) => {
-		t.fail('Failed to install chaincode in peers of organization "org2". ' + err.stack ? err.stack : err);
-		t.end();
-	}).catch((err) => {
-		t.fail('Test failed due to unexpected reasons. ' + err.stack ? err.stack : err);
-		t.end();
-	});
+test('\n\n***** Node-Chaincode U P G R A D E flow: chaincode install *****\n\n', (t) => {
+	e2eUtils.installChaincode('org1', testUtil.NODE_CHAINCODE_UPGRADE_PATH, version, 'node', t, true)
+		.then(() => {
+			t.pass('Successfully installed chaincode in peers of organization "org1"');
+			return e2eUtils.installChaincode('org2', testUtil.NODE_CHAINCODE_UPGRADE_PATH, version, 'node', t, true);
+		}, (err) => {
+			t.fail('Failed to install chaincode in peers of organization "org1". ' + err.stack ? err.stack : err);
+			t.end();
+		}).then(() => {
+			t.pass('Successfully installed chaincode in peers of organization "org2"');
+			t.end();
+		}, (err) => {
+			t.fail('Failed to install chaincode in peers of organization "org2". ' + err.stack ? err.stack : err);
+			t.end();
+		}).catch((err) => {
+			t.fail('Test failed due to unexpected reasons. ' + err.stack ? err.stack : err);
+			t.end();
+		});
 });
 
-test('\n\n***** U P G R A D E flow: upgrade chaincode *****\n\n', (t) => {
-	e2eUtils.instantiateChaincode('org1', testUtil.CHAINCODE_UPGRADE_PATH, 'v1', true, t)
-	.then((result) => {
-		if(result){
-			t.pass('Successfully upgrade chaincode on the channel');
+test('\n\n***** Node-Chaincode U P G R A D E flow: upgrade chaincode *****\n\n', (t) => {
+	e2eUtils.instantiateChaincode('org1', testUtil.NODE_CHAINCODE_UPGRADE_PATH, version, true, t)
+		.then((result) => {
+			if (result) {
+				t.pass('Successfully upgrade chaincode on the channel');
+				t.end();
+			}
+			else {
+				t.fail('Failed to upgrade chaincode ');
+				t.end();
+			}
+		}, (err) => {
+			t.fail('Failed to upgrade chaincode on the channel' + err.stack ? err.stack : err);
 			t.end();
-		}
-		else {
-			t.fail('Failed to upgrade chaincode ');
+		}).catch((err) => {
+			t.fail('Test failed due to unexpected reasons. ' + err.stack ? err.stack : err);
 			t.end();
-		}
-	}, (err) => {
-		t.fail('Failed to upgrade chaincode on the channel' + err.stack ? err.stack : err);
-		t.end();
-	}).catch((err) => {
-		t.fail('Test failed due to unexpected reasons. ' + err.stack ? err.stack : err);
-		t.end();
-	});
+		});
 });
 
-test('\n\n***** U P G R A D E flow: invoke transaction to move money *****\n\n', (t) => {
+test('\n\n***** Node-Chaincode U P G R A D E flow: invoke transaction to move money *****\n\n', (t) => {
 	e2eUtils.invokeChaincode('org2', 'v1', t)
 	.then((result) => {
 		if(result){
@@ -86,7 +86,7 @@ test('\n\n***** U P G R A D E flow: invoke transaction to move money *****\n\n',
 	});
 });
 
-test('\n\n***** U P G R A D E flow: query chaincode *****\n\n', (t) => {
+test('\n\n***** Node-Chaincode U P G R A D E flow: query chaincode *****\n\n', (t) => {
 	e2eUtils.queryChaincode('org2', 'v1', '410', t)
 	.then((result) => {
 		if(result){
@@ -106,7 +106,7 @@ test('\n\n***** U P G R A D E flow: query chaincode *****\n\n', (t) => {
 	});
 });
 
-test('\n\n***** TransientMap Support in Proposals *****\n\n', (t) => {
+test('\n\n***** Node-Chaincode TransientMap Support in Proposals *****\n\n', (t) => {
 	var transient = {
 		'test': Buffer.from('dummyValue') // string <-> byte[]
 	};
