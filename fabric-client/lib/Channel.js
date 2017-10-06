@@ -859,17 +859,16 @@ var Channel = class {
 	 *                  this call to the peer.
      */
     queryChaincodeData(chaincodeName,target,useAdmin) {
-
 		logger.debug('queryChaincodeData start')
 		if(!chaincodeName){
-			throw new Error('chaincodeName is required')
+			throw new Error('"chaincodeName" parameter not specified.')
 		}
 		var targets = this._getTargetForQuery(target);
 		var signer = this._clientContext._getSigningIdentity(useAdmin);
 		var txId = new TransactionID(signer, useAdmin);
 
         var request = {
-            targets: [peer],
+            targets: targets,
             chaincodeId: Constants.LSCC,
             chainId: this._name,
             txId: txId,
