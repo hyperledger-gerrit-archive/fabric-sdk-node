@@ -33,8 +33,6 @@ var testUtil = require('../unit/util.js');
 var channel_name = 'mychannel2';
 
 test('\n\n***** use the network configuration file  *****\n\n', function(t) {
-	var memoryUsage = process.memoryUsage();
-	logger.debug(' Memory usage :: %j',memoryUsage);
 	testUtil.resetDefaults();
 	Client.setConfigSetting('request-timeout', 60000);
 
@@ -91,9 +89,6 @@ test('\n\n***** use the network configuration file  *****\n\n', function(t) {
 	}).then((nothing) =>{
 		t.pass('Successfully set the stores for org2');
 
-		var memoryUsage = process.memoryUsage();
-		logger.debug(' Memory usage :: %j',memoryUsage);
-
 		// sign the config by admin from org2
 		var signature = client.signChannelConfig(config);
 		t.pass('Successfully signed config update for org2');
@@ -104,6 +99,11 @@ test('\n\n***** use the network configuration file  *****\n\n', function(t) {
 		// now we have enough signatures...
 
 		// get an admin based transaction
+		// in this case we are assuming that the network configuration
+		// has an admin defined for the current organization defined in the
+		// client part of the network configuration, otherwise the setAdminSigningIdentity()
+		// method would need to be called to setup the admin. If no admin is in the config
+		// or has been assigned the transaction will based on the current user.
 		let tx_id = client.newTransactionID(true);
 		// build up the create request
 		let request = {
@@ -205,9 +205,6 @@ test('\n\n***** use the network configuration file  *****\n\n', function(t) {
 	}).then(()=>{
 		t.pass('Successfully waited for peers to join the channel');
 
-		var memoryUsage = process.memoryUsage();
-		logger.debug(' Memory usage :: %j',memoryUsage);
-
 		process.env.GOPATH = path.join(__dirname, '../fixtures');
 		let tx_id = client.newTransactionID(true);
 		// send proposal to endorser
@@ -306,9 +303,6 @@ test('\n\n***** use the network configuration file  *****\n\n', function(t) {
 	}).then((results) => {
 		t.pass('Successfully waited for chaincodes to startup');
 
-		var memoryUsage = process.memoryUsage();
-		logger.debug(' Memory usage :: %j',memoryUsage);
-
 		/*
 		 *  S T A R T   U S I N G
 		 */
@@ -335,6 +329,7 @@ test('\n\n***** use the network configuration file  *****\n\n', function(t) {
 			//targets - Letting default to all endorsing peers defined on the channel in the network configuration
 		};
 
+		// put in a very small timeout to force a failure, thereby checking that the timeout value was being used
 		return channel.sendTransactionProposal(request, 1); //logged in as org1 user
 	}).then((results) => {
 		var proposalResponses = results[0];
@@ -463,8 +458,6 @@ test('\n\n***** use the network configuration file  *****\n\n', function(t) {
 			throw new Error('Failed to get response on query');
 		}
 		t.equals(query_responses,1,'Checking that only one response was seen');
-		var memoryUsage = process.memoryUsage();
-		logger.debug(' Memory usage :: %j',memoryUsage);
 
 		return client.queryChannels('peer0.org1.example.com');
 	}).then((results) => {
@@ -560,8 +553,7 @@ test('\n\n***** use the network configuration file  *****\n\n', function(t) {
 
 		return true;
 	}).then((results) => {
-		var memoryUsage = process.memoryUsage();
-		logger.debug(' Memory usage :: %j',memoryUsage);
+		t.pass('Testing has complete successfully');
 
 		t.end();
 	}).catch((error) =>{

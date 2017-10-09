@@ -979,10 +979,13 @@ var Channel = class {
 	/**
 	 * Queries the ledger on the target peer for instantiated chaincodes on this channel.
 	 *
-	 * @param {Peer} target - Optional. The peer to send this query to. If no target is passed,
-	 *                        the query is sent to the first peer that was added to the channel object.
-	 * @param {boolean} useAdmin - Optional. Indicates that the admin credentials should be used in making
-	 *                  this call to the peer.
+	 * @param {Peer} target - Optional. The peer to send this query to. If no
+	 *        target is passed, the query is sent to the first peer that was
+	 *        added to the channel object.
+	 * @param {boolean} useAdmin - Optional. Indicates that the admin credentials
+	 *        should be used in making this call to the peer. An administrative
+	 *        identity must have been loaded by network configuration or by
+	 *        using the 'setAdminSigningIdentity' method.
 	 * @returns {Promise} A Promise for a fully decoded {@link ChaincodeQueryResponse} object.
 	 */
 	queryInstantiatedChaincodes(target, useAdmin) {

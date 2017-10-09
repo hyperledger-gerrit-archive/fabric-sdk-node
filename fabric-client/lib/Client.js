@@ -586,7 +586,9 @@ var Client = class extends BaseClient {
 	 *
 	 * @param {Peer} peer - The target peer to send the query
 	 * @param {boolean} useAdmin - Optional. Indicates that the admin credentials
-	 *        should be used in making this call to the peer.
+	 *        should be used in making this call to the peer. An administrative
+	 *        identity must have been loaded by network configuration or by
+	 *        using the 'setAdminSigningIdentity' method.
 	 * @returns {Promise} A promise to return a {@link ChannelQueryResponse}
 	 */
 	queryChannels(peer, useAdmin) {
@@ -672,7 +674,9 @@ var Client = class extends BaseClient {
 	 *
 	 * @param {Peer} peer - The target peer
 	 * @param {boolean} useAdmin - Optional. Indicates that the admin credentials
-	 *        should be used in making this call to the peer.
+	 *        should be used in making this call to the peer. An administrative
+	 *        identity must have been loaded by network configuration or by
+	 *        using the 'setAdminSigningIdentity' method.
 	 * @returns {Promise} Promise for a {@link ChaincodeQueryResponse} object
 	 */
 	queryInstalledChaincodes(peer, useAdmin) {
@@ -880,10 +884,11 @@ var Client = class extends BaseClient {
 	}
 
 	/**
-	 * Sets the state and crypto stores for use by this client.
+	 * Sets the state and crypto suite for use by this client.
 	 * This requires that a network config has been loaded. Will use the settings
 	 * from the network configuration along with the system configuration to build
-	 * instances of the stores and assign them to this client.
+	 * instances of the stores and assign them to this client and the crypto suites
+	 * if needed.
 	 *
 	 * @returns {Promise} - A promise to build a key value store and crypto store.
 	 */
