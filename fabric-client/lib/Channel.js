@@ -867,53 +867,53 @@ var Channel = class {
 		var signer = this._clientContext._getSigningIdentity(useAdmin);
 		var txId = new TransactionID(signer, useAdmin);
 
-        var request = {
-            targets: targets,
-            chaincodeId: Constants.LSCC,
-            chainId: this._name,
-            txId: txId,
-            fcn: 'getccdata',
-            args: [this._name, chaincodeName]
-        };
-        return this.sendTransactionProposal(request)
-            .then(
-                function(results) {
-                    var responses = results[0];
-                    logger.debug('queryChaincodeData - got response');
-                    if (responses && Array.isArray(responses)) {
-                        //will only be one response as we are only querying one peer
-                        if (responses.length > 1) {
-                            return Promise.reject(new Error('Too many results returned'));
-                        }
-                        let response = responses[0];
-                        if (response instanceof Error) {
-                            return Promise.reject(response);
-                        }
-                        if (response.response) {
-                            logger.debug('queryChaincodeData - response status :: %d', response.response.status);
-                            var chaincodeData = _queryProto.ChaincodeData.decode(response.response.payload);
-                            var signaturePolicyEnvelope = _policiesProto.SignaturePolicyEnvelope.decode(chaincodeData.policy);
-                            var policy = signaturePolicyEnvelope.policy;
-                            var identities = signaturePolicyEnvelope.identities;
-                            identities.forEach((identity, index) => {
-                                identities[index].principal = _mspPrincipalProto.MSPRole.decode(identity.principal.toBuffer());
-                            })
-                            chaincodeData.policy = signaturePolicyEnvelope;
-                            logger.debug('queryChaincodeData result:' + chaincodeData);
-                            return Promise.resolve(chaincodeData);
-                        }
-                        // no idea what we have, lets fail it and send it back
-                        return Promise.reject(response);
-                    }
-                    return Promise.reject(new Error('Payload results are missing from the query'));
-                }
-            ).catch(
-                function(err) {
-                    logger.error('Failed Query ChaincodeData. Error: %s', err.stack ? err.stack : err);
-                    return Promise.reject(err);
-                }
-            );
-    }
+		var request = {
+			targets: targets,
+			chaincodeId: Constants.LSCC,
+			chainId: this._name,
+			txId: txId,
+			fcn: 'getccdata',
+			args: [this._name, chaincodeName]
+		};
+		return this.sendTransactionProposal(request)
+			.then(
+				function(results) {
+					var responses = results[0];
+					logger.debug('queryChaincodeData - got response');
+					if (responses && Array.isArray(responses)) {
+						//will only be one response as we are only querying one peer
+						if (responses.length > 1) {
+							return Promise.reject(new Error('Too many results returned'));
+						}
+						let response = responses[0];
+						if (response instanceof Error) {
+							return Promise.reject(response);
+						}
+						if (response.response) {
+							logger.debug('queryChaincodeData - response status :: %d', response.response.status);
+							var chaincodeData = _queryProto.ChaincodeData.decode(response.response.payload);
+							var signaturePolicyEnvelope = _policiesProto.SignaturePolicyEnvelope.decode(chaincodeData.policy);
+							var policy = signaturePolicyEnvelope.policy;
+							var identities = signaturePolicyEnvelope.identities;
+							identities.forEach((identity, index) => {
+								identities[index].principal = _mspPrincipalProto.MSPRole.decode(identity.principal.toBuffer());
+							})
+							chaincodeData.policy = signaturePolicyEnvelope;
+							logger.debug('queryChaincodeData result:' + chaincodeData);
+							return Promise.resolve(chaincodeData);
+						}
+						// no idea what we have, lets fail it and send it back
+						return Promise.reject(response);
+					}
+					return Promise.reject(new Error('Payload results are missing from the query'));
+				}
+			).catch(
+				function(err) {
+					logger.error('Failed Query ChaincodeData. Error: %s', err.stack ? err.stack : err);
+					return Promise.reject(err);
+				}
+			);
+	}
 	/**
 	 * Queries the ledger on the target peer for Block by block number.
 	 *
