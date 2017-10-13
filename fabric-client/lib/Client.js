@@ -1500,7 +1500,7 @@ var Client = class extends BaseClient {
 				return member.setEnrollment(importedKey, data.toString(), opts.mspid);
 			}).then(() => {
 				logger.debug('then setUserContext');
-				return self.setUserContext(member);
+				return self.setUserContext(member, opts.skipPersistence);
 			}, (err) => {
 				logger.debug('error during setUserContext...');
 				logger.error(err.stack ? err.stack : err);
