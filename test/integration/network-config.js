@@ -533,17 +533,17 @@ test('\n\n***** use the network configuration file  *****\n\n', function(t) {
 		return channel.queryBlock(1);
 	}).then((results) => {
 		logger.debug(' queryBlock ::%j',results);
-		t.equals(1, results.header.number.low, 'Should be able to find our block number');
+		t.equals('1', results.header.number, 'Should be able to find our block number');
 
 		return channel.queryInfo();
 	}).then((results) => {
 		logger.debug(' queryInfo ::%j',results);
-		t.equals(3, results.height.low, 'Should be able to find our block height');
+		t.equals('3', results.height, 'Should be able to find our block height');
 
 		return channel.queryBlockByHash(results.previousBlockHash);
 	}).then((results) => {
 		logger.debug(' queryBlockHash ::%j',results);
-		t.equals(1, results.header.number.low, 'Should be able to find our block number by hash');
+		t.equals('1', results.header.number, 'Should be able to find our block number by hash');
 
 		return channel.queryTransaction(query_tx_id);
 	}).then((results) => {
@@ -553,17 +553,17 @@ test('\n\n***** use the network configuration file  *****\n\n', function(t) {
 		return channel.queryBlock(1,'peer0.org1.example.com');
 	}).then((results) => {
 		logger.debug(' queryBlock ::%j',results);
-		t.equals(1, results.header.number.low, 'Should be able to find our block number with string peer name');
+		t.equals('1', results.header.number, 'Should be able to find our block number with string peer name');
 
 		return channel.queryInfo('peer0.org1.example.com');
 	}).then((results) => {
 		logger.debug(' queryInfo ::%j',results);
-		t.equals(3, results.height.low, 'Should be able to find our block height with string peer name');
+		t.equals('3', results.height, 'Should be able to find our block height with string peer name');
 
 		return channel.queryBlockByHash(results.previousBlockHash, 'peer0.org1.example.com');
 	}).then((results) => {
 		logger.debug(' queryBlockHash ::%j',results);
-		t.equals(1, results.header.number.low, 'Should be able to find our block number by hash with string peer name');
+		t.equals('1', results.header.number, 'Should be able to find our block number by hash with string peer name');
 
 		return channel.queryTransaction(query_tx_id,'peer0.org1.example.com');
 	}).then((results) => {
@@ -573,17 +573,17 @@ test('\n\n***** use the network configuration file  *****\n\n', function(t) {
 		return channel.queryBlock(1,'peer0.org1.example.com', true);
 	}).then((results) => {
 		logger.debug(' queryBlock ::%j',results);
-		t.equals(1, results.header.number.low, 'Should be able to find our block number by admin');
+		t.equals('1', results.header.number, 'Should be able to find our block number by admin');
 
 		return channel.queryInfo('peer0.org1.example.com', true);
 	}).then((results) => {
 		logger.debug(' queryInfo ::%j',results);
-		t.equals(3, results.height.low, 'Should be able to find our block height by admin');
+		t.equals('3', results.height, 'Should be able to find our block height by admin');
 
 		return channel.queryBlockByHash(results.previousBlockHash, 'peer0.org1.example.com', true);
 	}).then((results) => {
 		logger.debug(' queryBlockHash ::%j',results);
-		t.equals(1, results.header.number.low, 'Should be able to find our block number by hash by admin');
+		t.equals('1', results.header.number, 'Should be able to find our block number by hash by admin');
 
 		return channel.queryTransaction(query_tx_id,'peer0.org1.example.com', true);
 	}).then((results) => {
