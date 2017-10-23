@@ -349,9 +349,13 @@ var Client = class extends BaseClient {
 	}
 
 	/**
-	 * Returns a CertificateAuthority implementation as defined by the settings in the
-	 * currently loaded network configuration and the client configuration. A network
-	 * configuration must be loaded for this get method to return a Certificate Authority.
+	 * Returns a CertificateAuthority implementation as defined by the settings
+	 * in the currently loaded network configuration and the client configuration.
+	 * A network configuration must be loaded for this get method to return a
+	 * Certificate Authority.
+	 * A crypto suite must be assigned to this client instance. Running the
+	 * 'initCredentialStores' method will build the stores and create a crypto
+	 * suite as defined in the network configuration.
 	 */
 	 getCertificateAuthority() {
 		 if(this._certificate_authority) {
@@ -359,6 +363,9 @@ var Client = class extends BaseClient {
 		 }
 		 if(!this._network_config) {
 			 throw new Error('No network configuration has been loaded');
+		 }
+		 if(!this._cryptoSuite) {
+			 throw new Error('A crypto suite has not been assigned to this client');
 		 }
 		 let ca_url, tls_options, ca_name = null;
 		 let client_config = this._network_config.getClientConfig();
