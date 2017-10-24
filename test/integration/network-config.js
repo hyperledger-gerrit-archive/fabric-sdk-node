@@ -308,7 +308,7 @@ test('\n\n***** use the network configuration file  *****\n\n', function(t) {
 			//targets: ['peer0.org1.example.com'],
 		};
 
-		return channel.sendInstantiateProposal(request); // still have org2 admin signer
+		return channel.sendInstantiateProposal(request, 60000); // still have org2 admin signer
 	}).then((results) => {
 		var proposalResponses = results[0];
 		var proposal = results[1];
