@@ -184,7 +184,7 @@ test('\n\n***** use the network configuration file  *****\n\n', function(t) {
 			txId : 	tx_id
 		};
 
-		return channel.joinChannel(request); //admin from org2
+		return channel.joinChannel(request, 30000); //admin from org2
 	}).then((results) => {
 		logger.debug(util.format('Join Channel R E S P O N S E using default targets: %j', results));
 
@@ -222,7 +222,7 @@ test('\n\n***** use the network configuration file  *****\n\n', function(t) {
 			txId : 	tx_id
 		};
 
-		return channel.joinChannel(request); //logged in as org1
+		return channel.joinChannel(request, 30000); //logged in as org1
 	}).then((results) => {
 		logger.debug(util.format('Join Channel R E S P O N S E  for a string target: %j', results));
 
@@ -308,7 +308,7 @@ test('\n\n***** use the network configuration file  *****\n\n', function(t) {
 			//targets: ['peer0.org1.example.com'],
 		};
 
-		return channel.sendInstantiateProposal(request); // still have org2 admin signer
+		return channel.sendInstantiateProposal(request, 60000); // still have org2 admin signer
 	}).then((results) => {
 		var proposalResponses = results[0];
 		var proposal = results[1];
