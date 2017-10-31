@@ -1,0 +1,8 @@
+Verified+1: Hyperledger Jobbuilder <jobbuilder@jenkins.hyperledger.org>
+Code-Review+2: David Enyeart <enyeart@us.ibm.com>
+Code-Review+2: Jonathan Levi (HACERA) <jonathan@hacera.com>
+Submitted-by: Jonathan Levi (HACERA) <jonathan@hacera.com>
+Submitted-at: Tue, 31 Oct 2017 21:00:46 +0000
+Reviewed-on: https://gerrit.hyperledger.org/r/14467
+Project: fabric-sdk-node
+Branch: refs/heads/master
