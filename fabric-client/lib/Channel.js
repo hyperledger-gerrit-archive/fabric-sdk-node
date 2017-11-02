@@ -499,12 +499,11 @@ var Channel = class {
 		);
 	}
     /**
-     * Queries the chaincode data on the target peer for instantiated chaincodes on this channel.
+	 * Queries the chaincode data on the target peer for instantiated chaincodes on this channel.
      * @param {chaincodeName} - The chaincodeName you want to query.
-     * @param {Peer} target - Optional. The peer to send this query to. If no target is passed,
-     *                        the query is sent to the first peer that was added to the channel object.
-	 * @param {boolean} useAdmin - Optional. Indicates that the admin credentials should be used in making
-	 *                  this call to the peer.
+     * @param {Peer} target - Optional. The peer to send this query to. If no target is passed, the query is sent to the first peer that was added to the channel object.
+	 * @param {boolean} useAdmin - Optional. Indicates that the admin credentials should be used in making,this call to the peer.
+	 * @returns {Promise} A promise for chaincodeData.
      */
     queryChaincodeData(chaincodeName,target,useAdmin) {
 		logger.debug('queryChaincodeData start')
@@ -530,8 +529,8 @@ var Channel = class {
 					logger.debug('queryChaincodeData - got response');
 					if (responses && Array.isArray(responses)) {
 						//will only be one response as we are only querying one peer
-						if (responses.length > 1) {
-							return Promise.reject(new Error('Too many results returned'));
+						if (responses.length != 1) {
+							return Promise.reject(new Error('Error amount of results returned'));
 						}
 						let response = responses[0];
 						if (response instanceof Error) {
