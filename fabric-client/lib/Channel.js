@@ -498,13 +498,13 @@ var Channel = class {
 			}
 		);
 	}
-    /**
+	/**
 	 * Queries the chaincode data on the target peer for instantiated chaincodes on this channel.
-     * @param {chaincodeName} - The chaincodeName you want to query.
-     * @param {Peer} target - Optional. The peer to send this query to. If no target is passed, the query is sent to the first peer that was added to the channel object.
+	 * @param {String} chaincodeName - The chaincodeName you want to query.
+	 * @param {Peer} target - Optional. The peer to send this query to. If no target is passed, the query is sent to the first peer that was added to the channel object.
 	 * @param {boolean} useAdmin - Optional. Indicates that the admin credentials should be used in making,this call to the peer.
 	 * @returns {Promise} A promise for chaincodeData.
-     */
+	 */
     queryChaincodeData(chaincodeName,target,useAdmin) {
 		logger.debug('queryChaincodeData start')
 		if(!chaincodeName){
