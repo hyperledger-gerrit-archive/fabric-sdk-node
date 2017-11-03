@@ -1556,38 +1556,7 @@ var Client = class extends BaseClient {
 	 */
 	createUser(opts) {
 		logger.debug('opts = %j', opts);
-		if (!opts) {
-			return Promise.reject(new Error('Client.createUser missing required \'opts\' parameter.'));
-		}
-		if (!opts.username || opts.username && opts.username.length < 1) {
-			return Promise.reject(new Error('Client.createUser parameter \'opts username\' is required.'));
-		}
-		if (!opts.mspid || opts.mspid && opts.mspid.length < 1) {
-			return Promise.reject(new Error('Client.createUser parameter \'opts mspid\' is required.'));
-		}
-		if (opts.cryptoContent) {
-			if ((opts.cryptoContent.privateKey || opts.cryptoContent.signedCert) &&
-				(!opts.cryptoContent.privateKey || !opts.cryptoContent.signedCert)) {
-				return Promise.reject(new Error('Client.createUser both parameters \'opts cryptoContent privateKey and signedCert\' files are required.'));
-			}
-			if ((opts.cryptoContent.privateKeyPEM || opts.cryptoContent.signedCertPEM) &&
-				(!opts.cryptoContent.privateKeyPEM || !opts.cryptoContent.signedCertPEM)) {
-				return Promise.reject(new Error('Client.createUser both parameters \'opts cryptoContent privateKeyPEM and signedCertPEM\' strings are required.'));
-			}
-		} else {
-			return Promise.reject(new Error('Client.createUser parameter \'opts cryptoContent\' is required.'));
-		}
-
-		if (this.getCryptoSuite() == null) {
-			logger.debug('cryptoSuite is null, creating default cryptoSuite and cryptoKeyStore');
-			this.setCryptoSuite(sdkUtils.newCryptoSuite());
-			this.getCryptoSuite().setCryptoKeyStore(Client.newCryptoKeyStore());
-		} else {
-			if (this.getCryptoSuite()._cryptoKeyStore) logger.debug('cryptoSuite has a cryptoKeyStore');
-			else logger.debug('cryptoSuite does not have a cryptoKeyStore');
-		}
-
-		var self = this;
+		const self = this;
 		return new Promise((resolve, reject) => {
 			// need to load private key and pre-enrolled certificate from files based on the MSP
 			// root MSP config directory structure:
@@ -1598,6 +1567,40 @@ var Client = class extends BaseClient {
 			//       \_ admin.pem  <<== this is the signed certificate saved in PEM file
 
 			// first load the private key and save in the BCCSP's key store
+			
+			if (!opts) {
+				return Promise.reject(new Error('Client.createUser missing required \'opts\' parameter.'));
+			}
+			const username = opts.username;
+			const mspid = opts.mspid;
+			if (!username || username.length < 1) {
+				return Promise.reject(new Error('Client.createUser parameter \'opts username\' is required.'));
+			}
+			if (!mspid || mspid.length < 1) {
+				return Promise.reject(new Error('Client.createUser parameter \'opts mspid\' is required.'));
+			}
+			if (opts.cryptoContent) {
+				if ((opts.cryptoContent.privateKey || opts.cryptoContent.signedCert) &&
+					(!opts.cryptoContent.privateKey || !opts.cryptoContent.signedCert)) {
+					return Promise.reject(new Error('Client.createUser both parameters \'opts cryptoContent privateKey and signedCert\' files are required.'));
+				}
+				if ((opts.cryptoContent.privateKeyPEM || opts.cryptoContent.signedCertPEM) &&
+					(!opts.cryptoContent.privateKeyPEM || !opts.cryptoContent.signedCertPEM)) {
+					return Promise.reject(new Error('Client.createUser both parameters \'opts cryptoContent privateKeyPEM and signedCertPEM\' strings are required.'));
+				}
+			} else {
+				return Promise.reject(new Error('Client.createUser parameter \'opts cryptoContent\' is required.'));
+			}
+	
+			if (this.getCryptoSuite() == null) {
+				logger.debug('cryptoSuite is null, creating default cryptoSuite and cryptoKeyStore');
+				this.setCryptoSuite(sdkUtils.newCryptoSuite());
+				this.getCryptoSuite().setCryptoKeyStore(Client.newCryptoKeyStore());
+			} else {
+				if (this.getCryptoSuite()._cryptoKeyStore) logger.debug('cryptoSuite has a cryptoKeyStore');
+				else logger.debug('cryptoSuite does not have a cryptoKeyStore');
+			}
+			
 			var promise, member, importedKey;
 
 			if (opts.cryptoContent.privateKey) {
@@ -1630,9 +1633,9 @@ var Client = class extends BaseClient {
 				return promise;
 			}).then((data) => {
 				logger.debug('then signedCertPEM data');
-				member = new User(opts.username);
+				member = new User(username);
 				member.setCryptoSuite(self.getCryptoSuite());
-				return member.setEnrollment(importedKey, data.toString(), opts.mspid);
+				return member.setEnrollment(importedKey, data.toString(), mspid);
 			}).then(() => {
 				logger.debug('then setUserContext');
 				return self.setUserContext(member, opts.skipPersistence);
