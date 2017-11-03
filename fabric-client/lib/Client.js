@@ -1559,25 +1559,43 @@ var Client = class extends BaseClient {
 		if (!opts) {
 			return Promise.reject(new Error('Client.createUser missing required \'opts\' parameter.'));
 		}
-		if (!opts.username || opts.username && opts.username.length < 1) {
+		const username = opts.username;
+		const mspid = opts.mspid;
+		if (!username || username && username.length < 1) {
 			return Promise.reject(new Error('Client.createUser parameter \'opts username\' is required.'));
 		}
-		if (!opts.mspid || opts.mspid && opts.mspid.length < 1) {
+		if (!mspid || mspid && mspid.length < 1) {
 			return Promise.reject(new Error('Client.createUser parameter \'opts mspid\' is required.'));
 		}
-		if (opts.cryptoContent) {
-			if ((opts.cryptoContent.privateKey || opts.cryptoContent.signedCert) &&
-				(!opts.cryptoContent.privateKey || !opts.cryptoContent.signedCert)) {
+		const cryptoContent = opts.cryptoContent
+		if (cryptoContent) {
+			if ((cryptoContent.privateKey || cryptoContent.signedCert) &&
+				(!cryptoContent.privateKey || !cryptoContent.signedCert)) {
 				return Promise.reject(new Error('Client.createUser both parameters \'opts cryptoContent privateKey and signedCert\' files are required.'));
 			}
-			if ((opts.cryptoContent.privateKeyPEM || opts.cryptoContent.signedCertPEM) &&
-				(!opts.cryptoContent.privateKeyPEM || !opts.cryptoContent.signedCertPEM)) {
+			if ((cryptoContent.privateKeyPEM || cryptoContent.signedCertPEM) &&
+				(!cryptoContent.privateKeyPEM || !cryptoContent.signedCertPEM)) {
 				return Promise.reject(new Error('Client.createUser both parameters \'opts cryptoContent privateKeyPEM and signedCertPEM\' strings are required.'));
 			}
 		} else {
 			return Promise.reject(new Error('Client.createUser parameter \'opts cryptoContent\' is required.'));
 		}
-
+		const privateKeyPEM = cryptoContent.privateKeyPEM;
+		const signedCertPEM = cryptoContent.signedCertPEM;
+		const privateKey = cryptoContent.privateKey;
+		const signedCert = cryptoContent.signedCert;
+		let privateKeyData;
+		if(privateKeyPEM){
+			privateKeyData = privateKeyPEM; 
+		}else{
+			privateKeyData = fs.readFileSync(privateKey,'utf8');
+		}
+		let signedCertData;
+		if(signedCertPEM){
+			signedCertData = signedCertPEM;
+		}else{
+			signedCertData = fs.readFileSync(signedCert,'utf8');
+		}
 		if (this.getCryptoSuite() == null) {
 			logger.debug('cryptoSuite is null, creating default cryptoSuite and cryptoKeyStore');
 			this.setCryptoSuite(sdkUtils.newCryptoSuite());
@@ -1587,7 +1605,7 @@ var Client = class extends BaseClient {
 			else logger.debug('cryptoSuite does not have a cryptoKeyStore');
 		}
 
-		var self = this;
+		const self = this;
 		return new Promise((resolve, reject) => {
 			// need to load private key and pre-enrolled certificate from files based on the MSP
 			// root MSP config directory structure:
