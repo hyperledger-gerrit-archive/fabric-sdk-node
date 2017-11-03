@@ -1556,38 +1556,7 @@ var Client = class extends BaseClient {
 	 */
 	createUser(opts) {
 		logger.debug('opts = %j', opts);
-		if (!opts) {
-			return Promise.reject(new Error('Client.createUser missing required \'opts\' parameter.'));
-		}
-		if (!opts.username || opts.username && opts.username.length < 1) {
-			return Promise.reject(new Error('Client.createUser parameter \'opts username\' is required.'));
-		}
-		if (!opts.mspid || opts.mspid && opts.mspid.length < 1) {
-			return Promise.reject(new Error('Client.createUser parameter \'opts mspid\' is required.'));
-		}
-		if (opts.cryptoContent) {
-			if ((opts.cryptoContent.privateKey || opts.cryptoContent.signedCert) &&
-				(!opts.cryptoContent.privateKey || !opts.cryptoContent.signedCert)) {
-				return Promise.reject(new Error('Client.createUser both parameters \'opts cryptoContent privateKey and signedCert\' files are required.'));
-			}
-			if ((opts.cryptoContent.privateKeyPEM || opts.cryptoContent.signedCertPEM) &&
-				(!opts.cryptoContent.privateKeyPEM || !opts.cryptoContent.signedCertPEM)) {
-				return Promise.reject(new Error('Client.createUser both parameters \'opts cryptoContent privateKeyPEM and signedCertPEM\' strings are required.'));
-			}
-		} else {
-			return Promise.reject(new Error('Client.createUser parameter \'opts cryptoContent\' is required.'));
-		}
-
-		if (this.getCryptoSuite() == null) {
-			logger.debug('cryptoSuite is null, creating default cryptoSuite and cryptoKeyStore');
-			this.setCryptoSuite(sdkUtils.newCryptoSuite());
-			this.getCryptoSuite().setCryptoKeyStore(Client.newCryptoKeyStore());
-		} else {
-			if (this.getCryptoSuite()._cryptoKeyStore) logger.debug('cryptoSuite has a cryptoKeyStore');
-			else logger.debug('cryptoSuite does not have a cryptoKeyStore');
-		}
-
-		var self = this;
+		const self = this;
 		return new Promise((resolve, reject) => {
 			// need to load private key and pre-enrolled certificate from files based on the MSP
 			// root MSP config directory structure:
@@ -1598,55 +1567,50 @@ var Client = class extends BaseClient {
 			//       \_ admin.pem  <<== this is the signed certificate saved in PEM file
 
 			// first load the private key and save in the BCCSP's key store
-			var promise, member, importedKey;
-
-			if (opts.cryptoContent.privateKey) {
-				promise = readFile(opts.cryptoContent.privateKey);
-			} else {
-				promise = Promise.resolve(opts.cryptoContent.privateKeyPEM);
+			if (!opts) {
+				return reject(new Error('Client.createUser missing required \'opts\' parameter.'));
 			}
-			promise.then((data) => {
-				if (data) {
-					logger.debug('then privateKeyPEM data');
-					var opt1;
-					if (self.getCryptoSuite()._cryptoKeyStore) {
-						opt1 = {ephemeral: false};
-					} else {
-						opt1 = {ephemeral: true};
-					}
-					return self.getCryptoSuite().importKey(data.toString(), opt1);
-				} else {
-					throw new Error('failed to load private key data');
-				}
-			}).then((key) => {
-				logger.debug('then key');
-				importedKey = key;
-				// next save the certificate in a serialized user enrollment in the state store
-				if (opts.cryptoContent.signedCert) {
-					promise = readFile(opts.cryptoContent.signedCert);
-				} else {
-					promise = Promise.resolve(opts.cryptoContent.signedCertPEM);
-				}
-				return promise;
-			}).then((data) => {
-				logger.debug('then signedCertPEM data');
-				member = new User(opts.username);
-				member.setCryptoSuite(self.getCryptoSuite());
-				return member.setEnrollment(importedKey, data.toString(), opts.mspid);
-			}).then(() => {
-				logger.debug('then setUserContext');
-				return self.setUserContext(member, opts.skipPersistence);
-			}, (err) => {
-				logger.debug('error during setUserContext...');
-				logger.error(err.stack ? err.stack : err);
-				return reject(err);
+			const {username,mspid} = opts 
+			if (!username || username.length < 1) {
+				return reject(new Error('Client.createUser parameter \'opts username\' is required.'));
+			}
+			if (!mspid || mspid.length < 1) {
+				return reject(new Error('Client.createUser parameter \'opts mspid\' is required.'));
+			}
+			if (!opts.cryptoContent) {
+				return reject(new Error('Client.createUser parameter \'opts cryptoContent\' is required.'));
+			}
+
+			const {privateKeyPEM,signedCertPEM,privateKey,signedCert} = opts.cryptoContent
+			const privateKeyData = privateKeyPEM ? privateKeyPEM : fs.readFileSync(privateKey,'utf8')
+			if (!privateKeyData) return reject(new Error('failed to load private key data from opts.cryptoContent.privateKey or opts.cryptoContent.privateKeyPEM'))
+			const signedCertData = signedCertPEM ? signedCertPEM : fs.readFileSync(signedCert,'utf8')
+			if (!signedCertData) return reject(new Error('failed to load signed cert data from opts.cryptoContent.signedCert or opts.cryptoContent.signedCertPEM'))
+			if (self.getCryptoSuite() == null) {
+				logger.debug('cryptoSuite is null, creating default cryptoSuite and cryptoKeyStore');
+				const newCryptoSuite = sdkUtils.newCryptoSuite()
+				newCryptoSuite.setCryptoKeyStore(Client.newCryptoKeyStore())
+				self.setCryptoSuite(newCryptoSuite);
+			} else {
+				if (self.getCryptoSuite()._cryptoKeyStore) logger.debug('cryptoSuite has a cryptoKeyStore');
+				else logger.debug('cryptoSuite does not have a cryptoKeyStore');
+			}
+			
+			const selfCryptoSuite=self.getCryptoSuite()
+			return resolve(selfCryptoSuite.importKey(privateKeyData.toString(), {ephemeral:!selfCryptoSuite._cryptoKeyStore})
+			.then((importedKey) => {
+				logger.debug('then importedKey');
+				const newUser = new User(username);
+				newUser.setCryptoSuite(selfCryptoSuite);
+				return newUser.setEnrollment(importedKey, signedCertData.toString(), mspid)
+				.then(() => {
+					logger.debug('then setUserContext');
+					return self.setUserContext(newUser, opts.skipPersistence);
+				})
 			}).then((user) => {
 				logger.debug('then user');
 				return resolve(user);
-			}).catch((err) => {
-				logger.error(err.stack ? err.stack : err);
-				return reject(new Error('Failed to load key or certificate and save to local stores.'));
-			});
+			}))
 		});
 	}
 
@@ -1794,21 +1758,6 @@ var Client = class extends BaseClient {
 		return peers;
 	}
 };
-
-function readFile(path) {
-	return new Promise(function(resolve, reject) {
-		fs.readFile(path, 'utf8', function (err, data) {
-			if (err) {
-				if (err.code !== 'ENOENT') {
-					return reject(err);
-				} else {
-					return resolve(null);
-				}
-			}
-			return resolve(data);
-		});
-	});
-}
 
 // internal utility method to get the chaincodePackage data in bytes
 function _getChaincodePackageData(request, devMode) {
