@@ -1559,10 +1559,12 @@ var Client = class extends BaseClient {
 		if (!opts) {
 			return Promise.reject(new Error('Client.createUser missing required \'opts\' parameter.'));
 		}
-		if (!opts.username || opts.username && opts.username.length < 1) {
+		const username = opts.username;
+		const mspid = opts.mspid;
+		if (!username || username && username.length < 1) {
 			return Promise.reject(new Error('Client.createUser parameter \'opts username\' is required.'));
 		}
-		if (!opts.mspid || opts.mspid && opts.mspid.length < 1) {
+		if (!mspid || mspid && mspid.length < 1) {
 			return Promise.reject(new Error('Client.createUser parameter \'opts mspid\' is required.'));
 		}
 		if (opts.cryptoContent) {
@@ -1587,7 +1589,7 @@ var Client = class extends BaseClient {
 			else logger.debug('cryptoSuite does not have a cryptoKeyStore');
 		}
 
-		var self = this;
+		const self = this;
 		return new Promise((resolve, reject) => {
 			// need to load private key and pre-enrolled certificate from files based on the MSP
 			// root MSP config directory structure:
