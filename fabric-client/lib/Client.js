@@ -1587,7 +1587,7 @@ var Client = class extends BaseClient {
 			else logger.debug('cryptoSuite does not have a cryptoKeyStore');
 		}
 
-		var self = this;
+		const self = this;
 		return new Promise((resolve, reject) => {
 			// need to load private key and pre-enrolled certificate from files based on the MSP
 			// root MSP config directory structure:
