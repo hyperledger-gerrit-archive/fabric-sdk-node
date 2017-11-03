@@ -1559,25 +1559,26 @@ var Client = class extends BaseClient {
 		if (!opts) {
 			return Promise.reject(new Error('Client.createUser missing required \'opts\' parameter.'));
 		}
-		if (!opts.username || opts.username && opts.username.length < 1) {
+		const username = opts.username;
+		const mspid = opts.mspid;
+		if (!username || username && username.length < 1) {
 			return Promise.reject(new Error('Client.createUser parameter \'opts username\' is required.'));
 		}
-		if (!opts.mspid || opts.mspid && opts.mspid.length < 1) {
+		if (!mspid || mspid && mspid.length < 1) {
 			return Promise.reject(new Error('Client.createUser parameter \'opts mspid\' is required.'));
 		}
-		if (opts.cryptoContent) {
-			if ((opts.cryptoContent.privateKey || opts.cryptoContent.signedCert) &&
-				(!opts.cryptoContent.privateKey || !opts.cryptoContent.signedCert)) {
-				return Promise.reject(new Error('Client.createUser both parameters \'opts cryptoContent privateKey and signedCert\' files are required.'));
-			}
-			if ((opts.cryptoContent.privateKeyPEM || opts.cryptoContent.signedCertPEM) &&
-				(!opts.cryptoContent.privateKeyPEM || !opts.cryptoContent.signedCertPEM)) {
-				return Promise.reject(new Error('Client.createUser both parameters \'opts cryptoContent privateKeyPEM and signedCertPEM\' strings are required.'));
-			}
-		} else {
+		const cryptoContent = opts.cryptoContent
+		if (!cryptoContent) {
 			return Promise.reject(new Error('Client.createUser parameter \'opts cryptoContent\' is required.'));
 		}
-
+		const privateKeyPEM = cryptoContent.privateKeyPEM;
+		const signedCertPEM = cryptoContent.signedCertPEM;
+		const privateKey = cryptoContent.privateKey;
+		const signedCert = cryptoContent.signedCert;
+		const privateKeyData = privateKeyPEM ? privateKeyPEM : fs.readFileSync(privateKey,'utf8');
+		if (!privateKeyData) return Promise.reject(new Error('failed to load private key data from opts.cryptoContent.privateKey or opts.cryptoContent.privateKeyPEM'));
+		const signedCertData = signedCertPEM ? signedCertPEM : fs.readFileSync(signedCert,'utf8');
+		if (!signedCertData) return Promise.reject(new Error('failed to load signed cert data from opts.cryptoContent.signedCert or opts.cryptoContent.signedCertPEM'));
 		if (this.getCryptoSuite() == null) {
 			logger.debug('cryptoSuite is null, creating default cryptoSuite and cryptoKeyStore');
 			this.setCryptoSuite(sdkUtils.newCryptoSuite());
@@ -1587,7 +1588,7 @@ var Client = class extends BaseClient {
 			else logger.debug('cryptoSuite does not have a cryptoKeyStore');
 		}
 
-		var self = this;
+		const self = this;
 		return new Promise((resolve, reject) => {
 			// need to load private key and pre-enrolled certificate from files based on the MSP
 			// root MSP config directory structure:
