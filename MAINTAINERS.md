@@ -1,7 +1,21 @@
-## Maintainers
+Maintainers
+-----------
 
-This repository is part of the Fabric project.
-Please consult [Fabric's MAINTAINERS documentation](https://github.com/hyperledger/fabric/blob/master/docs/MAINTAINERS.md) for the list of people maintaining this repository.
++---------------------------+---------------------+------------------+----------------+-------------------------------------+
+| Name                      | Gerrit              | GitHub           | RocketChat     | email                               |
++===========================+=====================+==================+================+=====================================+
+| Chris Ferris              | ChristopherFerris   | christo4ferris   | cbf            | chris.ferris@gmail.com              |
++---------------------------+---------------------+------------------+----------------+-------------------------------------+
+| Bret Harrison             | bretharrison        | harrisob         | bretharrison   | beharrison@nc.rr.com                |
++---------------------------+---------------------+------------------+----------------+-------------------------------------+
+| Yacov Manevich            | yacovm              | yacovm           | yacovm         | yacovm@il.ibm.com                   |
++---------------------------+---------------------+------------------+----------------+-------------------------------------+
+| Gari Signh                | mastersingh24       | mastersingh24    | garisingh      | gari.r.singh@gmail.com              |
++---------------------------+---------------------+------------------+----------------+-------------------------------------+
+| Jim Zhang                 | jimthematrix        | jimthematrix     | jimthematrix   | jim\_the\_matrix@hotmail.com        |
++---------------------------+---------------------+------------------+----------------+-------------------------------------+
+| Chaoyi Zhao               | zhaochy             | zhaochy1990      | zhaochy        | cychaoz@cn.ibm.com                  |
++---------------------------+---------------------+------------------+----------------+-------------------------------------+
 
 <a rel="license" href="http://creativecommons.org/licenses/by/4.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by/4.0/88x31.png" /></a><br />This work is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by/4.0/">Creative Commons Attribution 4.0 International License</a>.
 s
