@@ -64,3 +64,16 @@ message ChannelQueryResponse {
 message ChannelInfo {
   string channel_id = 1;
 }
+
+// ChaincodeData contains chaincode general information such endorsing policy
+//, instantiaation policy
+message ChaincodeData {
+  string name =1 ;
+  string version = 2;
+  bytes escc = 3;
+  bytes vscc = 4;
+  bytes policy = 5;
+  repeated bytes data =6;
+  repeated bytes id = 7;
+  repeated bytes instantiation_policy = 8;
+}
