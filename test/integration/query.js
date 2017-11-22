@@ -70,8 +70,7 @@ if (querys.length > 0 ) {
 		(querys.indexOf('GetBlockByHash') > -1) ||
 		(querys.indexOf('GetInstalledChaincodes') > -1) ||
 		(querys.indexOf('GetInstantiatedChaincodes') > -1) ||
-		(querys.indexOf('GetChannels') > -1 ||
-		(querys.indexOf('GetChaincodeData') > -1))) {
+		(querys.indexOf('GetChannels') > -1)) {
 		queryParameters = true;  // at least one query parameter specified
 	}
 }
@@ -418,92 +417,7 @@ test('  ---->>>>> Query Installed Chaincodes working <<<<<-----', function(t) {
 		);
 	} else t.end();
 });
-test('  ---->>>>> Query channel failing: ChaincodeData <<<<<-----', function(t) {
-	if (!queryParameters|| querys.indexOf('GetChaincodeData') >=0) {
-		return Client.newDefaultKeyValueStore({
-			path: testUtil.storePathForOrg(orgName)
-		}).then( function (store) {
-			client.setStateStore(store);
 
-			// get the peer org's admin required to query instantiated chaincodes
-			return testUtil.getSubmitter(client, t, true /* get peer org admin */, org);
-		}).then(
-			function(admin) {
-				t.pass('Successfully enrolled user \'admin\'');
-				// send query
-				return channel.queryChaincodeData("errCcName");
-			},
-			function(err) {
-				t.fail('Failed to enroll user: ' + err.stack ? err.stack : err);
-				t.end();
-			}
-		).then(
-			function(response) {
-				t.fail('Should not get chaincode data with wrong chaincode name');
-				t.end();
-			},
-			function(err) {
-				t.pass(util.format('Can not get chaincode data with wrong chaincode name, %j', err.toString()));
-				t.end();
-			}
-
-		).catch(
-			function(err){
-				t.fail('fail to get chaincode data err:' + err);
-				t.end();
-			}
-		)
-    } else t.end();
-});
-test('  ---->>>>> Query ChaincodeData working <<<<<-----', function(t) {
-	if (!queryParameters|| querys.indexOf('GetChaincodeData') >=0) {
-		return Client.newDefaultKeyValueStore({
-			path: testUtil.storePathForOrg(orgName)
-		}).then( function (store) {
-			client.setStateStore(store);
-
-			// get the peer org's admin required to query instantiated chaincodes
-			return testUtil.getSubmitter(client, t, true /* get peer org admin */, org);
-		}).then(
-			function(admin) {
-				t.pass('Successfully enrolled user \'admin\'');
-				// send query
-				return channel.queryChaincodeData(e2e.chaincodeId);
-			},
-			function(err) {
-				t.fail('Failed to enroll user: ' + err.stack ? err.stack : err);
-				t.end();
-			}
-		).then(
-			function(response) {
-				logger.debug('<<< chaincode data >>>');
-				logger.debug(response)
-				t.equals(e2e.chaincodeId,response.name, 'test for chaincode name');
-				t.equals(true, response.escc instanceof Object, 'test for chaincode escc');
-				t.equals(true, response.escc instanceof Object, 'test for chaincode vscc');
-				t.equals(0, response.policy.version, 'test for chaincode endorsing policy version');
-				t.equals('n_out_of', response.policy.rule.Type, 'test for chaincode endorsing policy rule type');
-				t.equals(1, response.policy.rule.n_out_of.n, 'test for chaincode endorsing policy rule first n_out_of layer');
-				t.equals(2, response.policy.rule.n_out_of.rules.length, 'test for chaincode policy endorsing policy rules of first n_out_of layer');
-				t.equals(3, response.policy.identities.length, 'test for chaincode policy endorsing policy identities, length of identites');
-				t.equals(true, response.data instanceof Object, 'test for chaincode data');
-				t.equals(true, response.id instanceof Object, 'test for chaincode id');
-				t.equals(true, response.instantiation_policy instanceof Object, 'test for chaincode instantiation_policy');
-				t.pass('queryChaincodeData work pass');
-				t.end();
-			},
-			function(err) {
-				t.fail('Failed to queryInstantiatedChaincodes with error:' + err.stack ? err.stack : err);
-				t.end();
-			}
-		).catch(
-			function(err) {
-				t.fail('Failed to queryInstantiatedChaincodes with error:' + err.stack ? err.stack : err);
-				t.end();
-			}
-		);
-	} else t.end();
-});
 test('  ---->>>>> Query Instantiated Chaincodes working <<<<<-----', function(t) {
 	if (!queryParameters || querys.indexOf('GetInstantiatedChaincodes') >= 0) {
 		return Client.newDefaultKeyValueStore({
