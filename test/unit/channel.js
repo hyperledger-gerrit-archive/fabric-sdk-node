@@ -112,7 +112,28 @@ test('\n\n ** Channel - method tests **\n\n', function (t) {
 test('\n\n **  Channel query target parameter tests', function(t) {
 	var client = new Client();
 	var _channel = new Channel('testChannel', client);
+	t.throws(
+		function () {
+			_channel.queryChaincodeData();
+		},
+		/^Error: "chaincodeName" parameter not specified./,
+		'Channel tests, queryChaincodeData(): "chaincodeName" parameter not specified.'
+	);
+	t.throws(
+		function () {
+			_channel.queryChaincodeData('testCCName');
+		},
+		/^Error: "target" parameter not specified and no peers are set on this Channel./,
+		'Channel tests, queryChaincodeData(): "target" parameter not specified and no peers are set on Channel.'
+	);
 
+	t.throws(
+		function () {
+			_channel.queryChaincodeData('testCCName',[new Peer('grpc://localhost:7051')]);
+		},
+		/^Error: "target" parameter is an array, but should be a singular peer object/,
+		'Channel tests, queryChaincodeData(): checking for "target" parameter is an array, but should be a singular peer object.'
+	);
 	t.throws(
 		function () {
 			_channel.queryBlockByHash();
