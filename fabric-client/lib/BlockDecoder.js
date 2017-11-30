@@ -163,6 +163,19 @@ last_update
 	 * @typedef {Object} ConfigEnvelope
 	 */
 
+	 /**
+ 	 * A Config contains the channel configurations data and is the
+ 	 * main content of a configuration block.
+ 	 * <br><br>
+ 	 * A "Config" will have the following object structure.
+ <br><pre>
+ sequence -- {int}
+ channel_group -- {{@link ConfigGroup}}
+ type -- {int}
+ </pre>
+ 	 * @typedef {Object} Config
+ 	 */
+
 	/**
 	 * A Transaction, or "Endorser Transaction", is the result of invoking chaincodes
 	 * to collect endorsements, getting globally ordered in the context of a channel,
@@ -454,7 +467,7 @@ rule
 	identities -- {array}
 		principal_classification -- {int}
 		msp_identifier -- {string}
-		Role -- MEMBER | ADMIN
+		role -- MEMBER | ADMIN
 </pre>
 	 * @typedef {Object} SignaturePolicy
 	 */
@@ -543,6 +556,23 @@ payload -- {}
 		processed_transaction.validationCode = proto_processed_transaction.getValidationCode();
 		processed_transaction.transactionEnvelope = decodeBlockDataEnvelope(proto_processed_transaction.getTransactionEnvelope());
 		return processed_transaction;
+	}
+
+	/**
+	 * Constructs an object containing all decoded values from the
+	 * protobuf encoded "Config" bytes
+	 *
+	 * @param {byte[]} config_bytes - The encode bytes of a protobuf
+	 *                                message "Config"
+	 * @returns {Config} A fully decoded Config object
+	 */
+	static decodeConfig(config_bytes) {
+		if (!(config_bytes instanceof Buffer)) {
+			throw new Error('Config data is not a byte buffer');
+		}
+		let config_proto = _configtxProto.Config.decode(config_bytes);
+		let config = decodeConfig(config_proto);
+		return config;
 	}
 };
 
@@ -872,7 +902,9 @@ function decodeConfigPolicy(proto_config_policy) {
 	config_policy.mod_policy = proto_config_policy.value.getModPolicy();
 	config_policy.policy = {};
 	if (proto_config_policy.value.policy) {
+		// to translate the number to a string
 		config_policy.policy.type = Policy_PolicyType[proto_config_policy.value.policy.type];
+		//config_policy.policy.type = proto_config_policy.value.policy.type; // use when want just the number
 		logger.debug('decodeConfigPolicy ======> Policy item ::%s', proto_config_policy.key);
 		switch (proto_config_policy.value.policy.type) {
 		case _policiesProto.Policy.PolicyType.SIGNATURE:
@@ -899,7 +931,9 @@ function decodeImplicitMetaPolicy(implicit_meta_policy_bytes) {
 	var implicit_meta_policy = {};
 	var proto_implicit_meta_policy = _policiesProto.ImplicitMetaPolicy.decode(implicit_meta_policy_bytes);
 	implicit_meta_policy.sub_policy = proto_implicit_meta_policy.getSubPolicy();
+	// to translate the number to a string
 	implicit_meta_policy.rule = ImplicitMetaPolicy_Rule[proto_implicit_meta_policy.getRule()];
+	//implicit_meta_policy.rule = proto_implicit_meta_policy.getRule(); //use when want just the number
 	return implicit_meta_policy;
 }
 
@@ -922,17 +956,17 @@ function decodeSignaturePolicyEnvelope(signature_policy_envelope_bytes) {
 
 function decodeSignaturePolicy(proto_signature_policy) {
 	var signature_policy = {};
-	signature_policy.Type = proto_signature_policy.Type;
-	if (signature_policy.Type == 'n_out_of') {
+	//signature_policy.Type = proto_signature_policy.Type;
+	if (proto_signature_policy.Type == 'n_out_of') {
 		signature_policy.n_out_of = {};
-		signature_policy.n_out_of.N = proto_signature_policy.n_out_of.getN();
+		signature_policy.n_out_of.n = proto_signature_policy.n_out_of.getN();
 		signature_policy.n_out_of.rules = [];
 		for (var i in proto_signature_policy.n_out_of.rules) {
 			var proto_policy = proto_signature_policy.n_out_of.rules[i];
 			var policy = decodeSignaturePolicy(proto_policy);
 			signature_policy.n_out_of.rules.push(policy);
 		}
-	} else if (signature_policy.Type == 'signed_by') {
+	} else if (proto_signature_policy.Type == 'signed_by') {
 		signature_policy.signed_by = proto_signature_policy.getSignedBy();
 	} else {
 		throw new Error('unknown signature policy type');
@@ -947,21 +981,25 @@ function decodeMSPPrincipal(proto_msp_principal) {
 	var proto_principal = null;
 	switch (msp_principal.principal_classification) {
 	case _mspPrProto.MSPPrincipal.Classification.ROLE:
+		msp_principal.principal_classification = 'ROLE';
+		msp_principal.principal = {};
 		proto_principal = _mspPrProto.MSPRole.decode(proto_msp_principal.getPrincipal());
-		msp_principal.msp_identifier = proto_principal.getMspIdentifier();
+		msp_principal.principal.msp_identifier = proto_principal.getMspIdentifier();
 		if (proto_principal.getRole() === 0) {
-			msp_principal.Role = 'MEMBER';
+			msp_principal.principal.role = 'MEMBER';
 		} else if (proto_principal.getRole() === 1) {
-			msp_principal.Role = 'ADMIN';
+			msp_principal.principal.role = 'ADMIN';
 		}
 		break;
 	case _mspPrProto.MSPPrincipal.Classification.ORGANIZATION_UNIT:
+		msp_principal.principal_classification = 'ORGANIZATION_UNIT';
 		proto_principal = _mspPrProto.OrganizationUnit.decode(proto_msp_principal.getPrincipal());
 		msp_principal.msp_identifier = proto_principal.getMspIdendifier(); //string
 		msp_principal.organizational_unit_identifier = proto_principal.getOrganizationalUnitIdentifier(); //string
 		msp_principal.certifiers_identifier = proto_principal.getCertifiersIdentifier().toBuffer(); //bytes
 		break;
 	case _mspPrProto.MSPPrincipal.Classification.IDENTITY:
+		msp_principal.principal_classification = 'IDENTITY';
 		msp_principal = decodeIdentity(proto_msp_principal.getPrincipal());
 		break;
 	}
@@ -1038,7 +1076,9 @@ function decodeFabricOUIdentifier(proto_organizational_unit_identitfiers) {
 function toPEMcerts(buffer_array_in) {
 	var buffer_array_out = [];
 	for (var i in buffer_array_in) {
-		buffer_array_out.push(buffer_array_in[i].toBuffer().toString());
+		let cert = buffer_array_in[i].toBuffer().toString(); // readable PEM string
+		//let cert = buffer_array_in[i].toBuffer().toString('base64'); // string for protobuf translation
+		buffer_array_out.push(cert);
 	}
 
 	return buffer_array_out;

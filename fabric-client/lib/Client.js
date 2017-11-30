@@ -27,7 +27,9 @@ var Packager = require('./Packager.js');
 var Peer = require('./Peer.js');
 var EventHub = require('./EventHub.js');
 var Orderer = require('./Orderer.js');
+var ConfigUpdate = require('./ConfigUpdate.js');
 var TransactionID = require('./TransactionID.js');
+var BlockDecoder = require('./BlockDecoder.js');
 var MSP = require('./msp/msp.js');
 var idModule = require('./msp/identity.js');
 var Identity = idModule.Identity;
@@ -512,6 +514,62 @@ var Client = class extends BaseClient {
 				throw new Error(err);
 			}
 		}
+	}
+
+	/**
+	 * Extracts the protobuf 'Config' object out of the 'Block' object
+	 * that is produced by the [configtxgen tool]{@link http://hyperledger-fabric.readthedocs.io/en/latest/configtxgen.html}.
+	 *
+	 * @param {bytes[]} block_bytes - The encoded bytes of the Block protobuf
+	 * @returns {Config} The Config protobuf object
+	 */
+	extractConfigFromBlock(block_bytes) {
+		logger.debug('extractConfigFromBlock - start');
+		try {
+			let block_proto = _commonProto.Block.decode(block_bytes);
+			let envelope_proto = _commonProto.Envelope.decode(block_proto.getData().data[0].toBuffer());
+			let payload_proto = _commonProto.Payload.decode(envelope_proto.getPayload().toBuffer());
+			let config_envelope_proto = _configtxProto.ConfigEnvelope.decode(payload_proto.getData().toBuffer());
+
+			return config_envelope_proto.getConfig();
+		} catch (error) {
+			logger.error('extractConfigFromBlock - ::' + error.stack ? error.stack : error);
+			throw error;
+		}
+	}
+
+	/**
+	 * Decodes from protobuf to JSON a {@link Config} object
+	 *
+	 * @param {Config} config - A {@link Config} protobuf object
+	 * @return {string} The JSON representation of the configuration
+	 */
+	decodeConfig(config) {
+		let config_bytes = null;
+		if (config instanceof Buffer) {
+			config_bytes = config;
+		} else if(config && config.toBuffer) {
+			config_bytes = config.toBuffer();
+		} else {
+			throw new Error('Config data is not a buffer or proto object');
+		}
+		let config_json = BlockDecoder.decodeConfig(config_bytes);
+		let config_json_string = JSON.stringify(config_json);
+
+		return config_json_string;
+	}
+
+	/**
+	 * Builds a {@link ConfigUpdate} from two {@link Config} objects that contain a
+	 * {@link ConfigGroup} known as 'channel_group'.
+	 *
+	 * @param {Config} original - The starting point of the config changes
+	 * @param {Config} updated - The config with the required changes
+	 * @returns {ConfigUpdate} The {@link ConfigUpdate} object that will need to
+	 *          signed before sending to the Orderer.
+	 */
+	computeChannelGroupUpdate(original, updated) {
+		return ConfigUpdate.computeChannelGroupUpdate(original, updated);
 	}
 
 	/**
