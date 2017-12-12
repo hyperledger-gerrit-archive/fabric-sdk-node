@@ -654,29 +654,36 @@ function decodeBlockDataEnvelope(proto_envelope) {
 	if (envelope.payload.header.channel_header.type === HeaderType[1]) { // CONFIG
 		envelope.payload.data = decodeConfigEnvelope(proto_payload.getData().toBuffer());
 	}
-	//  else if(envelope.payload.header.channel_header.type === HeaderType[2]) { // CONFIG_UPDATE
-	//    envelope.payload.data = decodeConfigUpdateEnvelope(proto_payload.getData().toBuffer());
-	//  }
+	else if(envelope.payload.header.channel_header.type === HeaderType[2]) { // CONFIG_UPDATE
+		envelope.payload.data = decodeConfigUpdateEnvelope(proto_payload.getData().toBuffer());
+	}
 	else if (envelope.payload.header.channel_header.type === HeaderType[3]) { //ENDORSER_TRANSACTION
 		envelope.payload.data = decodeEndorserTransaction(proto_payload.getData().toBuffer());
-	} else {
-		throw new Error('Only able to decode ENDORSER_TRANSACTION and CONFIG type blocks');
 	}
+	// do nothing for now... header will have the type
+	// } else {
+	// 	throw new Error('Only able to decode ENDORSER_TRANSACTION and CONFIG type blocks');
+	// }
 
 	return envelope;
 };
 
 function decodeEndorserTransaction(trans_bytes) {
 	var data = {};
-	var transaction = _transProto.Transaction.decode(trans_bytes);
-	data.actions = [];
-	if (transaction && transaction.actions)
-		for (let i in transaction.actions) {
-			var action = {};
-			action.header = decodeSignatureHeader(transaction.actions[i].header);
-			action.payload = decodeChaincodeActionPayload(transaction.actions[i].payload);
-			data.actions.push(action);
+	try {
+		var transaction = _transProto.Transaction.decode(trans_bytes);
+		data.actions = [];
+		if (transaction && transaction.actions) {
+			for (let i in transaction.actions) {
+				var action = {};
+				action.header = decodeSignatureHeader(transaction.actions[i].header);
+				action.payload = decodeChaincodeActionPayload(transaction.actions[i].payload);
+				data.actions.push(action);
+			}
 		}
+	} catch(error) {
+		logger.error('decodeEndorserTransaction - error %s',error);
+	}
 
 	return data;
 };
@@ -1088,8 +1095,9 @@ function decodeChannelHeader(header_bytes) {
 	var channel_header = {};
 	var proto_channel_header = _commonProto.ChannelHeader.decode(header_bytes);
 	channel_header.type = HeaderType[proto_channel_header.getType()];
+	logger.debug('decodeChannelHeader - looking at type:%s',channel_header.type);
 	channel_header.version = decodeVersion(proto_channel_header.getType());
-	channel_header.timestamp = timeStampToDate(proto_channel_header.getTimestamp()).toString();
+	channel_header.timestamp = timeStampToDate(proto_channel_header.getTimestamp());
 	channel_header.channel_id = proto_channel_header.getChannelId();
 	channel_header.tx_id = proto_channel_header.getTxId();
 	channel_header.epoch = proto_channel_header.getEpoch().toString(); //unit64
@@ -1100,10 +1108,13 @@ function decodeChannelHeader(header_bytes) {
 };
 
 function timeStampToDate(time_stamp) {
+	if(!time_stamp) {
+		return 'null';
+	}
 	var millis = time_stamp.seconds * 1000 + time_stamp.nanos / 1000000;
 	var date = new Date(millis);
 
-	return date;
+	return date.toString();
 };
 
 function decodeChaincodeActionPayload(payload_bytes) {
