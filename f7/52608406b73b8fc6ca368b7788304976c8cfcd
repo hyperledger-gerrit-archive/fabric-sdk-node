@@ -1,0 +1,8 @@
+Verified+1: Hyperledger Jobbuilder <jobbuilder@jenkins.hyperledger.org>
+Code-Review+1: Will Lahti <wtlahti@us.ibm.com>
+Code-Review+2: Keith Smith <keithsmithlfid@gmail.com>
+Submitted-by: Bret Harrison <beharrison@nc.rr.com>
+Submitted-at: Wed, 13 Dec 2017 18:34:00 +0000
+Reviewed-on: https://gerrit.hyperledger.org/r/15869
+Project: fabric-sdk-node
+Branch: refs/heads/master
