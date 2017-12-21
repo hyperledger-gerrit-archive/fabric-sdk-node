@@ -120,6 +120,7 @@ module.exports.readFile = readFile;
 
 Client.addConfigFile(path.join(__dirname, '../integration/e2e/config.json'));
 var ORGS = Client.getConfigSetting('test-network');
+var usePkcs11Keys = Client.getConfigSetting('use-pkcs11-keys');
 
 var	tlsOptions = {
 	trustedRoots: [],
@@ -175,10 +176,14 @@ function getMember(username, password, client, t, userOrg) {
 }
 
 function getAdmin(client, t, userOrg) {
-	var keyPath = path.join(__dirname, util.format('../fixtures/channel/crypto-config/peerOrganizations/%s.example.com/users/Admin@%s.example.com/keystore', userOrg, userOrg));
-	var keyPEM = Buffer.from(readAllFiles(keyPath)[0]).toString();
+	var cryptoContent = {};
+	if (!usePkcs11Keys) {
+		var keyPath = path.join(__dirname, util.format('../fixtures/channel/crypto-config/peerOrganizations/%s.example.com/users/Admin@%s.example.com/keystore', userOrg, userOrg));
+		cryptoContent.privateKeyPEM = Buffer.from(readAllFiles(keyPath)[0]).toString();
+	}
 	var certPath = path.join(__dirname, util.format('../fixtures/channel/crypto-config/peerOrganizations/%s.example.com/users/Admin@%s.example.com/signcerts', userOrg, userOrg));
 	var certPEM = readAllFiles(certPath)[0];
+	cryptoContent.signedCertPEM = certPEM.toString();
 
 	var cryptoSuite = Client.newCryptoSuite();
 	if (userOrg) {
@@ -186,29 +191,41 @@ function getAdmin(client, t, userOrg) {
 		client.setCryptoSuite(cryptoSuite);
 	}
 
+	if (usePkcs11Keys) {
+		var key = KEYUTIL.getKey(certPEM.toString());
+		var key2 = new ecdsaKey(key);
+		cryptoContent.pkcs11Key = cryptoSuite.getKey(Buffer.from(key2.getSKI(), 'hex'));
+	}
+
 	return Promise.resolve(client.createUser({
 		username: 'peer'+userOrg+'Admin',
 		mspid: ORGS[userOrg].mspid,
-		cryptoContent: {
-			privateKeyPEM: keyPEM.toString(),
-			signedCertPEM: certPEM.toString()
-		}
+		cryptoContent: cryptoContent
 	}));
 }
 
 function getOrdererAdmin(client, t) {
-	var keyPath = path.join(__dirname, '../fixtures/channel/crypto-config/ordererOrganizations/example.com/users/Admin@example.com/keystore');
-	var keyPEM = Buffer.from(readAllFiles(keyPath)[0]).toString();
+	var cryptoContent = {};
+	if (!usePkcs11Keys) {
+		var keyPath = path.join(__dirname, '../fixtures/channel/crypto-config/ordererOrganizations/example.com/users/Admin@example.com/keystore');
+		cryptoContent.privateKeyPEM = Buffer.from(readAllFiles(keyPath)[0]).toString();
+	}
 	var certPath = path.join(__dirname, '../fixtures/channel/crypto-config/ordererOrganizations/example.com/users/Admin@example.com/signcerts');
 	var certPEM = readAllFiles(certPath)[0];
+	cryptoContent.signedCertPEM = certPEM.toString();
+
+	if (usePkcs11Keys) {
+		var key = KEYUTIL.getKey(certPEM.toString());
+		var key2 = new ecdsaKey(key);
+
+		var cryptoSuite = Client.newCryptoSuite();
+		cryptoContent.pkcs11Key = cryptoSuite.getKey(Buffer.from(key2.getSKI(), 'hex'));
+	}
 
 	return Promise.resolve(client.createUser({
 		username: 'ordererAdmin',
 		mspid: 'OrdererMSP',
-		cryptoContent: {
-			privateKeyPEM: keyPEM.toString(),
-			signedCertPEM: certPEM.toString()
-		}
+		cryptoContent: cryptoContent
 	}));
 }
 
