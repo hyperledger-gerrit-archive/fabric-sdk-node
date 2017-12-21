@@ -1585,9 +1585,11 @@ var Client = class extends BaseClient {
 				(!opts.cryptoContent.privateKey || !opts.cryptoContent.signedCert)) {
 				return Promise.reject(new Error('Client.createUser both parameters \'opts cryptoContent privateKey and signedCert\' files are required.'));
 			}
-			if ((opts.cryptoContent.privateKeyPEM || opts.cryptoContent.signedCertPEM) &&
+			if ((opts.cryptoContent.privateKeyPEM || opts.cryptoContent.signedCertPEM ) && !(opts.cryptoContent.pkcs11Key) &&
 				(!opts.cryptoContent.privateKeyPEM || !opts.cryptoContent.signedCertPEM)) {
 				return Promise.reject(new Error('Client.createUser both parameters \'opts cryptoContent privateKeyPEM and signedCertPEM\' strings are required.'));
+			} else if (opts.cryptoContent.pkcs11Key && !opts.cryptoContent.signedCertPEM) {
+				return Promise.reject(new Error('Client.createUser both parameters \'opts cryptoContent pkcs11Key and signedCertPEM\' strings are required.'));
 			}
 		} else {
 			return Promise.reject(new Error('Client.createUser parameter \'opts cryptoContent\' is required.'));
@@ -1614,13 +1616,17 @@ var Client = class extends BaseClient {
 
 			// first load the private key and save in the BCCSP's key store
 			var promise, member, importedKey;
-
-			if (opts.cryptoContent.privateKey) {
+			if (opts.cryptoContent.pkcs11Key) {
+				promise = Promise.resolve(opts.cryptoContent.pkcs11Key);
+			} else if (opts.cryptoContent.privateKey) {
 				promise = readFile(opts.cryptoContent.privateKey);
 			} else {
 				promise = Promise.resolve(opts.cryptoContent.privateKeyPEM);
 			}
 			promise.then((data) => {
+				if (opts.cryptoContent.pkcs11Key) {
+					return opts.cryptoContent.pkcs11Key;
+				}
 				if (data) {
 					logger.debug('then privateKeyPEM data');
 					var opt1;
