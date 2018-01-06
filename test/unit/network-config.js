@@ -128,11 +128,12 @@ test('\n\n ** configuration testing **\n\n', function (t) {
 			t.equals('grpcs://localhost:8051', peers[0].getUrl(),  ' Check to see if we got the right peer for org2 that is endorsing and on the channel');
 			client.loadFromConfig('test/fixtures/org1.yaml');
 			peers = client.getPeersForOrgOnChannel(['mychannel2']);
+			t.equals(2, peers.length, 'Check to see that we got 2 peers')
 			t.equals('grpcs://localhost:7051', peers[0].getUrl(),  ' Check to see if we got the right peer for org1 that is endorsing and on the channel');
 			peers = client.getPeersForOrgOnChannel([]);
 			t.equals(0, peers.length,  ' Check to see that we got no peers');
 			peers = client.getPeersForOrgOnChannel();
-			t.equals(1, peers.length,  ' Check to see that we got 1 peer');
+			t.equals(2, peers.length,  ' Check to see that we got 2 peers');
 			t.equals('grpcs://localhost:7051', peers[0].getUrl(),  ' Check to see if we got the right peer for org1 that is endorsing and on the channel');
 
 			let opts = {somesetting : 4};
@@ -203,7 +204,8 @@ test('\n\n ** configuration testing **\n\n', function (t) {
 			client.loadFromConfig(network_data);
 			var channel = client.getChannel('mychannel2');
 			t.equals(channel.getPeers()[0].getUrl(),'grpcs://localhost:7051',' check to see that the peer has been added to the channel');
-			t.equals(channel.getPeers()[1].getUrl(),'grpcs://localhost:8051',' check to see that the peer has been added to the channel');
+			t.equals(channel.getPeers()[1].getUrl(),'grpc://localhost:9051',' check to see that the peer has been added to the channel');
+			t.equals(channel.getPeers()[2].getUrl(),'grpcs://localhost:8051',' check to see that the peer has been added to the channel');
 		},
 		null,
 		'3 Should be able to instantiate a new instance of "Channel" with the definition in the network configuration'

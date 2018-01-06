@@ -89,6 +89,12 @@ channels:
         # Default: true
         eventSource: true
 
+      peer1.org1.example.com:
+        endorsingPeer: true
+        chaincodeQuery: true
+        ledgerQuery: true
+        eventSource: false
+
       peer0.org2.example.com:
         endorsingPeer: true
         chaincodeQuery: false
@@ -186,6 +192,10 @@ peers:
 
     tlsCACerts:
       path: test/fixtures/channel/crypto-config/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tlscacerts/org1.example.com-cert.pem
+
+  peer1.org1.example.com:
+    # this URL is used to send endorsement and query requests
+    url: grpc://localhost:9051
 
   peer0.org2.example.com:
     url: grpcs://localhost:8051
