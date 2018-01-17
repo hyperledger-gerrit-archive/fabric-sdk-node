@@ -95,6 +95,50 @@ metadata
 	 * var tx_id = block.data.data[0].payload.header.channel_header.tx_id;
 	 */
 
+	 /**
+	  * An object of a fully decoded protobuf message "BlockTransactionEvents".
+	  * <br><br>
+	  * A Block may contain the configuration of the channel or transactions on the channel.
+	  * <br><br>
+	  * A Block object will have the following object structure.
+	 <br><pre>
+	 header
+	 number -- {int}
+	 previous_hash -- {byte[]}
+	 data_hash -- {byte[]}
+	 data
+	 data -- {array}
+	 	signature -- {byte[]}
+	 	payload
+	 		header -- {{@link Header}}
+	 		data -- {{@link ConfigEnvelope} | {@link Transaction}}
+	 metadata
+	 metadata -- {array} #each array item has it's own layout
+	 	[0] #SIGNATURES
+	 		signatures -- {{@link MetadataSignature[]}}
+	 	[1] #LAST_CONFIG
+	 		value
+	 			index -- {number}
+	 			signatures -- {{@link MetadataSignature[]}}
+	 	[2] #TRANSACTIONS_FILTER
+	 			{int[]} #see TxValidationCode in proto/peer/transaction.proto
+	 </pre>
+	  *
+	  * @typedef {Object} BlockTransactionEvents
+	  *
+	  * @example
+	  * <caption>Get the block number:</caption>
+	  * var block_num = block.header.number;
+	  *
+	  * @example
+	  * <caption>Get the number of transactions, including the invalid transactions:</caption>
+	  * var block_num = block.data.data.legnth;
+	  *
+	  * @example
+	  * <caption>Get the Id of the first transaction in the block:</caption>
+	  * var tx_id = block.data.data[0].payload.header.channel_header.tx_id;
+	  */
+
 	/**
 	 * Headers describe basic information about a transaction record, such
 	 * as its type (configuration update, or endorser transaction, etc.),
@@ -488,7 +532,7 @@ rule
 	 * Constructs an object containing all decoded values from the
 	 * protobuf encoded `Block` object
 	 *
-	 * @param {Object} block - a protobuf common.Block object
+	 * @param {Object} proto_block - a protobuf common.Block object
 	 * @returns {Block} An object of the fully decoded protobuf common.Block
 	 */
 	static decodeBlock(proto_block) {
@@ -510,6 +554,37 @@ rule
 		}
 
 		return block;
+	};
+
+	/**
+	 * Constructs an object containing all decoded values from the
+	 * protobuf encoded `BlockTransactionEvents` object
+	 *
+	 * @param {Object} proto_filtered_block - a protobuf protos.BlockTransactionEvents
+	 *        object
+	 * @returns {BlockTransactionEvents} An object of the fully decoded protobuf
+	 *        protos.BlockTransactionEvents
+	 */
+	static decodeFilteredBlock(proto_filtered_block) {
+		if (!proto_filtered_block) {
+			throw new Error('missing parameter "proto_filtered_block"');
+		}
+		var filtered_block = {};
+		try {
+			filtered_block.channel_id = proto_filtered_block.channel_id;
+			filtered_block.number = proto_filtered_block.number;
+			filtered_block.filtered_tx = [];
+			let filtered_transactions = proto_filtered_block.filtered_tx;
+			for(let i in filtered_transactions) {
+				let proto_filtered_transaction = filtered_transactions[i];
+				filtered_block.filtered_tx.push(decodeFilteredTransaction(proto_filtered_transaction));
+			}
+		} catch (error) {
+			logger.error('filtered block decode - ::' + error.stack ? error.stack : error);
+			throw new Error('Filtered Block decode has failed with ' + error.toString());
+		}
+
+		return filtered_block;
 	};
 
 	/**
@@ -538,13 +613,46 @@ payload -- {}
 		if (!(processed_transaction_bytes instanceof Buffer)) {
 			throw new Error('Proccesed transaction data is not a byte buffer');
 		}
-		var processed_transaction = {};
-		var proto_processed_transaction = _transProto.ProcessedTransaction.decode(processed_transaction_bytes);
+		let processed_transaction = {};
+		let proto_processed_transaction = _transProto.ProcessedTransaction.decode(processed_transaction_bytes);
 		processed_transaction.validationCode = proto_processed_transaction.getValidationCode();
 		processed_transaction.transactionEnvelope = decodeBlockDataEnvelope(proto_processed_transaction.getTransactionEnvelope());
+
 		return processed_transaction;
 	}
 };
+
+function decodeFilteredTransaction(proto_filtered_transaction) {
+	let filtered_transaction = {};
+	filtered_transaction.txid = proto_filtered_transaction.txid;
+	filtered_transaction.type = proto_filtered_transaction.type;
+	filtered_transaction.tx_validation_code = proto_filtered_transaction.tx_validation_code;
+	let proto_filtered_transaction_actions = proto_filtered_transaction.transaction_actions;
+	if(proto_filtered_transaction_actions) {
+		filtered_transaction.transaction_actions = decodeFilteredTransactionActions(proto_filtered_transaction_actions);
+	}
+
+	return filtered_transaction;
+}
+
+function decodeFilteredTransactionActions(proto_filtered_transaction_actions) {
+	let filtered_transaction_actions = {};
+	filtered_transaction_actions.chaincode_actions = [];
+	let proto_chaincode_actions = proto_filtered_transaction_actions.chaincode_actions;
+	if(proto_chaincode_actions) for(let i in proto_chaincode_actions) {
+		let proto_chaincode_action = proto_chaincode_actions[i];
+		let chaincode_action = {};
+		chaincode_action.ccEvent = {};
+		let proto_chaincode_event = proto_chaincode_action.ccEvent;
+		chaincode_action.ccEvent.chaincode_id = proto_chaincode_event.chaincode_id;
+		chaincode_action.ccEvent.tx_id = proto_chaincode_event.tx_id;
+		chaincode_action.ccEvent.event_name = proto_chaincode_event.event_name;
+		//chaincode_action.ccEvent.payload = proto_chaincode_event.payload; not supported right now
+		filtered_transaction_actions.chaincode_actions.push(chaincode_action);
+	}
+
+	return filtered_transaction_actions;
+}
 
 function decodeBlockHeader(proto_block_header) {
 	var block_header = {};
@@ -1252,14 +1360,14 @@ function decodeRangeQueryInfo(proto_range_query_info) {
 	range_query_info.end_key = proto_range_query_info.getEndKey();
 	range_query_info.itr_exhausted = proto_range_query_info.getItrExhausted();
 
-	range_query_info.reads_info = {};
 	// reads_info is one of QueryReads
 	let proto_raw_reads = proto_range_query_info.getRawReads();
 	if (proto_raw_reads) {
-		range_query_info.reads_info.kv_reads = [];
+		range_query_info.raw_reads = {};
+		range_query_info.raw_reads.kv_reads = [];
 		for (let i in proto_raw_reads.kv_reads) {
 			let kv_read = decodeKVRead(proto_raw_reads.kv_reads[i]);
-			range_query_info.reads_info.kv_reads.push(kv_read);
+			range_query_info.raw_reads.kv_reads.push(kv_read);
 		}
 	}
 	// or QueryReadsMerkleSummary
