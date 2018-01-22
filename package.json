@@ -54,5 +54,9 @@
       "type": "Apache-2.0",
       "url": "https://github.com/hyperledger/fabric/blob/master/LICENSE"
     }
-  ]
+  ],
+  "dependencies": {
+    "superagent": "^3.8.2",
+    "superagent-promise": "^1.1.0"
+  }
 }
