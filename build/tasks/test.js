@@ -34,6 +34,7 @@ console.log('####################################################\n');
 let arch = process.arch;
 let dockerImageTag = '';
 let release = require(path.join(__dirname, '../../fabric-client/package.json')).version;
+let thirparty_release = require(path.join(__dirname, '../../fabric-client/package.json')).thirdparty-tag;
 if (!/-snapshot/.test(release)) {
 	// this is a release build, need to build the proper docker image tag
 	// to run the tests against the corresponding fabric released docker images
@@ -47,10 +48,12 @@ if (!/-snapshot/.test(release)) {
 		throw new Error('Unknown architecture: ' + arch);
 
 	dockerImageTag += '-' + release;
+	thirdpartyImageTag += '-' + thirparty_release;
 }
 
 // these environment variables would be read at test/fixtures/docker-compose.yaml
 process.env.DOCKER_IMG_TAG = dockerImageTag;
+process.env.THIRDPARTY_IMG_TAG = thirdpartyImageTag;
 
 gulp.task('pre-test', function() {
 	return gulp.src([
