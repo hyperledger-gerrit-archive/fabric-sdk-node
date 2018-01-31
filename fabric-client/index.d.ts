@@ -25,7 +25,7 @@ declare enum Status {
   SERVICE_UNAVAILABLE = 503
 }
 
-type ChaicodeType = "golang" | "car" | "java";
+type ChaincodeType = "golang" | "car" | "java" | "node";
 
 interface ProtoBufObject {
   toBuffer(): Buffer;
@@ -36,7 +36,10 @@ interface KeyOpts {
 }
 
 interface ConnectionOptions {
-
+  'request-timeout': string;
+  pem?: string;
+  'ssl-target-name-override'?: string;
+  [propName: string]: any;
 }
 
 interface ConfigSignature extends ProtoBufObject {
@@ -62,20 +65,19 @@ interface IKeyValueStore {
   setValue(name: string, value: string): Promise<string>;
 }
 
-interface IdentityFiles {
-  privateKey: string;
-  signedCert: string;
-}
-
-interface IdentityPEMs {
-  privateKeyPEM: string;
-  signedCertPEM: string;
+interface CryptoContent {
+  privateKey?: string;
+  privateKeyPEM?: string;
+  privateKeyObj?: ICryptoKey;
+  signedCert?: string;
+  signedCertPEM?: string;
 }
 
 interface UserOptions {
   username: string;
   mspid: string;
-  cryptoContent: IdentityFiles | IdentityPEMs;
+  cryptoContent: CryptoContent;
+  skipPersistence: boolean;
 }
 
 interface ICryptoSuite {
@@ -102,6 +104,7 @@ interface ChannelRequest {
 interface TransactionRequest {
   proposalResponses: ProposalResponse[];
   proposal: Proposal;
+  txId?: TransactionId;
 }
 
 interface BroadcastResponse {
@@ -126,15 +129,17 @@ interface ChaincodeInstallRequest {
   chaincodeId: string;
   chaincodeVersion: string;
   chaincodePackage?: Buffer;
-  chaincodeType?: ChaicodeType;
+  chaincodeType?: ChaincodeType;
+  channelNames?: string[] | string;
 }
 
 interface ChaincodeInstantiateUpgradeRequest {
   targets?: Peer[];
-  chaincodeType?: string;
+  chaincodeType?: ChaincodeType;
   chaincodeId: string;
   chaincodeVersion: string;
   txId: TransactionId;
+  transientMap?: any;
   fcn?: string;
   args?: string[];
   'endorsement-policy'?: any;
@@ -144,6 +149,7 @@ interface ChaincodeInvokeRequest {
   targets?: Peer[];
   chaincodeId: string;
   txId: TransactionId;
+  transientMap?: any;
   fcn?: string;
   args: string[];
 }
@@ -151,7 +157,7 @@ interface ChaincodeInvokeRequest {
 interface ChaincodeQueryRequest {
   targets?: Peer[];
   chaincodeId: string;
-  txId: TransactionId;
+  transientMap?: any;
   fcn?: string;
   args: string[];
 }
@@ -178,7 +184,8 @@ interface ChannelQueryResponse {
 }
 
 interface OrdererRequest {
-  txId: TransactionId;
+  txId?: TransactionId;
+  orderer: string | Orderer;
 }
 
 interface JoinChannelRequest {
@@ -212,14 +219,35 @@ interface ProposalResponse {
   endorsement: any;
 }
 
-type ProposalResponseObject = [Array<ProposalResponse>, Proposal, Header];
-
-declare class Orderer {
+interface ChaincodeCBE {
 }
 
-declare class Peer {
-  setName(name: string): void;
+interface ChaincodeEvent {
+  chaincode_id: string;
+  tx_id: string;
+  event_name: string;
+  payload: Buffer;
+}
+
+type ProposalResponseObject = [Array<ProposalResponse>, Proposal, Header];
+
+declare class Remote {
   getName(): string;
+  setName(name: string): void;
+  getUrl(): string;
+}
+
+declare class Peer extends Remote {
+  close(): void;
+  setRole(role: string, isIn: boolean): void;
+  isInRole(role: string) : boolean;
+  sendProposal(proposal: Proposal, timeout: number): Promise<ProposalResponse>;
+}
+
+declare class Orderer extends Remote {
+  close(): void;
+  sendBroadcast(envelope: Buffer): Promise<BroadcastResponse>;
+  sendDeliver(envelope: Buffer): Promise<any>;
 }
 
 declare class EventHub {
@@ -230,41 +258,74 @@ declare class EventHub {
   isconnected(): boolean;
   registerBlockEvent(onEvent: (b: any) => void, onError?: (err: Error) => void): number;
   registerTxEvent(txId: string, onEvent: (txId: any, code: string) => void, onError?: (err: Error) => void): void;
+  registerChaincodeEvent(ccid: string, eventname: string, onEvent: (event: ChaincodeEvent) => void, onError?: (err: Error) => void): ChaincodeCBE;
+  unregisterBlockEvent(regNumber: number): void;
   unregisterTxEvent(txId: string): void;
+  unregisterChaincodeEvent(handle: ChaincodeCBE): void;
+}
+
+declare class MSP {
+  deserializeIdentity(serializedIdentity: Buffer, storeKey: boolean): IIdentity | Promise<IIdentity>;
+  getDefaultSigningIdentity(): ISigningIdentity;
+  getId(): string;
+  getOrganizationUnits(): string[];
+  getPolicy(): any;
+  getSigningIdentity(identifier: string): ISigningIdentity;
+  toProtoBuf(): any;
+  validate(id: IIdentity): boolean;
+}
+
+declare class MSPManager {
+  addMSP(config: any): MSP;
+  deserializeIdentity(serializedIdentity: Buffer): IIdentity;
+  getMSP(): MSP;
+  getMSPs(): any;
+  loadMSPs(mspConfigs: any): void;
 }
 
 declare class Channel {
-  initialize(): Promise<void>;
+  initialize(config?: Buffer): Promise<void>;
   addOrderer(orderer: Orderer): void;
+  removeOrderer(orderer: Orderer): void;
   addPeer(peer: Peer): void;
+  removePeer(peer: Peer): void;
   getGenesisBlock(request: OrdererRequest): Promise<any>;
   getChannelConfig(): Promise<any>;
-  joinChannel(request: JoinChannelRequest): Promise<ProposalResponse>;
-  sendInstantiateProposal(request: ChaincodeInstantiateUpgradeRequest): Promise<ProposalResponseObject>;
-  sendTransactionProposal(request: ChaincodeInvokeRequest): Promise<ProposalResponseObject>;
+  joinChannel(request: JoinChannelRequest, timeout?: number): Promise<ProposalResponse[]>;
+  sendInstantiateProposal(request: ChaincodeInstantiateUpgradeRequest, timeout?: number): Promise<ProposalResponseObject>;
+  sendTransactionProposal(request: ChaincodeInvokeRequest, timeout?: number): Promise<ProposalResponseObject>;
   sendTransaction(request: TransactionRequest): Promise<BroadcastResponse>;
+  sendUpgradeProposal(request: ChaincodeInstantiateUpgradeRequest, timeout?: number): Promise<ProposalResponseObject>;
   queryByChaincode(request: ChaincodeQueryRequest): Promise<Buffer[]>;
-  queryBlock(blockNumber: number, target: Peer): Promise<any>;
-  queryTransaction(txId: string, target: Peer): Promise<any>;
-  queryInstantiatedChaincodes(target: Peer): Promise<ChaincodeQueryResponse>;
-  queryInfo(target: Peer): Promise<any>;
+  queryBlock(blockNumber: number, target?: Peer, useAdmin?: boolean): Promise<any>;
+  queryBlockByHash(block : Buffer, target?: Peer, useAdmin?: boolean): Promise<any>;
+  queryTransaction(txId: string, target?: Peer, useAdmin?: boolean): Promise<any>;
+  queryInstantiatedChaincodes(target: Peer, useAdmin?: boolean): Promise<ChaincodeQueryResponse>;
+  queryInfo(target: Peer, useAdmin?: boolean): Promise<any>;
   getOrderers(): Orderer[];
   getPeers(): Peer[];
+  getOrganizations(): string[];
+  getMSPManager(): MSPManager;
+  setMSPManager(manager: MSPManager) : void;
 }
 
 declare abstract class BaseClient {
   static setLogger(logger: any): void;
   static addConfigFile(path: string): void;
   static getConfigSetting(name: string, default_value?: any): any;
+  static setConfigSetting(name: string, value: any): void;
   static newCryptoSuite(): ICryptoSuite;
   static newCryptoKeyStore(obj?: { path: string }): ICryptoKeyStore;
   static newDefaultKeyValueStore(obj?: { path: string }): Promise<IKeyValueStore>;
+  static normalizeX509(raw: string): string;
   setCryptoSuite(suite: ICryptoSuite): void;
   getCryptoSuite(): ICryptoSuite;
 }
 
 declare class TransactionId {
   getTransactionID(): string;
+  getNonce(): Buffer;
+  isAdmin(): boolean;
 }
 
 interface UserConfig {
@@ -283,11 +344,14 @@ declare class User {
   setAffiliation(affiliation: string): void;
   getIdentity(): IIdentity;
   getSigningIdentity(): ISigningIdentity;
+  getCryptoSuite(): ICryptoSuite;
   setCryptoSuite(suite: ICryptoSuite): void;
   setEnrollment(privateKey: ICryptoKey, certificate: string, mspId: string): Promise<void>;
+  fromString(): Promise<User>;
 }
 
 declare class Client extends BaseClient {
+  static loadFromConfig(config: any): Client;
   isDevMode(): boolean;
   getUserContext(name: string, checkPersistence: boolean): Promise<User> | User;
   setUserContext(user: User, skipPersistence?: boolean): Promise<User>;
@@ -296,15 +360,30 @@ declare class Client extends BaseClient {
   newChannel(name: string): Channel;
   newPeer(url: string, opts: ConnectionOptions): Peer;
   newEventHub(): EventHub;
-  newTransactionID(): TransactionId;
+  newTransactionID(admin?: boolean): TransactionId;
   extractChannelConfig(envelope: Buffer): Buffer;
   createChannel(request: ChannelRequest): Promise<BroadcastResponse>;
   createUser(opts: UserOptions): Promise<User>;
   signChannelConfig(config: Buffer): ConfigSignature;
+  getStateStore(): IKeyValueStore;
   setStateStore(store: IKeyValueStore): void;
   installChaincode(request: ChaincodeInstallRequest): Promise<ProposalResponseObject>;
   queryInstalledChaincodes(target: Peer): Promise<ChaincodeQueryResponse>;
   queryChannels(target: Peer): Promise<ChannelQueryResponse>;
+  initCredentialStores(): Promise<boolean>;
+  loadFromConfig(config: any): void;
+  loadUserFromStateStore(name: string): Promise<User>;
+  saveUserToStateStore(): Promise<any>;
+  setAdminSigningIdentity(private_key: string, certificate: string, mspid: string): void;
+  updateChannel(request: ChannelRequest): Promise<BroadcastResponse>;
+
+  getCertificateAuthority(): any;
+  getChannel(name?: string, throwError?: boolean): Channel;
+  getClientConfig(): any;
+  getEventHub(peer_name: string): EventHub;
+  getEventHubsForOrg(org_name: string): EventHub[];
+  getMspid(): string;
+  getPeersForOrg(org_name: string): Peer[];
 }
 
 declare module 'fabric-client' {
