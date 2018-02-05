@@ -1507,7 +1507,7 @@ var Client = class extends BaseClient {
 
 						return newUser.fromString(memberStr);
 					} else {
-						return null;
+						return Promise.resolve(null);
 					}
 				})
 			.then(function(data) {
