@@ -35,7 +35,7 @@ var logger = utils.getLogger('CouchDBKeyValueStore.js');
 var CouchDBKeyValueStore = class extends api.KeyValueStore {
 	/**
 	 * @typedef {Object} CouchDBOpts
-	 * @property {stirng} url The CouchDB instance url, in the form of http(s)://<user>:<password>@host:port
+	 * @property {string} url The CouchDB instance url, in the form of http(s)://<user>:<password>@host:port
 	 * @property {string} name Optional. Identifies the name of the database to use. Default: <code>member_db</code>.
 	 */
 
@@ -45,7 +45,7 @@ var CouchDBKeyValueStore = class extends api.KeyValueStore {
 	 * @param {CouchDBOpts} options Settings used to connect to a CouchDB instance
 	 */
 	constructor(options) {
-		logger.debug('constructor, options: ' + JSON.stringify(options));
+		logger.debug('constructor', { options: options });
 
 		if (!options || !options.url) {
 			throw new Error('Must provide the CouchDB database url to store membership data.');
@@ -63,9 +63,6 @@ var CouchDBKeyValueStore = class extends api.KeyValueStore {
 		} else {
 			this._name = options.name;
 		}
-
-		logger.debug('options.url - ' + options.url);
-		logger.debug('options.name - ' + options.name);
 
 		return new Promise(function(resolve, reject) {
 			// Initialize the CouchDB database client
@@ -104,7 +101,7 @@ var CouchDBKeyValueStore = class extends api.KeyValueStore {
 	}
 
 	getValue(name) {
-		logger.debug('getValue: ' + name);
+		logger.debug('getValue', { key: name });
 
 		var self = this;
 		return new Promise(function(resolve, reject) {
@@ -112,14 +109,14 @@ var CouchDBKeyValueStore = class extends api.KeyValueStore {
 				// Check for error on retrieving from database
 				if (err) {
 					if (err.error !== 'not_found') {
-						logger.error('getValue: ' + name + ', ERROR: [member_db.get] - ', err.error);
+						logger.error('getValue: ' + name + ', ERROR: [%s.get] - ',self._name, err.error);
 						return reject(err.error);
 					} else {
 						logger.debug('getValue: ' + name + ', Entry does not exist');
 						return resolve(null);
 					}
 				} else {
-					logger.debug('getValue: ' + name + ', Retrieved message from member_db.');
+					logger.debug('getValue: ' + name + ', Retrieved message from %s.',self._name);
 					return resolve(body.member);
 				}
 			});
@@ -127,7 +124,7 @@ var CouchDBKeyValueStore = class extends api.KeyValueStore {
 	}
 
 	setValue(name, value) {
-		logger.debug('setValue: ' + name);
+		logger.debug('setValue', { key: name });
 
 		var self = this;
 
@@ -137,7 +134,7 @@ var CouchDBKeyValueStore = class extends api.KeyValueStore {
 				// Check for error on retrieving from database
 				if (err) {
 					if (err.error !== 'not_found') {
-						logger.error('setValue: ' + name + ', ERROR: [member_db.get] - ', err.error);
+						logger.error('setValue: ' + name + ', ERROR: [%s.get] - ',self._name, err.error);
 						reject(err.error);
 					} else {
 						// Entry does not exist
@@ -151,7 +148,7 @@ var CouchDBKeyValueStore = class extends api.KeyValueStore {
 					}
 				} else {
 					// Entry already exists and must be updated
-					logger.debug('setValue: ' + name + ', Retrieved entry from member_db.');
+					logger.debug('setValue: ' + name + ', Retrieved entry from %s.',self._name);
 
 					// Update the database entry using the latest rev number
 					logger.debug('setValue: ' + name + ', Latest rev number : ' + body._rev);
@@ -167,15 +164,15 @@ var CouchDBKeyValueStore = class extends api.KeyValueStore {
 	}
 
 	_dbInsert(options) {
-		logger.debug('setValue, _dbInsert, options: ' + JSON.stringify(options));
+		logger.debug('setValue, _dbInsert', { options: options });
 		var self = this;
 		return new Promise(function(resolve,reject) {
 			self._database.insert(options, function(err, body, header) {
 				if (err) {
-					logger.error('setValue, _dbInsert, ERROR: [member_db.insert] - ', err.error);
+					logger.error('setValue, _dbInsert, ERROR: [%s.insert] - ',self._name, err.error);
 					reject(new Error(err.error));
 				} else {
-					logger.debug('setValue, _dbInsert, Inserted member into member_db.');
+					logger.debug('setValue, _dbInsert, Inserted member into %s.',self._name);
 					resolve(true);
 				}
 			});
