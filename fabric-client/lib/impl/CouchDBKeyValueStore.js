@@ -35,7 +35,7 @@ var logger = utils.getLogger('CouchDBKeyValueStore.js');
 var CouchDBKeyValueStore = class extends api.KeyValueStore {
 	/**
 	 * @typedef {Object} CouchDBOpts
-	 * @property {stirng} url The CouchDB instance url, in the form of http(s)://<user>:<password>@host:port
+	 * @property {string} url The CouchDB instance url, in the form of http(s)://<user>:<password>@host:port
 	 * @property {string} name Optional. Identifies the name of the database to use. Default: <code>member_db</code>.
 	 */
 
@@ -45,7 +45,7 @@ var CouchDBKeyValueStore = class extends api.KeyValueStore {
 	 * @param {CouchDBOpts} options Settings used to connect to a CouchDB instance
 	 */
 	constructor(options) {
-		logger.debug('constructor, options: ' + JSON.stringify(options));
+		logger.debug('constructor', { options: options });
 
 		if (!options || !options.url) {
 			throw new Error('Must provide the CouchDB database url to store membership data.');
@@ -64,37 +64,36 @@ var CouchDBKeyValueStore = class extends api.KeyValueStore {
 			this._name = options.name;
 		}
 
-		logger.debug('options.url - ' + options.url);
-		logger.debug('options.name - ' + options.name);
-
-		return new Promise(function(resolve, reject) {
+		return new Promise(function (resolve, reject) {
 			// Initialize the CouchDB database client
 			var dbClient = nano(self._url);
 			// Check if the database already exists. If not, create it.
-			dbClient.db.get(self._name, function(err, body) {
+			dbClient.db.get(self._name, function (err, body) {
 				// Check for error
 				if (err) {
 					// Database doesn't exist
 					if (err.error == 'not_found') {
-						logger.debug(util.format('No %s found, creating %s', self._name, self._name));
+						logger.debug('No %s found, creating...', self._name);
 
-						dbClient.db.create(self._name, function(err, body) {
+						dbClient.db.create(self._name, function (err, body) {
 							if (err) {
-								return reject(new Error(util.format('Failed to create %s database due to error: %s', self._name, err.stack ? err.stack : err)));
+								logger.error('Failed to create %s database due to', self._name, err)
+								return reject(err);
 							}
 
-							logger.debug(util.format('Created %s database', self._name));
+							logger.debug('Created %s database', self._name);
 							// Specify it as the database to use
 							self._database = dbClient.use(self._name);
 							resolve(self);
 						});
 					} else {
 						// Other error
-						return reject(new Error(util.format('Error creating %s database to store membership data: %s', self._name, err.stack ? err.stack : err)));
+						logger.error('Error creating %s database to store membership data:', self._name, err)
+						return reject(err);
 					}
 				} else {
 					// Database exists
-					logger.debug(util.format('%s already exists', self._name));
+					logger.debug(self._name, ' already exists');
 					// Specify it as the database to use
 					self._database = dbClient.use(self._name);
 					resolve(self);
@@ -104,22 +103,22 @@ var CouchDBKeyValueStore = class extends api.KeyValueStore {
 	}
 
 	getValue(name) {
-		logger.debug('getValue: ' + name);
+		logger.debug('getValue', { key: name });
 
 		var self = this;
-		return new Promise(function(resolve, reject) {
-			self._database.get(name, function(err, body) {
+		return new Promise(function (resolve, reject) {
+			self._database.get(name, function (err, body) {
 				// Check for error on retrieving from database
 				if (err) {
 					if (err.error !== 'not_found') {
-						logger.error('getValue: ' + name + ', ERROR: [member_db.get] - ', err.error);
-						return reject(err.error);
+						logger.error('getValue', { key: name }, util.format('ERROR: [%s.get]', self._name), err);
+						return reject(err);
 					} else {
-						logger.debug('getValue: ' + name + ', Entry does not exist');
+						logger.debug('getValue', { key: name }, 'Entry does not exist');
 						return resolve(null);
 					}
 				} else {
-					logger.debug('getValue: ' + name + ', Retrieved message from member_db.');
+					logger.debug('getValue', { key: name }, util.format('Retrieved message from %s.', self._name));
 					return resolve(body.member);
 				}
 			});
@@ -127,55 +126,52 @@ var CouchDBKeyValueStore = class extends api.KeyValueStore {
 	}
 
 	setValue(name, value) {
-		logger.debug('setValue: ' + name);
+		logger.debug('setValue', { key: name });
 
 		var self = this;
 
-		return new Promise(function(resolve, reject) {
+		return new Promise(function (resolve, reject) {
 			// Attempt to retrieve from the database to see if the entry exists
-			self._database.get(name, function(err, body) {
+			self._database.get(name, function (err, body) {
 				// Check for error on retrieving from database
 				if (err) {
 					if (err.error !== 'not_found') {
-						logger.error('setValue: ' + name + ', ERROR: [member_db.get] - ', err.error);
-						reject(err.error);
+						logger.error('setValue', { key: name }, util.format('ERROR: [%s.get]', self._name), err);
+						reject(err);
 					} else {
 						// Entry does not exist
-						logger.debug('setValue: ' + name + ', Entry does not exist, insert it.');
+						logger.debug('setValue', { key: name }, 'Entry does not exist, insert it.');
 						self._dbInsert({ _id: name, member: value })
-						.then( function (status) {
-							logger.debug('setValue add: ' + name + ', status: ' + status);
-							if (status == true) resolve(value);
-							else reject(new Error('Couch database insert add failed.'));
-						});
+							.then(function (status) {
+								logger.debug('setValue add ', { key: name });
+								return resolve(value);
+							});
 					}
 				} else {
 					// Entry already exists and must be updated
-					logger.debug('setValue: ' + name + ', Retrieved entry from member_db.');
-
 					// Update the database entry using the latest rev number
-					logger.debug('setValue: ' + name + ', Latest rev number : ' + body._rev);
+					logger.debug('setValue', { key: name }, util.format('Retrieved entry from %s.', self._name), 'Latest rev number:', body._rev);
+
 					self._dbInsert({ _id: name, _rev: body._rev, member: value })
-					.then( function (status) {
-						logger.debug('setValue update: ' + name + ', status: ' + status);
-						if (status == true) resolve(value);
-						else reject(new Error('Couch database insert update failed.'));
-					});
+						.then(function (status) {
+							logger.debug('setValue update ', { key: name });
+							return resolve(value);
+						});
 				}
 			});
 		});
 	}
 
 	_dbInsert(options) {
-		logger.debug('setValue, _dbInsert, options: ' + JSON.stringify(options));
+		logger.debug('setValue, _dbInsert', { options: options });
 		var self = this;
-		return new Promise(function(resolve,reject) {
-			self._database.insert(options, function(err, body, header) {
+		return new Promise(function (resolve, reject) {
+			self._database.insert(options, function (err, body, header) {
 				if (err) {
-					logger.error('setValue, _dbInsert, ERROR: [member_db.insert] - ', err.error);
-					reject(new Error(err.error));
+					logger.error('setValue, _dbInsert, ERROR: [%s.insert]', self._name, err);
+					reject(err);
 				} else {
-					logger.debug('setValue, _dbInsert, Inserted member into member_db.');
+					logger.debug('setValue, _dbInsert, Inserted member into %s.', self._name);
 					resolve(true);
 				}
 			});
