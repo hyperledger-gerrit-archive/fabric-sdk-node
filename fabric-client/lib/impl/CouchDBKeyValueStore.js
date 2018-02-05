@@ -45,7 +45,7 @@ var CouchDBKeyValueStore = class extends api.KeyValueStore {
 	 * @param {CouchDBOpts} options Settings used to connect to a CouchDB instance
 	 */
 	constructor(options) {
-		logger.debug('constructor, options: ' + JSON.stringify(options));
+		logger.debug('constructor', { options: options });
 
 		if (!options || !options.url) {
 			throw new Error('Must provide the CouchDB database url to store membership data.');
@@ -63,9 +63,6 @@ var CouchDBKeyValueStore = class extends api.KeyValueStore {
 		} else {
 			this._name = options.name;
 		}
-
-		logger.debug('options.url - ' + options.url);
-		logger.debug('options.name - ' + options.name);
 
 		return new Promise(function(resolve, reject) {
 			// Initialize the CouchDB database client
@@ -104,7 +101,7 @@ var CouchDBKeyValueStore = class extends api.KeyValueStore {
 	}
 
 	getValue(name) {
-		logger.debug('getValue: ' + name);
+		logger.debug('getValue', { key: name });
 
 		var self = this;
 		return new Promise(function(resolve, reject) {
@@ -127,7 +124,7 @@ var CouchDBKeyValueStore = class extends api.KeyValueStore {
 	}
 
 	setValue(name, value) {
-		logger.debug('setValue: ' + name);
+		logger.debug('setValue', { key: name });
 
 		var self = this;
 
@@ -167,7 +164,7 @@ var CouchDBKeyValueStore = class extends api.KeyValueStore {
 	}
 
 	_dbInsert(options) {
-		logger.debug('setValue, _dbInsert, options: ' + JSON.stringify(options));
+		logger.debug('setValue, _dbInsert' + { options: options });
 		var self = this;
 		return new Promise(function(resolve,reject) {
 			self._database.insert(options, function(err, body, header) {

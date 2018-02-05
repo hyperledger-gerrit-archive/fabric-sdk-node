@@ -39,7 +39,7 @@ var FileKeyValueStore = class extends api.KeyValueStore {
 	 * for the store
 	 */
 	constructor(options) {
-		logger.debug('constructor', { options });
+		logger.debug('constructor', { options: options });
 
 		if (!options || !options.path) {
 			throw new Error('Must provide the path to the directory to hold files for the store.');
