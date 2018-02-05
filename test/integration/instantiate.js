@@ -187,9 +187,9 @@ function checkResults(results, error_snip, t) {
 	var proposalResponses = results[0];
 	for(var i in proposalResponses) {
 		let proposal_response = proposalResponses[i];
-		if(proposal_response instanceof Error) {
+		if(proposal_response.response.status === 500) {
 			logger.info(' Got the error ==>%s<== when looking for %s', proposal_response,error_snip);
-			if(proposal_response.toString().indexOf(error_snip) > 0) {
+			if(proposal_response.response.message.toString().indexOf(error_snip) > -1) {
 				t.pass(' Successfully got the error '+ error_snip);
 			}
 			else {
