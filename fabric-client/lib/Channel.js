@@ -122,14 +122,14 @@ var Channel = class {
 	/**
 	 * Close the service connection off all assigned peers and orderers
 	 */
-	 close() {
+	close() {
 		 logger.info('close - closing connections');
 		var closer = function (ep) {
 			ep.close();
 		}
 		this._peers.map(closer);
 		this._orderers.map(closer);
-	 }
+	}
 
 	/**
 	 * Initializes the channel object with the Membership Service Providers (MSPs). The channel's
@@ -1080,10 +1080,10 @@ var Channel = class {
 	 */
 	queryInstantiatedChaincodes(target, useAdmin) {
 		logger.debug('queryInstantiatedChaincodes - start');
-		var targets = this._getTargetForQuery(target);
-		var signer = this._clientContext._getSigningIdentity(useAdmin);
-		var txId = new TransactionID(signer, useAdmin);
-		var request = {
+		const targets = this._getTargetForQuery(target);
+		const signer = this._clientContext._getSigningIdentity(useAdmin);
+		const txId = new TransactionID(signer, useAdmin);
+		const request = {
 			targets: targets,
 			chaincodeId : Constants.LSCC,
 			chainId: this._name,
@@ -1095,23 +1095,23 @@ var Channel = class {
 		return this.sendTransactionProposal(request)
 		.then(
 			function(results) {
-				var responses = results[0];
+				const responses = results[0];
 				logger.debug('queryInstantiatedChaincodes - got response');
 				if(responses && Array.isArray(responses)) {
 					//will only be one response as we are only querying one peer
 					if(responses.length > 1) {
 						return Promise.reject(new Error('Too many results returned'));
 					}
-					let response = responses[0];
+					const response = responses[0];
 					if(response instanceof Error ) {
 						return Promise.reject(response);
 					}
 					if(response.response) {
 						logger.debug('queryInstantiatedChaincodes - response status :: %d', response.response.status);
-						var queryTrans = _queryProto.ChaincodeQueryResponse.decode(response.response.payload);
+						const queryTrans = _queryProto.ChaincodeQueryResponse.decode(response.response.payload);
 						logger.debug('queryInstantiatedChaincodes - ProcessedTransaction.chaincodeInfo.length :: %s', queryTrans.chaincodes.length);
-						for (let i=0; i<queryTrans.chaincodes.length; i++) {
-							logger.debug('queryInstantiatedChaincodes - name %s, version %s, path %s',queryTrans.chaincodes[i].name,queryTrans.chaincodes[i].version,queryTrans.chaincodes[i].path);
+						for (let chaincode of queryTrans.chaincodes) {
+							logger.debug('queryInstantiatedChaincodes - name %s, version %s, path %s',chaincode.name,chaincode.version,chaincode.path);
 						}
 						return Promise.resolve(queryTrans);
 					}
@@ -1236,7 +1236,7 @@ var Channel = class {
 	 * Internal method to handle both chaincode calls
 	 */
 	_sendChaincodeProposal(request, command, timeout) {
-		var errorMsg = null;
+		let errorMsg = null;
 
 		//validate the incoming request
 		if(!errorMsg) errorMsg = clientUtils.checkProposalRequest(request);
@@ -1245,7 +1245,7 @@ var Channel = class {
 			logger.error('sendChainCodeProposal error ' + errorMsg);
 			return Promise.reject(new Error(errorMsg));
 		}
-		var peers = this._getTargets(request.targets, Constants.NetworkConfig.ENDORSING_PEER_ROLE);
+		const peers = this._getTargets(request.targets, Constants.NetworkConfig.ENDORSING_PEER_ROLE);
 
 		// args is optional because some chaincode may not need any input parameters during initialization
 		if (!request.args) {
@@ -1253,13 +1253,13 @@ var Channel = class {
 		}
 
 		// step 1: construct a ChaincodeSpec
-		var args = [];
+		const args = [];
 		args.push(Buffer.from(request.fcn ? request.fcn : 'init', 'utf8'));
 
-		for (let i = 0; i < request.args.length; i++)
-			args.push(Buffer.from(request.args[i], 'utf8'));
+		for (let arg of request.args)
+			args.push(Buffer.from(arg, 'utf8'));
 
-		let ccSpec = {
+		const ccSpec = {
 			type: clientUtils.translateCCType(request.chaincodeType),
 			chaincode_id: {
 				name: request.chaincodeId,
@@ -1271,12 +1271,11 @@ var Channel = class {
 		};
 
 		// step 2: construct the ChaincodeDeploymentSpec
-		let chaincodeDeploymentSpec = new _ccProto.ChaincodeDeploymentSpec();
+		const chaincodeDeploymentSpec = new _ccProto.ChaincodeDeploymentSpec();
 		chaincodeDeploymentSpec.setChaincodeSpec(ccSpec);
 
-		var header, proposal;
-		var signer = this._clientContext._getSigningIdentity(request.txId.isAdmin());
-		let lcccSpec_args = [
+		const signer = this._clientContext._getSigningIdentity(request.txId.isAdmin());
+		const lcccSpec_args = [
 			Buffer.from(command),
 			Buffer.from(this._name),
 			chaincodeDeploymentSpec.toBuffer()
@@ -1285,23 +1284,23 @@ var Channel = class {
 			lcccSpec_args[3] = this._buildEndorsementPolicy(request['endorsement-policy']);
 		}
 
-		let lcccSpec = {
+		const lcccSpec = {
 			// type: _ccProto.ChaincodeSpec.Type.GOLANG,
 			type: clientUtils.translateCCType(request.chaincodeType),
 			chaincode_id: {	name: Constants.LSCC },
 			input: { args : lcccSpec_args}
 		};
 
-		var channelHeader = clientUtils.buildChannelHeader(
+		const channelHeader = clientUtils.buildChannelHeader(
 			_commonProto.HeaderType.ENDORSER_TRANSACTION,
 			this._name,
 			request.txId.getTransactionID(),
 			null,
 			Constants.LSCC
 		);
-		header = clientUtils.buildHeader(signer, channelHeader, request.txId.getNonce());
-		proposal = clientUtils.buildProposal(lcccSpec, header, request.transientMap);
-		let signed_proposal = clientUtils.signProposal(signer, proposal);
+		const header = clientUtils.buildHeader(signer, channelHeader, request.txId.getNonce());
+		const proposal = clientUtils.buildProposal(lcccSpec, header, request.transientMap);
+		const signed_proposal = clientUtils.signProposal(signer, proposal);
 
 		return clientUtils.sendPeersProposal(peers, signed_proposal, timeout)
 		.then(
@@ -1794,7 +1793,7 @@ var Channel = class {
 			throw new Error('"target" parameter is an array, but should be a singular peer object' +
 				' ' + 'or peer name according to the network configuration loaded by the client instance');
 		}
-		var targets = this._getTargets(target, Constants.NetworkConfig.LEDGER_QUERY_ROLE, true);
+		let targets = this._getTargets(target, Constants.NetworkConfig.LEDGER_QUERY_ROLE, true);
 		// only want to query one peer
 		if(targets.length > 1) {
 			targets = [targets[0]];
@@ -1807,7 +1806,7 @@ var Channel = class {
 	 * utility method to decide on the targets for requests
 	 */
 	_getTargets(request_targets, role, isTarget) {
-		var targets = null;
+		let targets = null;
 		if (request_targets) {
 			// first check to see if they have passed a peer or peer name
 			targets = this._clientContext.getTargetPeers(request_targets);
@@ -1815,11 +1814,11 @@ var Channel = class {
 
 		// nothing yet, maybe there are peers on the channel
 		if (!targets || targets.length < 1) {
-			let peers = this.getPeers();
+			const peers = this.getPeers();
 			targets = [];
-			for(let i in peers) {
-				if(peers[i].isInRole(role)){
-					targets.push(peers[i]);
+			for(let peer of peers) {
+				if(peer.isInRole(role)){
+					targets.push(peer);
 				}
 			}
 		}
