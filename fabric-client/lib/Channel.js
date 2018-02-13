@@ -100,7 +100,7 @@ var Channel = class {
 			logger.error('Failed to create Channel. Missing requirement "clientContext" parameter.');
 			throw new Error('Failed to create Channel. Missing requirement "clientContext" parameter.');
 		}
-
+		
 		this._name = name;
 
 		this._peers = [];
@@ -122,14 +122,14 @@ var Channel = class {
 	/**
 	 * Close the service connection off all assigned peers and orderers
 	 */
-	 close() {
+	close() {
 		 logger.info('close - closing connections');
 		var closer = function (ep) {
 			ep.close();
 		}
 		this._peers.map(closer);
 		this._orderers.map(closer);
-	 }
+	}
 
 	/**
 	 * Initializes the channel object with the Membership Service Providers (MSPs). The channel's
@@ -1236,7 +1236,7 @@ var Channel = class {
 	 * Internal method to handle both chaincode calls
 	 */
 	_sendChaincodeProposal(request, command, timeout) {
-		var errorMsg = null;
+		let errorMsg = null;
 
 		//validate the incoming request
 		if(!errorMsg) errorMsg = clientUtils.checkProposalRequest(request);
@@ -1245,7 +1245,7 @@ var Channel = class {
 			logger.error('sendChainCodeProposal error ' + errorMsg);
 			return Promise.reject(new Error(errorMsg));
 		}
-		var peers = this._getTargets(request.targets, Constants.NetworkConfig.ENDORSING_PEER_ROLE);
+		const peers = this._getTargets(request.targets, Constants.NetworkConfig.ENDORSING_PEER_ROLE);
 
 		// args is optional because some chaincode may not need any input parameters during initialization
 		if (!request.args) {
@@ -1253,13 +1253,13 @@ var Channel = class {
 		}
 
 		// step 1: construct a ChaincodeSpec
-		var args = [];
+		const args = [];
 		args.push(Buffer.from(request.fcn ? request.fcn : 'init', 'utf8'));
 
-		for (let i = 0; i < request.args.length; i++)
-			args.push(Buffer.from(request.args[i], 'utf8'));
+		for (let arg of request.args)
+			args.push(Buffer.from(arg, 'utf8'));
 
-		let ccSpec = {
+		const ccSpec = {
 			type: clientUtils.translateCCType(request.chaincodeType),
 			chaincode_id: {
 				name: request.chaincodeId,
@@ -1271,12 +1271,11 @@ var Channel = class {
 		};
 
 		// step 2: construct the ChaincodeDeploymentSpec
-		let chaincodeDeploymentSpec = new _ccProto.ChaincodeDeploymentSpec();
+		const chaincodeDeploymentSpec = new _ccProto.ChaincodeDeploymentSpec();
 		chaincodeDeploymentSpec.setChaincodeSpec(ccSpec);
 
-		var header, proposal;
-		var signer = this._clientContext._getSigningIdentity(request.txId.isAdmin());
-		let lcccSpec_args = [
+		const signer = this._clientContext._getSigningIdentity(request.txId.isAdmin());
+		const lcccSpec_args = [
 			Buffer.from(command),
 			Buffer.from(this._name),
 			chaincodeDeploymentSpec.toBuffer()
@@ -1285,23 +1284,23 @@ var Channel = class {
 			lcccSpec_args[3] = this._buildEndorsementPolicy(request['endorsement-policy']);
 		}
 
-		let lcccSpec = {
+		const lcccSpec = {
 			// type: _ccProto.ChaincodeSpec.Type.GOLANG,
 			type: clientUtils.translateCCType(request.chaincodeType),
 			chaincode_id: {	name: Constants.LSCC },
 			input: { args : lcccSpec_args}
 		};
 
-		var channelHeader = clientUtils.buildChannelHeader(
+		const channelHeader = clientUtils.buildChannelHeader(
 			_commonProto.HeaderType.ENDORSER_TRANSACTION,
 			this._name,
 			request.txId.getTransactionID(),
 			null,
 			Constants.LSCC
 		);
-		header = clientUtils.buildHeader(signer, channelHeader, request.txId.getNonce());
-		proposal = clientUtils.buildProposal(lcccSpec, header, request.transientMap);
-		let signed_proposal = clientUtils.signProposal(signer, proposal);
+		const header = clientUtils.buildHeader(signer, channelHeader, request.txId.getNonce());
+		const proposal = clientUtils.buildProposal(lcccSpec, header, request.transientMap);
+		const signed_proposal = clientUtils.signProposal(signer, proposal);
 
 		return clientUtils.sendPeersProposal(peers, signed_proposal, timeout)
 		.then(

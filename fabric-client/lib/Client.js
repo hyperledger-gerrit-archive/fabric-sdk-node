@@ -1667,18 +1667,16 @@ var Client = class extends BaseClient {
 	 * utility method to get the peer targets
 	 */
 	getTargetPeers(request_targets) {
-		var method = 'getTargetPeers';
-		logger.debug('%s - start',method);
-		var targets = [];
+		logger.debug('%s - start','getTargetPeers');
+		const targets = [];
 		if(request_targets) {
 			if(!Array.isArray(request_targets)) {
 				request_targets = [request_targets];
 			}
-			for(let i in request_targets) {
-				let target_peer = request_targets[i];
+			for(let target_peer of request_targets) {
 				if(typeof target_peer === 'string') {
 					if(this._network_config) {
-						let peer = this._network_config.getPeer(target_peer);
+						const peer = this._network_config.getPeer(target_peer);
 						if(peer) {
 							targets.push(peer);
 						} else {
