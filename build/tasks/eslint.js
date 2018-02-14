@@ -44,6 +44,11 @@ gulp.task('lint', function () {
 						'ignoreRegExpLiterals': true,
 					},
 				],
+				"prefer-const": ["error", {
+					"destructuring": "any",
+					"ignoreReadBeforeAssign": false
+				}],
+				"no-var": "error"
 			}
 		}
 	))
