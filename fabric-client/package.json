@@ -14,6 +14,7 @@
     "npm": "^5.5.1"
   },
   "dependencies": {
+    "hoek": "4.2.1",
     "bn.js": "^4.11.3",
     "callsite": "^1.0.0",
     "elliptic": "^6.2.3",
