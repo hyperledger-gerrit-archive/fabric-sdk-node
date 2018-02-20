@@ -17,7 +17,9 @@
 // This is an end-to-end test that focuses on exercising all parts of the fabric APIs
 // in a happy-path scenario
 'use strict';
+var FabricCAServices = require('../../../fabric-ca-client');
 var utils = require('fabric-client/lib/utils.js');
+var KEYUTIL = require('jsrsasign').KEYUTIL;
 var logger = utils.getLogger('E2E testing');
 
 var tape = require('tape');
@@ -67,38 +69,6 @@ function installChaincode(org, chaincode_path, version, language, t, get_admin) 
 	// make sure the cert is OK
 	caroots = Client.normalizeX509(caroots);
 
-	channel.addOrderer(
-		client.newOrderer(
-			ORGS.orderer.url,
-			{
-				'pem': caroots,
-				'ssl-target-name-override': ORGS.orderer['server-hostname']
-			}
-		)
-	);
-
-	var targets = [];
-	for (let key in ORGS[org]) {
-		if (ORGS[org].hasOwnProperty(key)) {
-			if (key.indexOf('peer') === 0) {
-				let data = fs.readFileSync(path.join(__dirname, ORGS[org][key]['tls_cacerts']));
-				let peer = client.newPeer(
-					ORGS[org][key].requests,
-					{
-						pem: Buffer.from(data).toString(),
-						'ssl-target-name-override': ORGS[org][key]['server-hostname']
-					}
-				);
-
-				targets.push(peer);    // a peer can be the target this way
-				channel.addPeer(peer); // or a peer can be the target this way
-				                       // you do not have to do both, just one, when there are
-				                       // 'targets' in the request, those will be used and not
-				                       // the peers added to the channel
-			}
-		}
-	}
-
 	return Client.newDefaultKeyValueStore({
 		path: testUtil.storePathForOrg(orgName)
 	}).then((store) => {
@@ -107,8 +77,47 @@ function installChaincode(org, chaincode_path, version, language, t, get_admin) 
 		// get the peer org's admin required to send install chaincode requests
 		return testUtil.getSubmitter(client, t, get_admin /* get peer org admin */, org);
 	}).then((admin) => {
-		t.pass('Successfully enrolled user \'admin\'');
+		t.pass('Successfully enrolled user \'admin\' (e2eUtil 1)');
 		the_user = admin;
+
+		let adminCert = admin.getIdentity()._certificate;
+		let adminKey = admin.getSigningIdentity()._key;
+
+		channel.addOrderer(
+			client.newOrderer(
+				ORGS.orderer.url,
+				{
+					'pem': caroots,
+					'clientCert': adminCert,
+					'clientKey': adminKey,
+					'ssl-target-name-override': ORGS.orderer['server-hostname']
+				}
+			)
+		);
+
+		var targets = [];
+		for (let key in ORGS[org]) {
+			if (ORGS[org].hasOwnProperty(key)) {
+				if (key.indexOf('peer') === 0) {
+					let data = fs.readFileSync(path.join(__dirname, ORGS[org][key]['tls_cacerts']));
+					let peer = client.newPeer(
+						ORGS[org][key].requests,
+						{
+							pem: Buffer.from(data).toString(),
+							'clientCert': adminCert,
+							'clientKey': adminKey,
+							'ssl-target-name-override': ORGS[org][key]['server-hostname']
+						}
+					);
+
+					targets.push(peer);    // a peer can be the target this way
+					channel.addPeer(peer); // or a peer can be the target this way
+				                       	// you do not have to do both, just one, when there are
+				                       	// 'targets' in the request, those will be used and not
+				                       	// the peers added to the channel
+				}
+			}
+		}
 
 		let cc_id;
 		if(language && language==='node'){
@@ -199,16 +208,6 @@ function instantiateChaincode(userOrg, chaincode_path, version, language, upgrad
 	let data = fs.readFileSync(path.join(__dirname, caRootsPath));
 	let caroots = Buffer.from(data).toString();
 
-	channel.addOrderer(
-		client.newOrderer(
-			ORGS.orderer.url,
-			{
-				'pem': caroots,
-				'ssl-target-name-override': ORGS.orderer['server-hostname']
-			}
-		)
-	);
-
 	targets = [];
 	var badTransientMap = { 'test1': 'transientValue' }; // have a different key than what the chaincode example_cc1.go expects in Init()
 	var transientMap = { 'test': 'transientValue' };
@@ -222,8 +221,23 @@ function instantiateChaincode(userOrg, chaincode_path, version, language, upgrad
 
 	}).then((admin) => {
 
-		t.pass('Successfully enrolled user \'admin\'');
+		t.pass('Successfully enrolled user \'admin\' (e2eUtil 2)');
 		the_user = admin;
+
+		let adminCert = admin.getIdentity()._certificate;
+		let adminKey = admin.getSigningIdentity()._key;
+
+		channel.addOrderer(
+			client.newOrderer(
+				ORGS.orderer.url,
+				{
+					'pem': caroots,
+					'clientCert': adminCert,
+					'clientKey': adminKey,
+					'ssl-target-name-override': ORGS.orderer['server-hostname']
+				}
+			)
+		);
 
 		for(let org in ORGS) {
 			if (ORGS[org].hasOwnProperty('peer1')) {
@@ -234,6 +248,8 @@ function instantiateChaincode(userOrg, chaincode_path, version, language, upgrad
 					ORGS[org][key].requests,
 					{
 						pem: Buffer.from(data).toString(),
+						'clientCert': adminCert,
+						'clientKey': adminKey,
 						'ssl-target-name-override': ORGS[org][key]['server-hostname']
 					}
 				);
@@ -251,6 +267,8 @@ function instantiateChaincode(userOrg, chaincode_path, version, language, upgrad
 			ORGS[userOrg]['peer1'].events,
 			{
 				pem: Buffer.from(data).toString(),
+				'clientCert': adminCert,
+				'clientKey': adminKey,
 				'ssl-target-name-override': ORGS[userOrg]['peer1']['server-hostname']
 			}
 		);
@@ -527,16 +545,6 @@ function invokeChaincode(userOrg, version, chaincodeId, t, useStore){
 	let data = fs.readFileSync(path.join(__dirname, caRootsPath));
 	let caroots = Buffer.from(data).toString();
 
-	channel.addOrderer(
-		client.newOrderer(
-			ORGS.orderer.url,
-			{
-				'pem': caroots,
-				'ssl-target-name-override': ORGS.orderer['server-hostname']
-			}
-		)
-	);
-
 	orgName = ORGS[userOrg].name;
 
 	var promise;
@@ -553,8 +561,23 @@ function invokeChaincode(userOrg, version, chaincodeId, t, useStore){
 		return testUtil.getSubmitter(client, t, userOrg);
 	}).then((admin) => {
 
-		t.pass('Successfully enrolled user \'admin\'');
+		t.pass('Successfully enrolled user \'admin\' (e2eUtil 3)');
 		the_user = admin;
+
+		let adminCert = admin.getIdentity()._certificate;
+		let adminKey = admin.getSigningIdentity()._key;
+
+		channel.addOrderer(
+			client.newOrderer(
+				ORGS.orderer.url,
+				{
+					'pem': caroots,
+					'clientCert': adminCert,
+					'clientKey': adminKey,
+					'ssl-target-name-override': ORGS.orderer['server-hostname']
+				}
+			)
+		);
 
 		// set up the channel to use each org's 'peer1' for
 		// both requests and events
@@ -565,6 +588,8 @@ function invokeChaincode(userOrg, version, chaincodeId, t, useStore){
 					ORGS[key].peer1.requests,
 					{
 						pem: Buffer.from(data).toString(),
+						'clientCert': adminCert,
+						'clientKey': adminKey,
 						'ssl-target-name-override': ORGS[key].peer1['server-hostname']
 					}
 				);
@@ -579,6 +604,8 @@ function invokeChaincode(userOrg, version, chaincodeId, t, useStore){
 			ORGS[userOrg].peer1.events,
 			{
 				pem: Buffer.from(data).toString(),
+				'clientCert': adminCert,
+				'clientKey': adminKey,
 				'ssl-target-name-override': ORGS[userOrg].peer1['server-hostname'],
 				'grpc.keepalive_timeout_ms' : 3000, // time to respond to the ping, 3 seconds
 				'grpc.keepalive_time_ms' : 360000, // time to wait for ping response, 6 minutes
@@ -777,22 +804,6 @@ function queryChaincode(org, version, value, chaincodeId, t, transientMap) {
 	cryptoSuite.setCryptoKeyStore(Client.newCryptoKeyStore({path: testUtil.storePathForOrg(orgName)}));
 	client.setCryptoSuite(cryptoSuite);
 
-	var targets = [];
-	// set up the channel to use each org's 'peer1' for
-	// both requests and events
-	for (let key in ORGS) {
-		if (ORGS.hasOwnProperty(key) && typeof ORGS[key].peer1 !== 'undefined') {
-			let data = fs.readFileSync(path.join(__dirname, ORGS[key].peer1['tls_cacerts']));
-			let peer = client.newPeer(
-				ORGS[key].peer1.requests,
-				{
-					pem: Buffer.from(data).toString(),
-					'ssl-target-name-override': ORGS[key].peer1['server-hostname']
-				});
-			channel.addPeer(peer);
-		}
-	}
-
 	return Client.newDefaultKeyValueStore({
 		path: testUtil.storePathForOrg(orgName)
 	}).then((store) => {
@@ -802,6 +813,29 @@ function queryChaincode(org, version, value, chaincodeId, t, transientMap) {
 
 	}).then((admin) => {
 		the_user = admin;
+
+		t.pass('Successfully enrolled user \'admin\' (e2eUtil 4)');
+
+		let adminCert = admin.getIdentity()._certificate;
+		let adminKey = admin.getSigningIdentity()._key;
+
+		var targets = [];
+		// set up the channel to use each org's 'peer1' for
+		// both requests and events
+		for (let key in ORGS) {
+			if (ORGS.hasOwnProperty(key) && typeof ORGS[key].peer1 !== 'undefined') {
+				let data = fs.readFileSync(path.join(__dirname, ORGS[key].peer1['tls_cacerts']));
+				let peer = client.newPeer(
+					ORGS[key].peer1.requests,
+					{
+						pem: Buffer.from(data).toString(),
+						'clientCert': adminCert,
+						'clientKey': adminKey,
+						'ssl-target-name-override': ORGS[key].peer1['server-hostname']
+					});
+				channel.addPeer(peer);
+			}
+		}
 
 		// send query
 		var request = {
@@ -875,3 +909,33 @@ function readAllFiles(dir) {
 	return certs;
 }
 module.exports.readAllFiles = readAllFiles;
+
+function tlsEnroll(orgName) {
+	FabricCAServices.addConfigFile(path.join(__dirname, 'config.json'));
+	let orgs = FabricCAServices.getConfigSetting('test-network');
+	let fabricCAEndpoint = orgs[orgName].ca.url;
+	FabricCAServices.getConfigSetting('crypto-keysize', '256');//force for gulp test
+	FabricCAServices.setConfigSetting('crypto-hash-algo', 'SHA2');//force for gulp test
+	let tlsOptions = {
+		trustedRoots: [],
+		verify: false
+	};
+	let caService = new FabricCAServices(fabricCAEndpoint, tlsOptions, orgs[orgName].ca.name);
+	let req = {
+		enrollmentID: 'admin',
+		enrollmentSecret: 'adminpw',
+		profile: 'tls'
+	};
+	return new Promise(function (resolve, reject) {
+		caService.enroll(req).then(
+			function(enrollment) {
+				enrollment.key = enrollment.key.toBytes();
+				return resolve(enrollment);
+			},
+			function(err) {
+				return reject(err);
+			}
+		);
+	});
+}
+module.exports.tlsEnroll = tlsEnroll;
