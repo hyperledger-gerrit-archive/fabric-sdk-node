@@ -21,6 +21,7 @@ var urlParser = require('url');
 
 var utils = require('./utils.js');
 var logger = utils.getLogger('Remote.js');
+var Hash = require('./hash.js');
 
 
 /**
@@ -54,7 +55,7 @@ var Remote = class {
 		var _name = null;
 		var pem = null;
 		var clientKey = null;
-		var clientCert = null;
+		this.clientCert = null;
 		var ssl_target_name_override = '';
 		var default_authority = '';
 
@@ -67,7 +68,7 @@ var Remote = class {
 		}
 
 		if (opts && opts.clientCert) {
-			clientCert = opts.clientCert;
+			this.clientCert = opts.clientCert;
 		}
 
 		if (opts && opts['ssl-target-name-override']) {
@@ -113,7 +114,7 @@ var Remote = class {
 
 		// service connection
 		this._url = url;
-		this._endpoint = new Endpoint(url, pem, clientKey, clientCert);
+		this._endpoint = new Endpoint(url, pem, clientKey, this.clientCert);
 
 		// node.js based timeout
 		this._request_timeout = 30000;
@@ -148,6 +149,24 @@ var Remote = class {
 	getUrl() {
 		logger.debug('getUrl::'+this._url);
 		return this._url;
+	}
+
+	/**
+	 * Get the client certificate hash
+	 * @returns {byte[]} The hash of the client certificate
+	 */
+	getClientCertHash() {
+		let hash = null;
+		if(this.clientCert) {
+			let hash_algo= utils.getConfigSetting('client-certificate-hash-algo', 'sha2').toLowerCase();
+			let keysize = utils.getConfigSetting('client-certificate-keysize', '256');
+			let hash_function = Hash[hash_algo + '_' + keysize];
+			if(typeof hash_function === 'function') {
+				let der_cert = utils.pemToDER(this.clientCert);
+				hash =  hash_function(der_cert);
+			}
+		}
+		return hash;
 	}
 
 	/**
