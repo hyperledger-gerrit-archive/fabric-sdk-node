@@ -69,7 +69,7 @@ test('Test chaincode instantiate with event, transaction invocation with chainco
 	})(t, eventhubs, t.end);
 	t.pass('Successfully setup the eventhub disconnect when the test ends');
 
-	let data = fs.readFileSync(path.join(__dirname, 'e2e', '../../fixtures/channel/crypto-config/ordererOrganizations/example.com/orderers/orderer.example.com/tlscacerts/example.com-cert.pem'));
+	let data = fs.readFileSync(path.join(__dirname, 'e2e', '../../fixtures/channel/crypto-config/ordererOrganizations/example.com/orderers/orderer.example.com/tls/ca.crt'));
 	let caroots = Buffer.from(data).toString();
 
 	let orderer = client.newOrderer(
@@ -81,7 +81,7 @@ test('Test chaincode instantiate with event, transaction invocation with chainco
 	);
 	channel.addOrderer(orderer);
 
-	data = fs.readFileSync(path.join(__dirname, 'e2e', '../../fixtures/channel/crypto-config/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tlscacerts/org1.example.com-cert.pem'));
+	data = fs.readFileSync(path.join(__dirname, 'e2e', '../../fixtures/channel/crypto-config/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt'));
 	let peer = client.newPeer(
 		'grpcs://localhost:7051',
 		{

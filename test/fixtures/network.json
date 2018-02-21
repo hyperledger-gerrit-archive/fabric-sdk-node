@@ -65,7 +65,7 @@
         "grpc-max-send-message-length":15
       },
       "tlsCACerts":{
-        "path":"test/fixtures/channel/crypto-config/ordererOrganizations/example.com/orderers/orderer.example.com/tlscacerts/example.com-cert.pem"
+        "path":"test/fixtures/channel/crypto-config/ordererOrganizations/example.com/orderers/orderer.example.com/tls/ca.crt"
       }
     }
   },
@@ -78,7 +78,7 @@
         "grpc.http2.keepalive_time":15
       },
       "tlsCACerts":{
-        "path":"test/fixtures/channel/crypto-config/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tlscacerts/org1.example.com-cert.pem"
+        "path":"test/fixtures/channel/crypto-config/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt"
       }
     },
     "peer0.org2.example.com":{
@@ -88,7 +88,7 @@
         "ssl-target-name-override":"peer0.org2.example.com"
       },
       "tlsCACerts":{
-        "path":"test/fixtures/channel/crypto-config/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/tlscacerts/org2.example.com-cert.pem"
+        "path":"test/fixtures/channel/crypto-config/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/tls/ca.crt"
       }
     }
   },
@@ -99,7 +99,7 @@
         "verify":true
       },
       "tlsCACerts":{
-        "path":"test/fixtures/channel/crypto-config/peerOrganizations/org1.example.com/ca/org1.example.com-cert.pem"
+        "path":"test/fixtures/channel/crypto-config/peerOrganizations/org1.example.com/ca/ca.org1.example.com-cert.pem"
       },
       "registrar":[
         {

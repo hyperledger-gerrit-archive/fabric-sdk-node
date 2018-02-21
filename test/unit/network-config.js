@@ -270,7 +270,7 @@ test('\n\n ** configuration testing **\n\n', function (t) {
 		'orderer0' : {
 			url : 'grpcs://localhost:7050',
 			'tlsCACerts' : {
-				path : 'test/fixtures/channel/crypto-config/ordererOrganizations/example.com/orderers/orderer.example.com/tlscacerts/example.com-cert.pem'
+				path : 'test/fixtures/channel/crypto-config/ordererOrganizations/example.com/orderers/orderer.example.com/tls/ca.crt'
 			}
 		}
 	};
@@ -356,19 +356,19 @@ test('\n\n ** configuration testing **\n\n', function (t) {
 		'peer2' : {
 			url : 'grpcs://localhost:7052',
 			'tlsCACerts' : {
-				path : 'test/fixtures/channel/crypto-config/ordererOrganizations/example.com/orderers/orderer.example.com/tlscacerts/example.com-cert.pem'
+				path : 'test/fixtures/channel/crypto-config/ordererOrganizations/example.com/orderers/orderer.example.com/tls/ca.crt'
 			}
 		},
 		'peer3' : {
 			url : 'grpcs://localhost:7053',
 			'tlsCACerts' : {
-				path : 'test/fixtures/channel/crypto-config/ordererOrganizations/example.com/orderers/orderer.example.com/tlscacerts/example.com-cert.pem'
+				path : 'test/fixtures/channel/crypto-config/ordererOrganizations/example.com/orderers/orderer.example.com/tls/ca.crt'
 			}
 		},
 		'peer4' : {
 			url : 'grpcs://localhost:7054',
 			'tlsCACerts' : {
-				path : 'test/fixtures/channel/crypto-config/ordererOrganizations/example.com/orderers/orderer.example.com/tlscacerts/example.com-cert.pem'
+				path : 'test/fixtures/channel/crypto-config/ordererOrganizations/example.com/orderers/orderer.example.com/tls/ca.crt'
 			}
 		},
 	};
@@ -385,7 +385,7 @@ test('\n\n ** configuration testing **\n\n', function (t) {
 		'ca2' : {
 			url : 'https://localhost:7052',
 			'tlsCACerts' : {
-				path : 'test/fixtures/channel/crypto-config/ordererOrganizations/example.com/orderers/orderer.example.com/tlscacerts/example.com-cert.pem'
+				path : 'test/fixtures/channel/crypto-config/ordererOrganizations/example.com/orderers/orderer.example.com/tls/ca.crt'
 			},
 			grpcOptions : { verify : true},
 			registrar : { enrollId: 'admin2', enrollSecret: 'adminpw2' }

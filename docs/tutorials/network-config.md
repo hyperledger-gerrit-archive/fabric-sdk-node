@@ -80,9 +80,9 @@ organizations:
     certificateAuthorities:
       - ca-org1
     adminPrivateKey:
-      path: test/fixtures/channel/crypto-config/peerOrganizations/org1.example.com/users/Admin@org1.example.com/keystore/9022d671ceedbb24af3ea69b5a8136cc64203df6b9920e26f48123fcfcb1d2e9_sk
+      path: test/fixtures/channel/crypto-config/peerOrganizations/org1.example.com/users/Admin@org1.example.com/msp/keystore/f55d597d8b5d94e612c4745a40e52af1d6649b689bb24bfaa9093f5d3bfcd0f0_sk
     signedCert:
-      path: test/fixtures/channel/crypto-config/peerOrganizations/org1.example.com/users/Admin@org1.example.com/signcerts/Admin@org1.example.com-cert.pem
+      path: test/fixtures/channel/crypto-config/peerOrganizations/org1.example.com/users/Admin@org1.example.com/msp/signcerts/Admin@org1.example.com-cert.pem
 
   Org2:
     mspid: Org2MSP
@@ -91,9 +91,9 @@ organizations:
     certificateAuthorities:
       - ca-org2
     adminPrivateKey:
-      path: test/fixtures/channel/crypto-config/peerOrganizations/org2.example.com/users/Admin@org2.example.com/keystore/5a983ddcbefe52a7f9b8ee5b85a590c3e3a43c4ccd70c7795bec504e7f74848d_sk
+      path: test/fixtures/channel/crypto-config/peerOrganizations/org2.example.com/users/Admin@org2.example.com/msp/keystore/3f9a29d1e1250d19ba284af5f539944621e310420f0d63341c7d69aebeb9019c_sk
     signedCert:
-      path: test/fixtures/channel/crypto-config/peerOrganizations/org2.example.com/users/Admin@org2.example.com/signcerts/Admin@org2.example.com-cert.pem
+      path: test/fixtures/channel/crypto-config/peerOrganizations/org2.example.com/users/Admin@org2.example.com/msp/signcerts/Admin@org2.example.com-cert.pem
 
 orderers:
   orderer.example.com:
@@ -102,7 +102,7 @@ orderers:
       ssl-target-name-override: orderer.example.com
       grpc-max-send-message-length: 15
     tlsCACerts:
-      path: test/fixtures/channel/crypto-config/ordererOrganizations/example.com/orderers/orderer.example.com/tlscacerts/example.com-cert.pem
+      path: test/fixtures/channel/crypto-config/ordererOrganizations/example.com/orderers/orderer.example.com/tls/ca.crt
 
 peers:
   peer0.org1.example.com:
@@ -112,7 +112,7 @@ peers:
       ssl-target-name-override: peer0.org1.example.com
       grpc.keepalive_time_ms: 600000
     tlsCACerts:
-      path: test/fixtures/channel/crypto-config/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tlscacerts/org1.example.com-cert.pem
+      path: test/fixtures/channel/crypto-config/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt
 
   peer0.org2.example.com:
     url: grpcs://localhost:8051
@@ -120,7 +120,7 @@ peers:
     grpcOptions:
       ssl-target-name-override: peer0.org2.example.com
     tlsCACerts:
-      path: test/fixtures/channel/crypto-config/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/tlscacerts/org2.example.com-cert.pem
+      path: test/fixtures/channel/crypto-config/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/tls/ca.crt
 
 certificateAuthorities:
   ca-org1:
@@ -128,7 +128,7 @@ certificateAuthorities:
     httpOptions:
       verify: false
     tlsCACerts:
-      path: test/fixtures/channel/crypto-config/peerOrganizations/org1.example.com/ca/org1.example.com-cert.pem
+      path: test/fixtures/channel/crypto-config/peerOrganizations/org1.example.com/ca/ca.org1.example.com-cert.pem
     registrar:
       - enrollId: admin
         enrollSecret: adminpw
@@ -139,7 +139,7 @@ certificateAuthorities:
     httpOptions:
       verify: false
     tlsCACerts:
-      path: test/fixtures/channel/crypto-config/peerOrganizations/org2.example.com/ca/org2.example.com-cert.pem
+      path: test/fixtures/channel/crypto-config/peerOrganizations/org2.example.com/ca/ca.org2.example.com-cert.pem
     registrar:
       - enrollId: admin
         enrollSecret: adminpw
@@ -293,7 +293,7 @@ peer0.org1.example.com:
 	ssl-target-name-override: peer0.org1.example.com
 	grpc.keepalive_time_ms: 600000
   tlsCACerts:
-	path: test/fixtures/channel/crypto-config/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tlscacerts/org1.example.com-cert.pem
+	path: test/fixtures/channel/crypto-config/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt
 ```
 The following will be a list of event hubs that are within the 'Org1' organization. All peers referenced by an organization that the 'eventSource' set to true.
 ```

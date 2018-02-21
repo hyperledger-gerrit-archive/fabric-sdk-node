@@ -153,7 +153,7 @@ var channel_event_hubs = channel.getChannelEventHubsForOrg();
 When creating a peer instance, you can get a ChannelEventHub instance by using
 the peer instance.
 ```
-let data = fs.readFileSync(path.join(__dirname, 'somepath/tlscacerts/org1.example.com-cert.pem'));
+let data = fs.readFileSync(path.join(__dirname, 'somepath/tls/ca.crt'));
 let peer = client.newPeer(
 	'grpcs://localhost:7051',
 	{
