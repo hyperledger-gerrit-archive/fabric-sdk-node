@@ -13,7 +13,6 @@ fabric-ca-client/lib/msp/*
 fabric-ca-client/lib/protos/*
 fabric-ca-client/lib/hash.js
 fabric-ca-client/lib/impl/*
-npm-shrinkwrap.json
 package-lock.json
 npm-debug.log
 tmp
