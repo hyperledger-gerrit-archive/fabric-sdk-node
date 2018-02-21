@@ -36,22 +36,27 @@ let dockerImageTag = '';
 let thirdpartyImageTag = '';
 let release = require(path.join(__dirname, '../../fabric-client/package.json')).version;
 let thirparty_release = require(path.join(__dirname, '../../fabric-client/package.json')).thirdparty;
-if (!/-snapshot/.test(release)) {
-	// this is a release build, need to build the proper docker image tag
-	// to run the tests against the corresponding fabric released docker images
-	if (arch.indexOf('x64') === 0)
-		dockerImageTag = ':x86_64';
-	else if (arch.indexOf('s390') === 0)
-		dockerImageTag = ':s390x';
-	else if (arch.indexOf('ppc64') === 0)
-		dockerImageTag = ':ppc64le';
-	else
-		throw new Error('Unknown architecture: ' + arch);
 
-	thirdpartyImageTag = dockerImageTag + '-' + thirparty_release;
-	dockerImageTag += '-' + release;
+// this is a release build, need to build the proper docker image tag
+// to run the tests against the corresponding fabric released docker images
+if (arch.indexOf('x64') === 0) {
+	dockerImageTag = ':x86_64';
+} else if (arch.indexOf('s390') === 0) {
+	dockerImageTag = ':s390x';
+} else if (arch.indexOf('ppc64') === 0) {
+	dockerImageTag = ':ppc64le';
+} else {
+	throw new Error('Unknown architecture: ' + arch);
 }
+// prepare thirdpartyImageTag (currently using couchdb image in tests)
+thirdpartyImageTag = dockerImageTag + '-' + thirparty_release;
 
+// release check
+if (!/-snapshot/.test(release)) {
+	dockerImageTag += '-' + release;
+} else {
+	dockerImageTag = '';
+}
 // these environment variables would be read at test/fixtures/docker-compose.yaml
 process.env.DOCKER_IMG_TAG = dockerImageTag;
 process.env.THIRDPARTY_IMG_TAG = thirdpartyImageTag;
