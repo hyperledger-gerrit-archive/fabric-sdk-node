@@ -4,6 +4,12 @@ v1.1.0 Febuary 22, 2018
 Release Notes
 -------------
 
+FAB-8469
+The fabric-client v1.0 was incorrectly decoding the policy definitions contained
+within a configuration block. A 'policy.policy.rule' should have been labelled
+'policy.value.rule'.
+    For more info see https://jira.hyperledger.org/browse/FAB-8469
+
 Known Vulnerabilities
 ---------------------
 
