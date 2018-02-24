@@ -33,7 +33,7 @@ message Policy {
         IMPLICIT_META = 3;
     }
     int32 type = 1; // For outside implementors, consider the first 1000 types reserved, otherwise one of PolicyType
-    bytes policy = 2;
+    bytes value = 2;
 }
 
 // SignaturePolicyEnvelope wraps a SignaturePolicy and includes a version for future enhancements

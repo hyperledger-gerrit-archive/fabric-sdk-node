@@ -873,14 +873,14 @@ function decodeConfigPolicy(proto_config_policy) {
 		logger.debug('decodeConfigPolicy ======> Policy item ::%s', proto_config_policy.key);
 		switch (proto_config_policy.value.policy.type) {
 		case _policiesProto.Policy.PolicyType.SIGNATURE:
-			config_policy.policy.policy = decodeSignaturePolicyEnvelope(proto_config_policy.value.policy.policy);
+			config_policy.policy.value = decodeSignaturePolicyEnvelope(proto_config_policy.value.policy.value);
 			break;
 		case _policiesProto.Policy.PolicyType.MSP:
-			var proto_msp = _policiesProto.Policy.decode(proto_config_policy.value.policy.policy);
+			var proto_msp = _policiesProto.Policy.decode(proto_config_policy.value.policy.value);
 			logger.warn('decodeConfigPolicy - found a PolicyType of MSP. This policy type has not been implemented yet.');
 			break;
 		case _policiesProto.Policy.PolicyType.IMPLICIT_META:
-			config_policy.policy.policy = decodeImplicitMetaPolicy(proto_config_policy.value.policy.policy);
+			config_policy.policy.value = decodeImplicitMetaPolicy(proto_config_policy.value.policy.value);
 			break;
 		default:
 			throw new Error('Unknown Policy type');
