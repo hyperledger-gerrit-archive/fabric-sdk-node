@@ -19,7 +19,6 @@
 // requires
 var api = require('../api.js');
 
-var crypto = require('crypto');
 var elliptic = require('elliptic');
 var EC = elliptic.ec;
 var jsrsa = require('jsrsasign');
@@ -137,27 +136,30 @@ var CryptoSuite_ECDSA_AES = class extends api.CryptoSuite {
 			var self = this;
 			return new Promise((resolve, reject) => {
 				self._cryptoKeyStore._getKeyStore()
-				.then ((store) => {
-					logger.debug('generateKey, store.setValue');
-					return store.putKey(key)
-						.then(() => {
-							return resolve(key);
-						}).catch((err) => {
-							reject(err);
-						});
-				});
+					.then ((store) => {
+						logger.debug('generateKey, store.setValue');
+						return store.putKey(key)
+							.then(() => {
+								return resolve(key);
+							}).catch((err) => {
+								reject(err);
+							});
+					});
 
 			});
 		}
 	}
 
 	/**
-	 * To be implemented
+	 * This is an implementation of {@link module:api.CryptoSuite#deriveKey}
 	 */
-	deriveKey(key, opts) {
+	deriveKey() {
 		throw new Error('Not implemented yet');
 	}
 
+	/**
+	 * This is an implementation of {@link module:api.CryptoSuite#importKey}
+	 */
 	importKey(raw, opts) {
 		logger.debug('importKey - start');
 		var store_key = true; //default
@@ -231,28 +233,36 @@ var CryptoSuite_ECDSA_AES = class extends api.CryptoSuite {
 		}
 		return new Promise((resolve, reject) => {
 			self._cryptoKeyStore._getKeyStore()
-			.then ((st) => {
-				store = st;
-				return store.getKey(ski);
-			}).then((key) => {
-				if (ECDSAKey.isInstance(key))
-					return resolve(key);
+				.then ((st) => {
+					store = st;
+					return store.getKey(ski);
+				}).then((key) => {
+					if (ECDSAKey.isInstance(key))
+						return resolve(key);
 
-				if (key !== null) {
-					var pubKey = KEYUTIL.getKey(key);
-					return resolve(new ECDSAKey(pubKey));				}
-			}).catch((err) => {
-				reject(err);
-			});
+					if (key !== null) {
+						var pubKey = KEYUTIL.getKey(key);
+						return resolve(new ECDSAKey(pubKey));				}
+				}).catch((err) => {
+					reject(err);
+				});
 
 		});
 	}
 
-	hash(msg, opts) {
+	/**
+	 * This is an implementation of {@link module:api.CryptoSuite#hash}
+	 * The opts argument is not supported.
+	 */
+	hash(msg) {
 		return this._hashFunction(msg);
 	}
 
-	sign(key, digest, opts) {
+	/**
+	 * This is an implementation of {@link module:api.CryptoSuite#sign}
+	 * Signs digest using key k.
+	 */
+	sign(key, digest) {
 		if (typeof key === 'undefined' || key === null) {
 			throw new Error('A valid key is required to sign');
 		}
@@ -294,16 +304,18 @@ var CryptoSuite_ECDSA_AES = class extends api.CryptoSuite {
 	}
 
 	/**
+	 * This is an implementation of {@link module:api.CryptoSuite#encrypt}
 	 * To be implemented.
 	 */
-	encrypt(key, plaintext, opts) {
+	encrypt() {
 		throw new Error('Not implemented yet');
 	}
 
 	/**
+	 * This is an implementation of {@link module:api.CryptoSuite#decrypt}
 	 * To be implemented.
 	 */
-	decrypt(key, cipherText, opts) {
+	decrypt() {
 		throw new Error('Not implemented yet');
 	}
 };
@@ -327,7 +339,7 @@ const halfOrdersForCurve = {
 function _preventMalleability(sig, curveParams) {
 	var halfOrder = halfOrdersForCurve[curveParams.name];
 	if (!halfOrder) {
-		throw new Error('Can not find the half order needed to calculate "s" value for immalleable signatures. Unsupported curve name: ' + curve);
+		throw new Error('Can not find the half order needed to calculate "s" value for immalleable signatures. Unsupported curve name: ' + curveParams.name);
 	}
 
 	// in order to guarantee 's' falls in the lower range of the order, as explained in the above link,
@@ -344,7 +356,7 @@ function _preventMalleability(sig, curveParams) {
 function _checkMalleability(sig, curveParams) {
 	var halfOrder = halfOrdersForCurve[curveParams.name];
 	if (!halfOrder) {
-		throw new Error('Can not find the half order needed to calculate "s" value for immalleable signatures. Unsupported curve name: ' + curve);
+		throw new Error('Can not find the half order needed to calculate "s" value for immalleable signatures. Unsupported curve name: ' + curveParams.name);
 	}
 
 	// first need to unmarshall the signature bytes into the object with r and s values
@@ -372,31 +384,5 @@ function makeRealPem(pem) {
 	}
 	return result;
 }
-
-
-/*
- * Convert a PEM encoded certificate to DER format
- * @param {string) pem PEM encoded public or private key
- * @returns {string} hex Hex-encoded DER bytes
- * @throws Will throw an error if the conversation fails
- */
-function pemToDER(pem) {
-
-	//PEM format is essentially a nicely formatted base64 representation of DER encoding
-	//So we need to strip "BEGIN" / "END" header/footer and string line breaks
-	//Then we simply base64 decode it and convert to hex string
-	var contents = pem.toString().trim().split(/\r?\n/);
-	//check for BEGIN and END tags
-	if (!(contents[0].match(/\-\-\-\-\-\s*BEGIN ?([^-]+)?\-\-\-\-\-/) &&
-		contents[contents.length - 1].match(/\-\-\-\-\-\s*END ?([^-]+)?\-\-\-\-\-/))) {
-		throw new Error('Input parameter does not appear to be PEM-encoded.');
-	};
-	contents.shift(); //remove BEGIN
-	contents.pop(); //remove END
-	//base64 decode and encode as hex string
-	var hex = Buffer.from(contents.join(''), 'base64').toString('hex');
-	return hex;
-}
-
 
 module.exports = CryptoSuite_ECDSA_AES;
