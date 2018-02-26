@@ -18,7 +18,6 @@
 
 var fs = require('fs-extra');
 var path = require('path');
-var util = require('util');
 var utils = require('../utils');
 var Constants = require('../Constants.js');
 var Channel = require('../Channel.js');
@@ -27,7 +26,6 @@ var EventHub = require('../EventHub.js');
 var Orderer = require('../Orderer.js');
 var Organization = require('../Organization.js');
 var CertificateAuthority = require('../CertificateAuthority.js');
-var FabricCA = require('fabric-ca-client');
 
 var logger = utils.getLogger('NetworkConfig101.js');
 const CHANNELS_CONFIG = 'channels';
