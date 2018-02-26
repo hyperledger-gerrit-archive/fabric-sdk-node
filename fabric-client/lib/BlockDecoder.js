@@ -492,11 +492,7 @@ rule
 		}
 		var block = {};
 		try {
-			block.header = {
-				number: block_data.header.number.toString(),
-				previous_hash: block_data.header.previous_hash.toString('hex'),
-				data_hash: block_data.header.data_hash.toString('hex')
-			};
+			block.header = decodeBlockHeader(block_data.header);
 			block.data = decodeBlockData(block_data.data, true);
 			block.metadata = decodeBlockMetaData(block_data.metadata);
 		} catch (error) {
