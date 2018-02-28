@@ -99,7 +99,14 @@ gulp.task('docker-ready', ['docker-clean'], shell.task([
 	'docker-compose -f test/fixtures/docker-compose.yaml up -d'
 ]));
 
-gulp.task('test', ['clean-up', 'lint', 'pre-test', 'docker-ready', 'ca'], function() {
+gulp.task('test', ['all-tests'], function() {
+	// some tests create temporary files or directories
+	// they are all created in the same temp folder
+	fs.removeSync(testConstants.tempdir);
+	return fs.ensureFileSync(debugPath);
+});
+
+gulp.task('all-tests', ['clean-up', 'lint', 'pre-test', 'docker-ready', 'ca'], function() {
 	// use individual tests to control the sequence they get executed
 	// first run the ca-tests that tests all the member registration
 	// and enrollment scenarios (good and bad calls). Then the rest
