@@ -128,7 +128,7 @@ test('  ---->>>>> Query channel working <<<<<-----', function(t) {
 		t.pass('Successfully enrolled user \'admin\'');
 		the_user = admin;
 
-		// read the config block from the orderer for the channel
+		// read the config block from the peer for the channel
 		// and initialize the verify MSPs based on the participating
 		// organizations
 		return channel.initialize();
