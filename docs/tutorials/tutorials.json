@@ -10,5 +10,8 @@
 	},
 	"channel-events" : {
 		"title": "How to use the channel-based event service"
+	},
+	"metadata-chaincode" : {
+		"title": "How to add indexes to chaincode install"
 	}
 }
