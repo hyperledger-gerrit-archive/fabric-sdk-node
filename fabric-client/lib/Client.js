@@ -173,10 +173,10 @@ var Client = class extends BaseClient {
 
 	/**
 	 * Determine if the fabric backend is started in
-	 * [development mode]{@link http://hyperledger-fabric.readthedocs.io/en/latest/Setup/Chaincode-setup.html?highlight=development%20mode}.
+	 * [development mode]{@link http://hyperledger-fabric.readthedocs.io/en/latest/chaincode4ade.html?highlight=develop%20mode#testing-using-dev-mode}.
 	 * In development mode, the endorsing peers will not attempt to spin up a docker instance to run
 	 * the target chaincode requested by a transaction proposal, but instead redirect the invocation
-	 * requests to the chaincode process that has registered itself with the endorsing peer. This makes
+	 * requests to the chaincode process that has registered itself with the endorsing peer. This makesg
 	 * it easier to test changes to the chaincode during chaincode development.
 	 * <br><br>
 	 * The client instance can be set to dev mode to reflect the backend's development mode. This will
