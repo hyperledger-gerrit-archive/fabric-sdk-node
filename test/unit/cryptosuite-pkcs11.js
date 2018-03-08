@@ -18,10 +18,12 @@
 
 var tape = require('tape');
 var _test = require('tape-promise');
+var nconf = require('nconf');
 var test = _test(tape);
 var testutil = require('./util.js');
 var Client = require('fabric-client');
 var PKCS11 = require('fabric-client/lib/impl/bccsp_pkcs11.js');
+var Config = require('fabric-client/lib/Config.js');
 
 test('\n\n** bccsp_pkcs11 tests **\n\n', (t) => {
 	testutil.resetDefaults();
@@ -185,7 +187,7 @@ test('\n\n** bccsp_pkcs11 tests **\n\n', (t) => {
 		checkError(error,testing);
 	}
 
-	Client.setConfigSetting('crypto-pkcs11-readwrite', 'false');
+	Client.setConfigSetting('crypto-pkcs11-readwrite', 'not');
 	t.throws(
 		function () {
 			let pkcss11 = new PKCS11(256, 'sha2');
@@ -193,6 +195,22 @@ test('\n\n** bccsp_pkcs11 tests **\n\n', (t) => {
 		/readwrite is invalid/,
 		'Checking: for valid readwrite'
 	);
+	Client.setConfigSetting('crypto-pkcs11-readwrite', 'false');
+	testing = 'Checking: for valid readwrite in config';
+	try {
+		let pkcss11 = new PKCS11(256, 'sha2');
+		t.fail(testing);
+	} catch(error) {
+		checkError(error,testing);
+	}
+	Client.setConfigSetting('crypto-pkcs11-readwrite', 'true');
+	testing = 'Checking: for valid readwrite in config';
+	try {
+		let pkcss11 = new PKCS11(256, 'sha2');
+		t.fail(testing);
+	} catch(error) {
+		checkError(error,testing);
+	}
 	Client.setConfigSetting('crypto-pkcs11-readwrite', false);
 	testing = 'Checking: for valid readwrite in config';
 	try {
@@ -201,6 +219,88 @@ test('\n\n** bccsp_pkcs11 tests **\n\n', (t) => {
 	} catch(error) {
 		checkError(error,testing);
 	}
+	Client.setConfigSetting('crypto-pkcs11-readwrite', true);
+	testing = 'Checking: for valid readwrite in config';
+	try {
+		let pkcss11 = new PKCS11(256, 'sha2');
+		t.fail(testing);
+	} catch(error) {
+		checkError(error,testing);
+	}
+
+	let opts_2 = {lib: '/temp', pin: 'pin', slot: 2};
+	process.env.CRYPTO_PKCS11_USERTYPE = 'bad';
+	var config_save = global.hfc.config;
+	global.hfc.config = null;
+	nconf.remove('memory');
+	nconf.remove('mapenv');
+
+	let user_type = Client.getConfigSetting('crypto-pkcs11-usertype');
+	t.equals(user_type, 'bad', 'checking that we are using the environment setting');
+
+	t.throws(
+		function () {
+			let pkcss11 = new PKCS11(256, 'sha2', opts_2);
+		},
+		/usertype number invalid/,
+		'Checking: for invalid usertype'
+	);
+
+	process.env.CRYPTO_PKCS11_USERTYPE = '12';
+	global.hfc.config = null;
+	user_type = Client.getConfigSetting('crypto-pkcs11-usertype');
+	t.equals(user_type, '12', 'checking that we are using the environment setting');
+
+	testing = 'Checking: for valid usertype in environment';
+	try {
+		let pkcss11 = new PKCS11(256, 'sha2', opts_2);
+		t.fail(testing);
+	} catch(error) {
+		checkError(error,testing);
+	}
+
+	process.env.CRYPTO_PKCS11_READWRITE = 'notgood';
+	global.hfc.config = null;
+	let read_write = Client.getConfigSetting('crypto-pkcs11-readwrite');
+	t.equals(read_write, 'notgood', 'checking that we are using the environment setting');
+	t.throws(
+		function () {
+			let pkcss11 = new PKCS11(256, 'sha2', opts_2);
+		},
+		/readwrite is invalid/,
+		'Checking: for invalid readwrite'
+	);
+
+	process.env.CRYPTO_PKCS11_READWRITE = 'true';
+	global.hfc.config = null;
+	read_write = Client.getConfigSetting('crypto-pkcs11-readwrite');
+	t.equals(read_write, 'true', 'checking that we are using the environment setting');
+
+	testing = 'Checking: for valid readwrite in environment';
+	try {
+		let pkcss11 = new PKCS11(256, 'sha2', opts_2);
+		t.fail(testing);
+	} catch(error) {
+		checkError(error,testing);
+	}
+
+	process.env.CRYPTO_PKCS11_READWRITE = 'false';
+	global.hfc.config = null;
+	read_write = Client.getConfigSetting('crypto-pkcs11-readwrite');
+	t.equals(read_write, 'false', 'checking that we are using the environment setting');
+
+	testing = 'Checking: for valid readwrite in environment';
+	try {
+		let pkcss11 = new PKCS11(256, 'sha2', opts_2);
+		t.fail(testing);
+	} catch(error) {
+		checkError(error,testing);
+	}
+
+	if(global.hfc && global.hfc.config) {
+		global.hfc.config = null;
+	}
+
 
 	t.end();
 });
