@@ -653,7 +653,7 @@ var Channel = class {
 		var self = this;
 		var orderer = this._clientContext.getTargetOrderer(null, this._orderers, this._name);
 
-		var signer = this._clientContext._getSigningIdentity();
+		var signer = this._clientContext._getSigningIdentity(true);
 		var txId = new TransactionID(signer);
 
 		// seek the latest block

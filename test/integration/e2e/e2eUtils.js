@@ -603,25 +603,27 @@ function invokeChaincode(userOrg, version, chaincodeId, t, useStore){
 					}
 				);
 				channel.addPeer(peer);
+				let channel_event_hub = channel.newChannelEventHub(peer);
+				eventhubs.push(channel_event_hub);
 			}
 		}
 
-		// an event listener can only register with a peer in its own org
-		let data = fs.readFileSync(path.join(__dirname, ORGS[userOrg].peer1['tls_cacerts']));
-		let eh = client.newEventHub();
-		eh.setPeerAddr(
-			ORGS[userOrg].peer1.events,
-			{
-				pem: Buffer.from(data).toString(),
-				'clientCert': tlsInfo.certificate,
-				'clientKey': tlsInfo.key,
-				'ssl-target-name-override': ORGS[userOrg].peer1['server-hostname'],
-				'grpc.keepalive_timeout_ms' : 3000, // time to respond to the ping, 3 seconds
-				'grpc.keepalive_time_ms' : 360000, // time to wait for ping response, 6 minutes
-			}
-		);
-		eh.connect();
-		eventhubs.push(eh);
+		// // an event listener can only register with a peer in its own org
+		// let data = fs.readFileSync(path.join(__dirname, ORGS[userOrg].peer1['tls_cacerts']));
+		// let eh = client.newChannelEventHub();
+		// eh.setPeerAddr(
+		// 	ORGS[userOrg].peer1.events,
+		// 	{
+		// 		pem: Buffer.from(data).toString(),
+		// 		'clientCert': tlsInfo.certificate,
+		// 		'clientKey': tlsInfo.key,
+		// 		'ssl-target-name-override': ORGS[userOrg].peer1['server-hostname'],
+		// 		'grpc.keepalive_timeout_ms' : 3000, // time to respond to the ping, 3 seconds
+		// 		'grpc.keepalive_time_ms' : 360000, // time to wait for ping response, 6 minutes
+		// 	}
+		// );
+		// eh.connect();
+		// eventhubs.push(eh);
 
 		return channel.initialize();
 
@@ -739,6 +741,18 @@ function invokeChaincode(userOrg, version, chaincodeId, t, useStore){
 							resolve();
 						}
 					);
+					eh.registerChaincodeEvent(chaincodeId, 'composer',
+						(event, blockNum, txID, status) => {
+							console.log(`got an event: ${event}`);
+							console.log(event.payload);
+							if (status && status === 'VALID') {
+								let evt = event.payload.toString('utf8');
+								evt = JSON.parse(evt);
+								console.log(`found CC event ${evt}`);
+							}
+						}
+					);
+					eh.connect(true);
 				});
 
 				eventPromises.push(txPromise);
