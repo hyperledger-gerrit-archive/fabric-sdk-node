@@ -18,10 +18,12 @@
 
 var tape = require('tape');
 var _test = require('tape-promise');
+var nconf = require('nconf');
 var test = _test(tape);
 var testutil = require('./util.js');
 var Client = require('fabric-client');
 var PKCS11 = require('fabric-client/lib/impl/bccsp_pkcs11.js');
+var Config = require('fabric-client/lib/Config.js');
 
 test('\n\n** bccsp_pkcs11 tests **\n\n', (t) => {
 	testutil.resetDefaults();
@@ -185,7 +187,16 @@ test('\n\n** bccsp_pkcs11 tests **\n\n', (t) => {
 		checkError(error,testing);
 	}
 
-	Client.setConfigSetting('crypto-pkcs11-readwrite', 'false');
+	Client.setConfigSetting('crypto-pkcs11-usertype', '2');
+	testing = 'Checking: for valid usertype in config';
+	try {
+		let pkcss11 = new PKCS11(256, 'sha2');
+		t.fail(testing);
+	} catch(error) {
+		checkError(error,testing);
+	}
+
+	Client.setConfigSetting('crypto-pkcs11-readwrite', 'not');
 	t.throws(
 		function () {
 			let pkcss11 = new PKCS11(256, 'sha2');
@@ -193,7 +204,31 @@ test('\n\n** bccsp_pkcs11 tests **\n\n', (t) => {
 		/readwrite is invalid/,
 		'Checking: for valid readwrite'
 	);
+	Client.setConfigSetting('crypto-pkcs11-readwrite', 'false');
+	testing = 'Checking: for valid readwrite in config';
+	try {
+		let pkcss11 = new PKCS11(256, 'sha2');
+		t.fail(testing);
+	} catch(error) {
+		checkError(error,testing);
+	}
+	Client.setConfigSetting('crypto-pkcs11-readwrite', 'true');
+	testing = 'Checking: for valid readwrite in config';
+	try {
+		let pkcss11 = new PKCS11(256, 'sha2');
+		t.fail(testing);
+	} catch(error) {
+		checkError(error,testing);
+	}
 	Client.setConfigSetting('crypto-pkcs11-readwrite', false);
+	testing = 'Checking: for valid readwrite in config';
+	try {
+		let pkcss11 = new PKCS11(256, 'sha2');
+		t.fail(testing);
+	} catch(error) {
+		checkError(error,testing);
+	}
+	Client.setConfigSetting('crypto-pkcs11-readwrite', true);
 	testing = 'Checking: for valid readwrite in config';
 	try {
 		let pkcss11 = new PKCS11(256, 'sha2');
