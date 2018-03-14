@@ -653,8 +653,8 @@ var Channel = class {
 		var self = this;
 		var orderer = this._clientContext.getTargetOrderer(null, this._orderers, this._name);
 
-		var signer = this._clientContext._getSigningIdentity();
-		var txId = new TransactionID(signer);
+		var signer = this._clientContext._getSigningIdentity(true);
+		var txId = new TransactionID(signer, true);
 
 		// seek the latest block
 		var seekSpecifiedStart = new _abProto.SeekNewest();
@@ -776,7 +776,7 @@ var Channel = class {
 					if (block.data.data.length != 1) {
 						return Promise.reject(new Error('Config block must only contain one transaction'));
 					}
-					var envelope = _commonProto.Envelope.decode(block.data.data[0]);
+					var envelope = _commonProto.Envelope.decode(block.data.data[0].toBuffer());
 					var payload = _commonProto.Payload.decode(envelope.payload);
 					var channel_header = _commonProto.ChannelHeader.decode(payload.header.channel_header);
 					if (channel_header.type != _commonProto.HeaderType.CONFIG) {
