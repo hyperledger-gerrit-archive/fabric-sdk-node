@@ -1,0 +1,7 @@
+Verified+1: Hyperledger Jobbuilder <jobbuilder@jenkins.hyperledger.org>
+Code-Review+2: David Enyeart <enyeart@us.ibm.com>
+Submitted-by: David Enyeart <enyeart@us.ibm.com>
+Submitted-at: Fri, 16 Mar 2018 03:19:51 +0000
+Reviewed-on: https://gerrit.hyperledger.org/r/19261
+Project: fabric-sdk-node
+Branch: refs/heads/master
