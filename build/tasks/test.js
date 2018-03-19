@@ -99,7 +99,14 @@ gulp.task('docker-ready', ['docker-clean'], shell.task([
 	'docker-compose -f test/fixtures/docker-compose.yaml up -d'
 ]));
 
-gulp.task('test', ['clean-up', 'lint', 'pre-test', 'docker-ready', 'ca'], function() {
+gulp.task('compile', shell.task([
+	'npm run compile',
+], {
+	verbose: true, // so we can see the docker command output
+	ignoreErrors: false // once compile failed, throw error
+}));
+
+gulp.task('test', ['clean-up', 'lint', 'pre-test', 'compile', 'docker-ready', 'ca'], function() {
 	// use individual tests to control the sequence they get executed
 	// first run the ca-tests that tests all the member registration
 	// and enrollment scenarios (good and bad calls). Then the rest
@@ -108,41 +115,43 @@ gulp.task('test', ['clean-up', 'lint', 'pre-test', 'docker-ready', 'ca'], functi
 	// network
 	return gulp.src(shouldRunPKCS11Tests([
 		'test/unit/config.js', // needs to be first
-		'test/unit/**/*.js',
-		'!test/unit/constants.js',
-		'!test/unit/util.js',
-		'!test/unit/logger.js',
-		// channel: mychannel, chaincode: end2endnodesdk:v0/v1
-		'test/integration/e2e.js',
-		'test/integration/query.js',
-		'test/integration/fabric-ca-affiliation-service-tests.js',
-		'test/integration/fabric-ca-identity-service-tests.js',
-		'test/integration/fabric-ca-services-tests.js',
-		'test/integration/client.js',
-		'test/integration/orderer-channel-tests.js',
-		'test/integration/cloudant-fabricca-tests.js',
-		'test/integration/couchdb-fabricca-tests.js',
-		'test/integration/fileKeyValueStore-fabricca-tests.js',
-		'test/integration/install.js',
-		'test/integration/events.js',
-		'test/integration/channel-event-hub.js',
-		// channel: mychannel, chaincode: end2endnodesdk:v2
-		'test/integration/grpc.js',
-		// channel: mychannel, chaincode: end2endnodesdk:v3
-		'test/integration/upgrade.js',
-		'test/integration/get-config.js',
-		// channel: mychanneltx, chaincode: end2endnodesdk:v0
-		'test/integration/create-configtx-channel.js',
-		'test/integration/e2e/join-channel.js',
-		'test/integration/instantiate.js',
-		'test/integration/e2e/invoke-transaction.js',
-		'test/integration/e2e/query.js',
-		'test/integration/invoke.js',
-		'test/integration/perf/orderer.js',
-		'test/integration/perf/peer.js',
-		'test/integration/network-config.js',
-		// channel: mychannel, chaincode: e2enodecc:v0
-		'test/integration/nodechaincode/e2e.js'
+		// 'test/unit/**/*.js',
+		// '!test/unit/constants.js',
+		// '!test/unit/util.js',
+		// '!test/unit/logger.js',
+		// // channel: mychannel, chaincode: end2endnodesdk:v0/v1
+		// 'test/integration/e2e.js',
+		// 'test/integration/query.js',
+		// 'test/integration/fabric-ca-affiliation-service-tests.js',
+		// 'test/integration/fabric-ca-identity-service-tests.js',
+		// 'test/integration/fabric-ca-services-tests.js',
+		// 'test/integration/client.js',
+		// 'test/integration/orderer-channel-tests.js',
+		// 'test/integration/cloudant-fabricca-tests.js',
+		// 'test/integration/couchdb-fabricca-tests.js',
+		// 'test/integration/fileKeyValueStore-fabricca-tests.js',
+		// 'test/integration/install.js',
+		// 'test/integration/events.js',
+		// 'test/integration/channel-event-hub.js',
+		// // channel: mychannel, chaincode: end2endnodesdk:v2
+		// 'test/integration/grpc.js',
+		// // channel: mychannel, chaincode: end2endnodesdk:v3
+		// 'test/integration/upgrade.js',
+		// 'test/integration/get-config.js',
+		// // channel: mychanneltx, chaincode: end2endnodesdk:v0
+		// 'test/integration/create-configtx-channel.js',
+		// 'test/integration/e2e/join-channel.js',
+		// 'test/integration/instantiate.js',
+		// 'test/integration/e2e/invoke-transaction.js',
+		// 'test/integration/e2e/query.js',
+		// 'test/integration/invoke.js',
+		// 'test/integration/perf/orderer.js',
+		// 'test/integration/perf/peer.js',
+		// 'test/integration/network-config.js',
+		// // channel: mychannel, chaincode: e2enodecc:v0
+		// 'test/integration/nodechaincode/e2e.js',
+		// channel: mychannel3
+		'test/integration/typescript/test.js',
 	]))
 	.pipe(addsrc.append(
 		'test/unit/logger.js' // put this to the last so the debugging levels are not mixed up
