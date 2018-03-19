@@ -99,7 +99,14 @@ gulp.task('docker-ready', ['docker-clean'], shell.task([
 	'docker-compose -f test/fixtures/docker-compose.yaml up -d'
 ]));
 
-gulp.task('test', ['clean-up', 'lint', 'pre-test', 'docker-ready', 'ca'], function() {
+gulp.task('compile', shell.task([
+	'npm run compile',
+], {
+	verbose: true, // so we can see the docker command output
+	ignoreErrors: false // once compile failed, throw error
+}));
+
+gulp.task('test', ['clean-up', 'lint', 'pre-test', 'compile', 'docker-ready', 'ca'], function() {
 	// use individual tests to control the sequence they get executed
 	// first run the ca-tests that tests all the member registration
 	// and enrollment scenarios (good and bad calls). Then the rest
@@ -107,6 +114,8 @@ gulp.task('test', ['clean-up', 'lint', 'pre-test', 'docker-ready', 'ca'], functi
 	// saved the user certificates so they can interact with the
 	// network
 	return gulp.src(shouldRunPKCS11Tests([
+		// channel: mychannel3
+		'test/integration/typescript/test.js',
 		'test/unit/config.js', // needs to be first
 		'test/unit/**/*.js',
 		'!test/unit/constants.js',
@@ -142,7 +151,7 @@ gulp.task('test', ['clean-up', 'lint', 'pre-test', 'docker-ready', 'ca'], functi
 		'test/integration/perf/peer.js',
 		'test/integration/network-config.js',
 		// channel: mychannel, chaincode: e2enodecc:v0
-		'test/integration/nodechaincode/e2e.js'
+		'test/integration/nodechaincode/e2e.js',
 	]))
 	.pipe(addsrc.append(
 		'test/unit/logger.js' // put this to the last so the debugging levels are not mixed up
