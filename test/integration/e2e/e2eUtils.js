@@ -260,24 +260,11 @@ function instantiateChaincode(userOrg, chaincode_path, version, language, upgrad
 
 				targets.push(peer);
 				channel.addPeer(peer);
+
+				let eh = channel.newChannelEventHub(peer);
+				eventhubs.push(eh);
 			}
 		}
-
-		// an event listener can only register with a peer in its own org
-		logger.debug(' create new eventhub %s', ORGS[userOrg]['peer1'].events);
-		let data = fs.readFileSync(path.join(__dirname, ORGS[userOrg]['peer1']['tls_cacerts']));
-		let eh = client.newEventHub();
-		eh.setPeerAddr(
-			ORGS[userOrg]['peer1'].events,
-			{
-				pem: Buffer.from(data).toString(),
-				'clientCert': tlsInfo.certificate,
-				'clientKey': tlsInfo.key,
-				'ssl-target-name-override': ORGS[userOrg]['peer1']['server-hostname']
-			}
-		);
-		eh.connect();
-		eventhubs.push(eh);
 
 		// read the config block from the peer for the channel
 		// and initialize the verify MSPs based on the participating
@@ -390,13 +377,11 @@ function instantiateChaincode(userOrg, chaincode_path, version, language, upgrad
 			var eventPromises = [];
 			eventhubs.forEach((eh) => {
 				let txPromise = new Promise((resolve, reject) => {
-					let handle = setTimeout(reject, 120000);
+					let handle = setTimeout(reject, 30000);
 
 					eh.registerTxEvent(deployId.toString(), (tx, code) => {
 						t.pass('The chaincode ' + type + ' transaction has been committed on peer '+ eh.getPeerAddr());
 						clearTimeout(handle);
-						eh.unregisterTxEvent(deployId);
-
 						if (code !== 'VALID') {
 							t.fail('The chaincode ' + type + ' transaction was invalid, code = ' + code);
 							reject();
@@ -407,8 +392,9 @@ function instantiateChaincode(userOrg, chaincode_path, version, language, upgrad
 					}, (err) => {
 						t.fail('There was a problem with the instantiate event '+err);
 						clearTimeout(handle);
-						eh.unregisterTxEvent(deployId);
+						reject();
 					});
+					eh.connect();
 				});
 				logger.debug('register eventhub %s with tx=%s',eh.getPeerAddr(),deployId);
 				eventPromises.push(txPromise);
