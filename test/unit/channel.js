@@ -105,17 +105,34 @@ test('\n\n ** Channel - method tests **\n\n', function (t) {
 		null,
 		'checking the channel addOrderer()'
 	);
-	t.equal(_channel.getOrderers()[0].toString(), ' Orderer : {url:grpc://somehost.com:1234}', 'checking channel getOrderers()');
+	t.doesNotThrow(
+		function () {
+			var peer = new Peer('grpc://somehost.com:1234');
+			_channel.close();
+			_channel.addPeer(peer);
+			_channel.close();
+		},
+		null,
+		'checking the channel addPeer()'
+	);
+	t.equal(_channel.getOrderers()[0].toString(), 'Orderer:{url:grpc://somehost.com:1234}', 'checking channel getOrderers()');
+	t.equal(_channel.getPeers()[0].toString(), 'Peer:{url:grpc://somehost.com:1234}', 'checking channel getPeers()');
 	t.throws(
 		function () {
 			var orderer = new Orderer('grpc://somehost.com:1234');
 			_channel.addOrderer(orderer);
 		},
-		/^DuplicateOrderer: Orderer with URL/,
+		/^DuplicateOrderer: Orderer/,
 		'Channel tests: checking that orderer already exists.'
 	);
-	t.equal(_channel.toString(), '{"name":"testchannel","orderers":" Orderer : {url:grpc://somehost.com:1234}|"}', 'checking channel toString');
-	t.notEquals(_channel.getMSPManager(), null, 'checking the channel getMSPManager()');
+	let test_string = Buffer.from('{"name":"testchannel","orderers":["Orderer:{url:grpc://somehost.com:1234}"],"peers":["Peer:{url:grpc://somehost.com:1234}"]}');
+	let channel_string = Buffer.from(_channel.toString());
+	if(test_string.equals(channel_string)) {
+		t.pass('Successfully tested Channel toString()');
+	} else {
+		t.fail('Failed Channel toString() test');
+	}
+	t.notEquals(_channel.getMSPManager(),null,'checking the channel getMSPManager()');
 	t.doesNotThrow(
 		function () {
 			var msp_manager = new MSPManager();
@@ -124,7 +141,8 @@ test('\n\n ** Channel - method tests **\n\n', function (t) {
 		null,
 		'checking the channel setMSPManager()'
 	);
-	t.notEquals(_channel.getOrganizations(), null, 'checking the channel getOrganizations()');
+	t.notEquals(_channel.getOrganizations(),null,'checking the channel getOrganizations()');
+
 	t.end();
 });
 
@@ -375,8 +393,8 @@ test('\n\n ** Channel joinChannel() tests **\n\n', function (t) {
 		() => {
 			channel.joinChannel({ txId: 'txid', block: 'something', targets: 'somename' });
 		},
-		/No network configuraton loaded/,
-		'Checking joinChannel(): No network configuraton loaded'
+		/not assigned/,
+		'Checking joinChannel(): not found'
 	);
 
 	t.end();

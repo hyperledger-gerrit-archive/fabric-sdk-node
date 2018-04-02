@@ -299,16 +299,16 @@ test('\n\n ** testing query calls fail without correct parameters on client **\n
 		t.fail('Should not have been able to resolve the promise because of missing request parameter');
 	}).catch(function (err) {
 		if (err.message.indexOf('Peer is required') >= 0) {
-			t.pass('Successfully caught missing request error');
+			t.pass('p1 - Successfully caught missing request error');
 		} else {
-			t.fail('Failed to catch the missing request error. Error: ' + err.stack ? err.stack : err);
+			t.fail('p1 - Failed to catch the missing request error. Error: ' + err.stack ? err.stack : err);
 		}
 	});
 
 	var p1a = client.queryInstalledChaincodes('somename').then(function () {
 		t.fail('Should not have been able to resolve the promise because of No network configuraton loaded');
 	}).catch(function (err) {
-		if (err.message.indexOf('No network configuraton loaded') >= 0) {
+		if (err.message.indexOf('not found') >= 0) {
 			t.pass('Successfully caught No network configuraton loaded error');
 		} else {
 			t.fail('Failed to catch the No network configuraton loaded error. Error: ' + err.stack ? err.stack : err);
@@ -319,16 +319,16 @@ test('\n\n ** testing query calls fail without correct parameters on client **\n
 		t.fail('Should not have been able to resolve the promise because of missing request parameter');
 	}).catch(function (err) {
 		if (err.message.indexOf('Peer is required') >= 0) {
-			t.pass('Successfully caught missing request error');
+			t.pass('p2 - Successfully caught missing request error');
 		} else {
-			t.fail('Failed to catch the missing request error. Error: ' + err.stack ? err.stack : err);
+			t.fail('p2 - Failed to catch the missing request error. Error: ' + err.stack ? err.stack : err);
 		}
 	});
 
 	var p3 = client.queryChannels('somename').then(function () {
 		t.fail('Should not have been able to resolve the promise because of no network loaded');
 	}).catch(function (err) {
-		if (err.message.indexOf('No network configuraton loaded') >= 0) {
+		if (err.message.indexOf('not found') >= 0) {
 			t.pass('Successfully caught no network loaded error');
 		} else {
 			t.fail('Failed to catch the no network loaded error. Error: ' + err.stack ? err.stack : err);
@@ -339,7 +339,7 @@ test('\n\n ** testing query calls fail without correct parameters on client **\n
 	var p4 = client.queryChannels('somename').then(function () {
 		t.fail('Should not have been able to resolve the promise because of wrong request parameter');
 	}).catch(function (err) {
-		if (err.message.indexOf('Target peer name was not found') >= 0) {
+		if (err.message.indexOf('not found') >= 0) {
 			t.pass('Successfully caught wrong request error');
 		} else {
 			t.fail('Failed to catch the wrong request error. Error: ' + err.stack ? err.stack : err);
@@ -349,7 +349,7 @@ test('\n\n ** testing query calls fail without correct parameters on client **\n
 	var p4a = client.queryInstalledChaincodes('somename').then(function () {
 		t.fail('Should not have been able to resolve the promise because of wrong request parameter');
 	}).catch(function (err) {
-		if (err.message.indexOf('Target peer name was not found') >= 0) {
+		if (err.message.indexOf('not found') >= 0) {
 			t.pass('Successfully caught wrong request error');
 		} else {
 			t.fail('Failed to catch the wrong request error. Error: ' + err.stack ? err.stack : err);
@@ -525,7 +525,7 @@ test('\n\n ** client installChaincode() tests **\n\n', function (t) {
 		chaincodeVersion: 'blah'}).then(function () {
 			t.fail('p6 - Should not have been able to resolve the promise because of bad request parameter');
 		}).catch(function (err) {
-			if (err.message.indexOf('No network configuraton loaded') >= 0) {
+			if (err.message.indexOf('not found') >= 0) {
 				t.pass('p6 - Successfully caught bad request error');
 			} else {
 				t.fail('p6 - Failed to catch the bad request error. Error: ' + err.stack ? err.stack : err);
