@@ -790,8 +790,7 @@ test('\n\n ** configuration testing **\n\n', function (t) {
 		clientp1._getSigningIdentity(true);
 		t.pass('Should be able to get the loaded admin identity');
 	}).catch(function (err) {
-		t.fail('Should not get an error when doing get signer ');
-		logger.error(err.stack ? err.stack : err);
+		t.fail(util.format('Should not get an error when doing get signer: %O',err));
 	});
 
 	const clientp2 = Client.loadFromConfig('test/fixtures/network.yaml');

@@ -162,7 +162,7 @@ test('\n\n***** SDK Built config update  create flow  *****\n\n', function(t) {
 
 		// let's try to get some info from the orderer
 		// Get the system channel config decoded
-		let sys_channel = client.newChannel('testchainid');
+		const sys_channel = client.newChannel('testchainid');
 		sys_channel.addOrderer(orderer);
 		return sys_channel.getChannelConfigFromOrderer();
 	}).then((config_envelope) => {
