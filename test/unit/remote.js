@@ -22,7 +22,6 @@ var crypto = require('crypto');
 var test = _test(tape);
 
 var testutil = require('./util.js');
-var hash = require('fabric-client/lib/hash.js');
 
 var Client = require('fabric-client');
 var Remote = require('fabric-client/lib/Remote.js');
