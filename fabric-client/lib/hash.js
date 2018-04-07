@@ -34,7 +34,7 @@ class hashBaseClass {
 		return this;
 	}
 	update(data) {
-		logger.debug(`update(${typeof data})`);
+		//logger.debug(`update(${typeof data})`);
 		this._hash.update(data);
 		return this;
 	}
