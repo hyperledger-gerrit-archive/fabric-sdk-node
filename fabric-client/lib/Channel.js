@@ -1496,7 +1496,7 @@ var Channel = class {
 		logger.debug('sendTransactionProposal - adding function arg:%s', request.fcn ? request.fcn : 'invoke');
 
 		for (let i = 0; i < request.args.length; i++) {
-			logger.debug('sendTransactionProposal - adding arg:%s', request.args[i]);
+			//logger.debug('sendTransactionProposal - adding arg:%s', request.args[i]);
 			args.push(Buffer.from(request.args[i], 'utf8'));
 		}
 		//special case to support the bytes argument of the query by hash
