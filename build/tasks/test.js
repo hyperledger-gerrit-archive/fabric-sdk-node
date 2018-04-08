@@ -148,8 +148,6 @@ gulp.task('test', ['clean-up', 'lint', 'pre-test', 'compile', 'docker-ready', 'c
 		'test/integration/e2e/query.js',
 		'test/integration/invoke.js',
 		'test/integration/network-config.js',
-		// channel: mychannel, chaincode: e2enodecc:v0
-		'test/integration/nodechaincode/e2e.js',
 		'test/integration/only-admin.js',
 		'test/integration/perf/orderer.js',
 		'test/integration/perf/peer.js'
