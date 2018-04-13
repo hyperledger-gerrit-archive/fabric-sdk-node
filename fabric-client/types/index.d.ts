@@ -110,6 +110,7 @@ declare namespace Client {
     importKey(pem: string, opts: KeyOpts): ICryptoKey | Promise<ICryptoKey>;
     sign(key: ICryptoKey, digest: Buffer): Buffer;
     verify(key: ICryptoKey, signature: Buffer, digest: Buffer): boolean;
+    setCryptoKeyStore(keystore:ICryptoKeyStore): void
   }
 
   export interface UserConfig {

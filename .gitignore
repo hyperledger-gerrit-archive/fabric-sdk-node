@@ -30,3 +30,4 @@ test/fixtures/src/github.com/example_cc/junk.go
 .idea
 test/typescript/**/*.js
 test/typescript/**/*.js.map
+.gitreview
