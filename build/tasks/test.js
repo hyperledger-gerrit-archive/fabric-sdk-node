@@ -119,6 +119,9 @@ gulp.task('test', ['clean-up', 'lint', 'pre-test', 'compile', 'docker-ready', 'c
 		'!test/unit/constants.js',
 		'!test/unit/util.js',
 		'!test/unit/logger.js',
+		// put the certificate-service to the first so at the beginning
+		// there are no certificates in ca
+		'test/integration/fabric-ca-certificate-service-tests.js',
 		// channel: mychannel, chaincode: e2enodecc:v0
 		'test/integration/nodechaincode/e2e.js',
 		// channel: mychannel, chaincode: end2endnodesdk:v0/v1
