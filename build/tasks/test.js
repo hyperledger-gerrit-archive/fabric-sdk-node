@@ -126,6 +126,7 @@ gulp.task('test', ['clean-up', 'lint', 'pre-test', 'compile', 'docker-ready', 'c
 		'test/integration/query.js',
 		'test/integration/fabric-ca-affiliation-service-tests.js',
 		'test/integration/fabric-ca-identity-service-tests.js',
+		'test/integration/fabric-ca-certificate-service-tests.js',
 		'test/integration/fabric-ca-services-tests.js',
 		'test/integration/client.js',
 		'test/integration/orderer-channel-tests.js',
@@ -170,6 +171,7 @@ gulp.task('test-headless', ['clean-up', 'lint', 'pre-test', 'ca'], function() {
 	process.setMaxListeners(0);
 
 	return gulp.src(shouldRunPKCS11Tests([
+		'test/unit/config.js',
 		'test/unit/**/*.js',
 		'!test/unit/constants.js',
 		'!test/unit/util.js',
@@ -196,6 +198,7 @@ function shouldRunPKCS11Tests(tests) {
 	if (os.arch().match(/(x64|x86)/) === null ||
 		!(typeof process.env.PKCS11_TESTS === 'string' && process.env.PKCS11_TESTS.toLowerCase() == 'true')) {
 		tests.push('!test/unit/pkcs11.js');
+		console.log('111');
 	}
 
 	return tests;
