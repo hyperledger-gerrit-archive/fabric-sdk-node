@@ -126,6 +126,7 @@ gulp.task('test', ['clean-up', 'lint', 'pre-test', 'compile', 'docker-ready', 'c
 		'test/integration/query.js',
 		'test/integration/fabric-ca-affiliation-service-tests.js',
 		'test/integration/fabric-ca-identity-service-tests.js',
+		'test/integration/fabric-ca-certificate-service-tests.js',
 		'test/integration/fabric-ca-services-tests.js',
 		'test/integration/client.js',
 		'test/integration/orderer-channel-tests.js',
