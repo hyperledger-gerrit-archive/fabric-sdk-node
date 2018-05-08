@@ -60,6 +60,7 @@ var EndorsementPolicy = class {
 	 * @param {MSP[]} msps Array of Member Service Provider objects representing the participants of the
 	 * endorsement policy to be constructed
 	 * @param {Policy} policy The policy specification. It has two high-level properties: identities and policy.
+	 * @param {boolean} returnMsg If true, return the message, else return buffer
 	 * see the type definition of {@link Policy} for details.
 	 */
 	static buildPolicy(msps, policy) {
@@ -138,7 +139,7 @@ function buildPrincipal(identity) {
 	const principalType = getIdentityType(identity);
 	const newPrincipal = new _mspPrProto.MSPPrincipal();
 
-	if (principalType===IDENTITY_TYPE.Role) {
+	if (principalType === IDENTITY_TYPE.Role) {
 		newPrincipal.setPrincipalClassification(_mspPrProto.MSPPrincipal.Classification.ROLE);
 		const newRole = new _mspPrProto.MSPRole();
 		const roleName = identity[principalType].name;
@@ -153,14 +154,13 @@ function buildPrincipal(identity) {
 		}
 
 		let mspid = identity[principalType].mspId;
-		if (typeof mspid !== 'string' || !mspid ) {
+		if (typeof mspid !== 'string' || !mspid) {
 			throw new Error(util.format('Invalid mspid found: "%j"', mspid));
 		}
 		newRole.setMspIdentifier(identity[principalType].mspId);
 
 		newPrincipal.setPrincipal(newRole.toBuffer());
-	}
-	else {
+	} else {
 		throw new Error('NOT IMPLEMENTED');
 	}
 
@@ -184,8 +184,7 @@ function getIdentityType(obj) {
 		IDENTITY_TYPE.Role,
 		IDENTITY_TYPE.OrganizationUnit,
 		IDENTITY_TYPE.Identity,
-		invalidTypes)
-	);
+		invalidTypes));
 }
 
 function getPolicyType(spec) {
@@ -232,5 +231,31 @@ function parsePolicy(spec) {
 	}
 }
 
+function buildSignaturePolicy(spec) {
+	const type = getPolicyType(spec);
+	if (type === 'signed-by') {
+		return {
+			signed_by: spec[type]
+		};
+	} else {
+		let n = type.match(/^(\d+)-of$/)[1];
+		n = parseInt(n);
+		let ruleArray = spec[type];
+		let rules = [];
+		ruleArray.forEach(rule => {
+			rules.push(buildSignaturePolicy(rule));
+		});
+		const nOutOf = {
+			n_out_of: {
+				n,
+				rules
+			}
+		};
+		return nOutOf;
+	}
+}
+
 module.exports = EndorsementPolicy;
 module.exports.IDENTITY_TYPE = IDENTITY_TYPE;
+module.exports.buildPrincipal = buildPrincipal;
+module.exports.buildSignaturePolicy = buildSignaturePolicy;
