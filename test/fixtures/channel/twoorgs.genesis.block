@@ -1,9 +1,9 @@
 
-" JÄÅnÆÄ‡]K{³DÀ\±ûÂİf«æ‰iĞŞ®ûó Œ
+" Œäôáäì±ŒàtûŞúBÇ¾Ş©:â'pëèÊ Œ
 œŒ
 ˜Œ
 y
-[ Û·Ô"testchainid*@5752eea4e1aef66177dc2c40cbae60cb87e2485543f37e6c0090813c2b38bf42Õ1½¶ç)aôÙôW´G`Ëô«ŠKî™‹
+[‹•ë×"testchainid*@028bd2c7f277f15477cd5fd14c2a154d213d59c2f48fc838c5015a592d504806Ïµ'ŒÄ¯b€á}n›Y‰Ñ„9™‹
 •‹‘‹¸S
 Orderer¬SÛP
 
@@ -187,14 +187,14 @@ BPdjC4N80Yys3wJ9i4/mxz1ikCFJ890EMAoGCCqGSM49BAMCA0cAMEQCID4dOXH8
 6ginPTS17oyyowkdM34Z5ATPdA7WytfA8IW+AiA0jguTMYimuWEWuTulOgyNZ3ai
 hzFkzY/dm7duN86yJQ==
 -----END CERTIFICATE-----
-Admins"3
-Writers( 
-
-OrdererMSPAdmins"4
+Admins"4
 Admins*  
 
 OrdererMSPAdmins"3
 Readers( 
+
+OrdererMSPAdmins"3
+Writers( 
 
 OrdererMSPAdmins*Admins
 ChannelRestrictionsAdmins$
@@ -349,16 +349,16 @@ nM2KGw+XJ5/pm/Q=
 Org2MSPAdmins*Admins@
 ChannelCreationPolicy'
 Admins/Channel/Orderer/Admins*/Channel/Orderer/Admins"-
-Admins# /Channel/Orderer/Admins*/Channel/Orderer/Admins&
-HashingAlgorithm
-SHA256Admins-
-BlockDataHashingStructureÿÿÿÿAdminsI
+Admins# /Channel/Orderer/Admins*/Channel/Orderer/AdminsI
 OrdererAddresses5
 orderer.example.com:7050/Channel/Orderer/Admins$
 Capabilities
 
 
-V1_1 Admins""
+V1_1 Admins&
+HashingAlgorithm
+SHA256Admins-
+BlockDataHashingStructureÿÿÿÿAdmins""
 Admins
 
 AdminsAdmins""
