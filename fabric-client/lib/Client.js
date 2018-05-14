@@ -1119,7 +1119,6 @@ var Client = class extends BaseClient {
 		// step 2: construct the ChaincodeDeploymentSpec
 		const chaincodeDeploymentSpec = new _ccProto.ChaincodeDeploymentSpec();
 		chaincodeDeploymentSpec.setChaincodeSpec(ccSpec);
-		chaincodeDeploymentSpec.setEffectiveDate(clientUtils.buildCurrentTimestamp()); //TODO may wish to add this as a request setting
 
 		return _getChaincodePackageData(request, this.isDevMode())
 			.then((data) => {
