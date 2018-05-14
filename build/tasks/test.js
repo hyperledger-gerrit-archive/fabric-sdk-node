@@ -149,6 +149,7 @@ gulp.task('test', ['clean-up', 'lint', 'pre-test', 'docker-ready', 'ca'], functi
 		'test/integration/invoke.js',
 		'test/integration/network-config.js',
 		'test/integration/only-admin.js',
+		'test/integration/discover.js',
 		'test/integration/grpc.js',
 		'test/integration/perf/orderer.js',
 		'test/integration/perf/peer.js'
