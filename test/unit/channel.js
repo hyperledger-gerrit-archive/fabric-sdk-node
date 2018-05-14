@@ -1144,3 +1144,29 @@ test('\n\n ** Channel executeTransaction() tests **\n\n', function (t) {
 
 	t.end();
 });
+
+test('\n\n*** Test discovery support ***\n', function (t) {
+	const client = new Client();
+	client._userContext = {
+		getIdentity: function () { return ''; },
+		getSigningIdentity: function () { return ''; }
+	};
+
+	let channel = client.newChannel('somechannel', client);
+	t.throws(
+		function () {
+			channel.discover();
+		},
+		/Missing all required input request parameters/,
+		'Test discover() for: Missing all required input request parameters'
+	);
+
+	t.throws(
+		function () {
+			channel.discover({target:'bad'});
+		},
+		/Peer with name "bad" not assigned to this channel/,
+		'Test discover() for: Peer with name "bad" not assigned to this channel'
+	);
+	t.end();
+});
