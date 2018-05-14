@@ -578,3 +578,16 @@ module.exports.checkIntegerConfig = function(opts, configName) {
 	}
 	return result;
 };
+
+module.exports.convertToArrayOfHexStrings = function(buffer_array) {
+	const result = [];
+	if(Array.isArray(buffer_array)) {
+		for(let index in buffer_array) {
+			const buffer = buffer_array[index];
+			const hex_string = buffer.toString('hex');
+			result.push(hex_string);
+		}
+	}
+
+	return result;
+};
