@@ -1,3 +1,8 @@
+/**
+ * Copyright 2018 ASTRI All Rights Reserved.
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
 const tape = require('tape');
 const _test = require('tape-promise');
 const test = _test(tape);
