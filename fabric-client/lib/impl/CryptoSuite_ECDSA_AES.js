@@ -307,14 +307,20 @@ class CryptoSuite_ECDSA_AES extends api.CryptoSuite {
 // generates signatures properly in order to avoid massive rejection
 // of transactions.
 
-// map for easy lookup of the "N/2" value per elliptic curve
-const halfOrdersForCurve = {
-	'secp256r1': elliptic.curves['p256'].n.shrn(1),
-	'secp384r1': elliptic.curves['p384'].n.shrn(1)
+// map for easy lookup of the "N/2" and "N" value per elliptic curve
+const ordersForCurve = {
+    'secp256r1': {
+        "halfOrder": elliptic.curves['p256'].n.shrn(1),
+        "order": elliptic.curves['p256'].n
+    },
+    'secp384r1': {
+        "halfOrder": elliptic.curves['p384'].n.shrn(1),
+        "order": elliptic.curves['p384'].n
+    }
 };
 
 function _preventMalleability(sig, curveParams) {
-	const halfOrder = halfOrdersForCurve[curveParams.name];
+	const halfOrder = ordersForCurve[curveParams.name]["halfOrder"];
 	if (!halfOrder) {
 		throw new Error('Can not find the half order needed to calculate "s" value for immalleable signatures. Unsupported curve name: ' + curveParams.name);
 	}
@@ -323,7 +329,7 @@ function _preventMalleability(sig, curveParams) {
 	// first see if 's' is larger than half of the order, if so, it needs to be specially treated
 	if (sig.s.cmp(halfOrder) === 1) { // module 'bn.js', file lib/bn.js, method cmp()
 		// convert from BigInteger used by jsrsasign Key objects and bn.js used by elliptic Signature objects
-		const bigNum = new BN(curveParams.n.toString(16), 16);
+		const bigNum = ordersForCurve[curveParams.name]["order"];
 		sig.s = bigNum.sub(sig.s);
 	}
 
@@ -331,7 +337,7 @@ function _preventMalleability(sig, curveParams) {
 }
 
 function _checkMalleability(sig, curveParams) {
-	const halfOrder = halfOrdersForCurve[curveParams.name];
+	const halfOrder = ordersForCurve[curveParams.name]["halfOrder"];
 	if (!halfOrder) {
 		throw new Error('Can not find the half order needed to calculate "s" value for immalleable signatures. Unsupported curve name: ' + curveParams.name);
 	}
