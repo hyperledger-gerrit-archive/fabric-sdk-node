@@ -1,23 +1,13 @@
 /**
  * Copyright 2016-2017 IBM All Rights Reserved.
  *
- * Licensed under the Apache License, Version 2.0 (the 'License');
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *    http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an 'AS IS' BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
+ * SPDX-License-Identifier: Apache-2.0
  */
 
 'use strict';
 
 var tape = require('tape');
-var _test = require('tape-promise');
+var _test = require('tape-promise').default;
 var test = _test(tape);
 
 var testutil = require('./util.js');
@@ -151,13 +141,32 @@ test('\n\n ** ECDSA Key Impl tests **\n\n', function (t) {
 		'Checking that a CSR cannot be generated from a public key'
 	);
 
-	//malformed subjectDN
+	// undefined subjectDN will throw error. However, emptry string '' will not throw error
 	try {
-		var csrPEM = key3.generateCSR('###############');
-		t.fail('Should not have generated a CSR with a malformed subject');
+		const csrPEM = key3.generateCSR();
+		t.fail('Should not have generated a CSR with undefined subject');
 	}
 	catch (err) {
-		t.pass('Checking that CSR is not generated for a malformed subject');
+		t.pass('Checking that CSR is not generated for undefined subject');
+	};
+
+	try {
+		const csrPEM = key3.generateCSR('');
+		t.pass('Checking that CSR is generated for empty subjectDN');
+	}
+	catch (err) {
+		console.log('-------- throw error' + err.toString());
+		t.fail('Should not throw an error - generateCSR creates a CSR with empty subjectDN');
+	};
+
+	// NOTE: jsrsasign@8.0.12 does not throw error for below subjectDN. Instead, it creates a CSR with subjectDN=###############
+	try {
+		const csrPEM = key3.generateCSR('###############');
+		t.pass('Checking that CSR is generated for subjectDN=###############');
+	}
+	catch (err) {
+		console.log('-------- throw error' + err.toString());
+		t.fail('Should not throw an error - generateCSR creates a CSR with subjectDN=###############');
 	};
 
 	//valid CSR tests

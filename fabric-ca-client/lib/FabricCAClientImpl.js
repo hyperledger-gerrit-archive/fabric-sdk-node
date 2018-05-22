@@ -1004,8 +1004,10 @@ var FabricCAClient = class {
 // first which as of jsrsasign@6.2.3 always assumes RSA based certificates and
 // fails to parse certs that includes ECDSA keys.
 function getSubjectCommonName(pem) {
-	var hex = x509.pemToHex(pem);
-	var d = ASN1HEX.getDecendantHexTLVByNthList(hex, 0, [0, 5]);
+	// Call new API because old API (x509.pemToHex and ASN1HEX.getDecendantHexTLVByNthList)
+	// was deprecated in jsrsasign@7.2.0 and removed in jsrsasign@8.0.0.
+	const hex = jsrsasign.pemtohex(pem);
+	const d = ASN1HEX.getTLVbyList(hex, 0, [0, 5]);
 	var subject = x509.hex2dn(d); // format: '/C=US/ST=California/L=San Francisco/CN=Admin@org1.example.com/emailAddress=admin@org1.example.com'
 	var m = subject.match(/CN=.+[^/]/);
 	if (!m)
