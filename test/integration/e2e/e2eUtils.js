@@ -23,7 +23,7 @@ var KEYUTIL = require('jsrsasign').KEYUTIL;
 var logger = utils.getLogger('E2E testing');
 
 var tape = require('tape');
-var _test = require('tape-promise');
+var _test = require('tape-promise').default;
 var test = _test(tape);
 
 var path = require('path');

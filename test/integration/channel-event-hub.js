@@ -20,7 +20,7 @@ let utils = require('fabric-client/lib/utils.js');
 let logger = utils.getLogger('channel-event-hub');
 
 let tape = require('tape');
-let _test = require('tape-promise');
+let _test = require('tape-promise').default;
 let test = _test(tape);
 
 let path = require('path');

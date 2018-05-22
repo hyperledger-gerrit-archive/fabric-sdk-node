@@ -17,7 +17,7 @@
 'use strict';
 
 var tape = require('tape');
-var _test = require('tape-promise');
+var _test = require('tape-promise').default;
 var test = _test(tape);
 
 var Organization = require('fabric-client/lib/Organization.js');

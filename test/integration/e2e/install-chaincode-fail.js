@@ -22,7 +22,7 @@ var utils = require('fabric-client/lib/utils.js');
 var logger = utils.getLogger('E2E install-chaincode-fail');
 
 var tape = require('tape');
-var _test = require('tape-promise');
+var _test = require('tape-promise').default;
 var test = _test(tape);
 
 var e2eUtils = require('./e2eUtils.js');

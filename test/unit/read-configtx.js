@@ -24,7 +24,7 @@ var util = require('util');
 var fs = require('fs');
 var path = require('path');
 var tape = require('tape');
-var _test = require('tape-promise');
+var _test = require('tape-promise').default;
 var test = _test(tape);
 
 var Channel = require('fabric-client/lib/Channel.js');

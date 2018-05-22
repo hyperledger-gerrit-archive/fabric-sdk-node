@@ -17,7 +17,7 @@
 'use strict';
 
 var tape = require('tape');
-var _test = require('tape-promise');
+var _test = require('tape-promise').default;
 var test = _test(tape);
 
 var hfc = require('fabric-client');
@@ -226,6 +226,7 @@ test('\n\n ** Logging utility tests - test setting an external logger based on b
 
 test('\n\n ** Logging utility tests - test setting an external logger based on log4js **\n\n', function (t) {
 	var logger = log4js.getLogger();
+	logger.level = 'info'; // Set level in order to output logs because by default it is OFF
 	hfc.setLogger(logger);
 
 	testLogger(t, true);

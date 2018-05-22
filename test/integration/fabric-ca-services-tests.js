@@ -27,7 +27,7 @@ var utils = require('fabric-client/lib/utils.js');
 var logger = utils.getLogger('integration.client');
 
 var tape = require('tape');
-var _test = require('tape-promise');
+var _test = require('tape-promise').default;
 var test = _test(tape);
 
 var X509 = require('x509');

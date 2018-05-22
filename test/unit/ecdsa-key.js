@@ -17,7 +17,7 @@
 'use strict';
 
 var tape = require('tape');
-var _test = require('tape-promise');
+var _test = require('tape-promise').default;
 var test = _test(tape);
 
 var testutil = require('./util.js');
@@ -151,13 +151,32 @@ test('\n\n ** ECDSA Key Impl tests **\n\n', function (t) {
 		'Checking that a CSR cannot be generated from a public key'
 	);
 
-	//malformed subjectDN
+	// undefined subjectDN will throw error. However, emptry string '' will not throw error
 	try {
-		var csrPEM = key3.generateCSR('###############');
-		t.fail('Should not have generated a CSR with a malformed subject');
+		const csrPEM = key3.generateCSR();
+		t.fail('Should not have generated a CSR with undefined subject');
 	}
 	catch (err) {
-		t.pass('Checking that CSR is not generated for a malformed subject');
+		t.pass('Checking that CSR is not generated for undefined subject');
+	};
+
+	try {
+		const csrPEM = key3.generateCSR('');
+		t.pass('Checking that CSR is generated for empty subjectDN');
+	}
+	catch (err) {
+		console.log('-------- throw error' + err.toString());
+		t.fail('Should not throw an error - generateCSR creates a CSR with empty subjectDN');
+	};
+
+	// NOTE: jsrsasign@8.0.12 does not throw error for below subjectDN. Instead, it creates a CSR with subjectDN=###############
+	try {
+		const csrPEM = key3.generateCSR('###############');
+		t.pass('Checking that CSR is generated for subjectDN=###############');
+	}
+	catch (err) {
+		console.log('-------- throw error' + err.toString());
+		t.fail('Should not throw an error - generateCSR creates a CSR with subjectDN=###############');
 	};
 
 	//valid CSR tests

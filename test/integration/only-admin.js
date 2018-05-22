@@ -19,7 +19,7 @@ const utils = require('fabric-client/lib/utils.js');
 const logger = utils.getLogger('ONLY-ADMIN');
 
 const tape = require('tape');
-const _test = require('tape-promise');
+const _test = require('tape-promise').default;
 const test = _test(tape);
 
 const Client = require('fabric-client');

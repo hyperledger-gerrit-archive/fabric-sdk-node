@@ -20,7 +20,7 @@ var logger = utils.getLogger('orderer-channel');
 
 
 var tape = require('tape');
-var _test = require('tape-promise');
+var _test = require('tape-promise').default;
 var test = _test(tape);
 
 var util = require('util');
