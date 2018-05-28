@@ -209,7 +209,7 @@ class CryptoSuite_ECDSA_AES extends api.CryptoSuite {
 					store = st;
 					return store.getKey(ski);
 				}).then((key) => {
-					if (ECDSAKey.isInstance(key))
+					if (key instanceof ECDSAKey)
 						return resolve(key);
 
 					if (key !== null) {
