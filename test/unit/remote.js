@@ -8,13 +8,10 @@
 
 var tape = require('tape');
 var _test = require('tape-promise').default;
-var crypto = require('crypto');
 var test = _test(tape);
 
 var testutil = require('./util.js');
-var hash = require('fabric-client/lib/hash.js');
 
-var Client = require('fabric-client');
 var Remote = require('fabric-client/lib/Remote.js');
 var Peer = require('fabric-client/lib/Peer.js');
 var Orderer = require('fabric-client/lib/Orderer.js');
@@ -256,8 +253,8 @@ test('\n\n ** Remote node tests **\n\n', function (t) {
 
 	console.log('\n * ORDERER *');
 	//Peer: secure grpcs, requires opts.pem
-	var url = 'grpcs://' + aHostname + ':aport';
-	var opts = { pem: aPem };
+	url = 'grpcs://' + aHostname + ':aport';
+	opts = { pem: aPem };
 	var orderer = null;
 	t.doesNotThrow(
 		function () {

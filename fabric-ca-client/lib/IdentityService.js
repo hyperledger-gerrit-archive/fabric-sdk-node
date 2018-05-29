@@ -110,7 +110,7 @@ class IdentityService {
 		}
 
 		if (!req.enrollmentID || !req.affiliation) {
-			throw new Error('Missing required parameters.  "req.enrollmentID", "req.affiliation" are all required.');
+			throw new Error('Missing required parameters. "req.enrollmentID", "req.affiliation" are all required.');
 		}
 		checkRegistrar(registrar);
 		// set default maxEnrollments to 1
@@ -163,7 +163,7 @@ class IdentityService {
 			throw new Error('Can not get signingIdentity from registrar');
 		}
 
-		const url = 'identities/' + enrollmentID + '?ca='+this.client._caName;;
+		const url = 'identities/' + enrollmentID + '?ca='+this.client._caName;
 		return this.client.get(url, signingIdentity);
 	}
 

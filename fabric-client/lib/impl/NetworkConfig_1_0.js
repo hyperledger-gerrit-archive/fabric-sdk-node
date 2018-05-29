@@ -162,7 +162,7 @@ var NetworkConfig_1_0 = class {
 
 	getPeer(name, channel_org) {
 		var method = 'getPeer';
-		logger.debug('%s - name %s',method, name);
+		logger.debug('%s - name %s, channel_org: %j',method, name, channel_org);
 		var peer = this._peers.get(name);
 		if(!peer && this._network_config && this._network_config[PEERS_CONFIG]) {
 			let peer_config = this._network_config[PEERS_CONFIG][name];
@@ -376,7 +376,7 @@ var NetworkConfig_1_0 = class {
 	/*
 	 * Internal utility method to get the organization the peer belongs
 	 */
-	 _getOrganizationForPeer(peer_name) {
+	_getOrganizationForPeer(peer_name) {
 		if(this._network_config && this._network_config[ORGS_CONFIG]) {
 			for(let organization_name in  this._network_config[ORGS_CONFIG]) {
 				let organization = this.getOrganization(organization_name);
@@ -387,7 +387,7 @@ var NetworkConfig_1_0 = class {
 				}
 			}
 		}
-	 }
+	}
 };
 
 function getTLSCACert(config) {

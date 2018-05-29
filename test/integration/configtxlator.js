@@ -64,7 +64,7 @@ test('\n\n***** configtxlator flow for create and then update  *****\n\n', funct
 
 	// Acting as a client in org1 when creating the channel
 	var org = ORGS.org1.name;
-
+	let orderer;
 	utils.setConfigSetting('key-value-store', 'fabric-client/lib/impl/FileKeyValueStore.js');
 
 	return e2eUtils.tlsEnroll(org)
@@ -99,7 +99,7 @@ test('\n\n***** configtxlator flow for create and then update  *****\n\n', funct
 		t.pass('Successfully enrolled user \'admin\' for org1');
 		let config_json = fs.readFileSync(path.join(__dirname, '../fixtures/channel/' + channel_name + '.json'));
 
-		var orderer = client.newOrderer(
+		orderer = client.newOrderer(
 			ORGS.orderer.url,
 			{
 				'pem': caroots,

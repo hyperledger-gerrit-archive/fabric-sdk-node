@@ -143,7 +143,7 @@ test('\n\n** utils.newCryptoSuite tests **\n\n', (t) => {
 	let expectedError = '/Error:.*\/usr\/local\/lib/';
 	if (process.platform === 'win32') {
 		expectedError = 'Error: Win32 error 126/';
-	};
+	}
 	t.throws(
 		() => {
 			cs = utils.newCryptoSuite({lib: '/usr/local/lib', slot: 0, pin: '1234' });
@@ -270,7 +270,7 @@ test('\n\n ** CryptoSuite_ECDSA_AES - function tests **\n\n', function (t) {
 		t.equal('secp384r1', key.getPublicKey()._key.curveName,
 			'CryptoSuite_ECDSA_AES function tests: ccryptoUtils generated public key curveName == secp384r1');
 
-		if (!!key._key)
+		if (key._key)
 			t.pass('CryptoSuite_ECDSA_AES function tests: verify generateKey return object');
 		else
 			t.fail('CryptoSuite_ECDSA_AES function tests: verify generateKey return object');
@@ -288,7 +288,7 @@ test('\n\n ** CryptoSuite_ECDSA_AES - function tests **\n\n', function (t) {
 		t.fail('Failed to generateKey. Can not progress any further. Exiting. ' + err.stack ? err.stack : err);
 		t.end();
 	}).then(function (key) {
-		if (!!key._key)
+		if (key._key)
 			t.pass('CryptoSuite_ECDSA_AES function tests: verify generateKey ephemeral=true return object');
 		else
 			t.fail('CryptoSuite_ECDSA_AES function tests: verify generateKey ephemeral=true return object');
