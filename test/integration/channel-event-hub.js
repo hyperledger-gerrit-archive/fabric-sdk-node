@@ -70,6 +70,7 @@ test('Test chaincode instantiate with event, transaction invocation with chainco
 	.then((enrollment) => {
 		t.pass('Successfully retrieved TLS certificate');
 		tlsInfo = enrollment;
+		client.setTlsClientCertAndKey(tlsInfo.certificate, tlsInfo.key);
 		return Client.newDefaultKeyValueStore({path: testUtil.storePathForOrg('peerOrg1')});
 	}).then((store) => {
 		client.setStateStore(store);
@@ -84,8 +85,6 @@ test('Test chaincode instantiate with event, transaction invocation with chainco
 			'grpcs://localhost:7050',
 			{
 				'pem': caroots,
-				'clientCert': tlsInfo.certificate,
-				'clientKey': tlsInfo.key,
 				'ssl-target-name-override': 'orderer.example.com'
 			}
 		);
@@ -96,8 +95,6 @@ test('Test chaincode instantiate with event, transaction invocation with chainco
 			'grpcs://localhost:7051',
 			{
 				pem: Buffer.from(data).toString(),
-				'clientCert': tlsInfo.certificate,
-				'clientKey': tlsInfo.key,
 				'ssl-target-name-override': 'peer0.org1.example.com'
 			}
 		);
@@ -378,7 +375,7 @@ test('Test chaincode instantiate with event, transaction invocation with chainco
 		let event_monitor_1 =  new Promise((resolve, reject) => {
 			let handle = setTimeout(() => {
 				t.fail('Timeout - Failed to receive the event for event1');
-				event_hub.unregisterTxEvent(req1.txId.getTransactionID());
+				eh.unregisterTxEvent(req1.txId.getTransactionID());
 				reject('timeout');
 			}, 200000);
 
