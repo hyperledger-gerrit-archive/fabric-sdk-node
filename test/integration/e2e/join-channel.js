@@ -76,6 +76,7 @@ function joinChannel(org, t) {
 	.then((enrollment) => {
 		t.pass('Successfully retrieved TLS certificate');
 		tlsInfo = enrollment;
+		client.setTlsClientCertAndKey(tlsInfo.certificate, tlsInfo.key);
 		return Client.newDefaultKeyValueStore({path: testUtil.storePathForOrg(orgName)});
 	}).then((store) => {
 		client.setStateStore(store);
@@ -88,8 +89,6 @@ function joinChannel(org, t) {
 				ORGS.orderer.url,
 				{
 					'pem': caroots,
-					'clientCert': tlsInfo.certificate,
-					'clientKey': tlsInfo.key,
 					'ssl-target-name-override': ORGS.orderer['server-hostname']
 				}
 			)
@@ -121,8 +120,6 @@ function joinChannel(org, t) {
 							ORGS[org][key].requests,
 							{
 								pem: Buffer.from(data).toString(),
-								'clientCert': tlsInfo.certificate,
-								'clientKey': tlsInfo.key,
 								'ssl-target-name-override': ORGS[org][key]['server-hostname']
 							}
 						)

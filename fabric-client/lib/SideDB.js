@@ -71,6 +71,8 @@ function checkCollectionConfig(collectionConfig) {
 	if (blockToLive == null || Number.isNaN(Number.parseInt(blockToLive)) ||
 		Long.fromValue(blockToLive, true).isNegative() || Long.fromValue(blockToLive, true) > Long.MAX_UNSIGNED_VALUE) {
 		throw new Error(format('CollectionConfig Requires Param "blockToLive" of type unsigned int64, found %j(type: %s)', blockToLive, typeof blockToLive));
+	} else {
+		logger.info('Number is good %j', blockToLive);
 	}
 }
 
