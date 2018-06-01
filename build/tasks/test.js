@@ -122,7 +122,7 @@ gulp.task('run-test', ['clean-up', 'lint', 'pre-test', 'compile', 'docker-ready'
 	// network
 	return gulp.src(shouldRunPKCS11Tests([
 		'test/unit/config.js', // needs to be first
-		'test/unit/**/*.js',
+		//'test/unit/**/*.js',
 		'!test/unit/constants.js',
 		'!test/unit/util.js',
 		'!test/unit/logger.js',
@@ -175,6 +175,7 @@ gulp.task('run-test-headless', ['clean-up', 'lint', 'pre-test', 'ca'], function(
 
 	return gulp.src(shouldRunPKCS11Tests([
 		'test/unit/**/*.js',
+		'!test/unit/channel-event-hub.js',
 		'!test/unit/constants.js',
 		'!test/unit/util.js',
 		'!test/unit/logger.js'
