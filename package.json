@@ -4,7 +4,7 @@
   "main": "index.js",
   "repository": {
     "type": "gerrit",
-    "url": "http://gerrit.hyperledger.org/r/fabric-sdk-node"
+    "url": "https://gerrit.hyperledger.org/r/#/admin/projects/fabric-sdk-node"
   },
   "scripts": {
     "test": "gulp test-headless",
