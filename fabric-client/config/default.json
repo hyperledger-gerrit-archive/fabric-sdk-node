@@ -23,8 +23,8 @@
 		"1.0": "./impl/NetworkConfig_1_0.js"
 	},
 	"grpc-wait-for-ready-timeout": 3000,
-	"initialize-with-discovery": false,
+	"initialize-with-discovery": true,
 	"discovery-cache-life": 300000,
 	"discovery-protocol": "grpcs",
-	"endorsement-handler-path": "fabric-client/lib/impl/DiscoveryEndorsementHandler.js"
+	"endorsement-handler": "fabric-client/lib/impl/DiscoveryEndorsementHandler.js"
 }
