@@ -1,0 +1,7 @@
+Code-Review+2: Christopher Ferris <chris.ferris@gmail.com>
+Verified+1: Hyperledger Jobbuilder <jobbuilder@jenkins.hyperledger.org>
+Submitted-by: Bret Harrison <beharrison@nc.rr.com>
+Submitted-at: Tue, 12 Jun 2018 12:59:54 +0000
+Reviewed-on: https://gerrit.hyperledger.org/r/22965
+Project: fabric-sdk-node
+Branch: refs/heads/master
