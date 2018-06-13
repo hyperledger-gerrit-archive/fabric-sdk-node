@@ -131,13 +131,14 @@ class Remote {
 		if (!client) {
 			throw new Error('Missing required gRPC client');
 		}
-
 		const timeout = new Date().getTime() + this._grpc_wait_for_ready_timeout;
+
 		return new Promise((resolve, reject) => {
 			client.waitForReady(timeout, (err) => {
 				if (err) {
 					logger.error(err);
-					return reject(err);
+
+					reject(err);
 				}
 				logger.debug('Successfully connected to remote gRPC server');
 				resolve();
