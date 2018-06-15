@@ -147,9 +147,6 @@ const Client = class extends BaseClient {
 	 * @param {byte[]} clientKey - The client key.
 	 */
 	setTlsClientCertAndKey(clientCert, clientKey) {
-		const method = 'setTlsClientCertAndKey';
-		logger.debug('%s - start');
-
 		this._tls_mutual.clientCert = clientCert;
 		this._tls_mutual.clientKey = clientKey;
 	}
@@ -200,12 +197,9 @@ const Client = class extends BaseClient {
 	 * @returns {Channel} The uninitialized channel instance.
 	 */
 	newChannel(name) {
-		let channel = this._channels.get(name);
+		if (this._channels.get(name)) throw new Error(util.format('Channel %s already exists', name));
 
-		if (channel)
-			throw new Error(util.format('Channel %s already exists', name));
-
-		channel = new Channel(name, this);
+		const channel = new Channel(name, this);
 		this._channels.set(name, channel);
 		return channel;
 	}
@@ -219,11 +213,11 @@ const Client = class extends BaseClient {
 	 * @param {string} name - Optional. The name of the channel. When omitted the
 	 *        first channel defined in the loaded network configuration will be
 	 *        returned
-	 * @param {boolean} throwError - Indicates if this method will throw an error
-	 *        if the channel is not found. Default is true.
+	 * @param {boolean} swallowError - Indicates if this method will throw an error
+	 *        if the channel is not found. Default is false.
 	 * @returns {Channel} The channel instance
 	 */
-	getChannel(name, throwError) {
+	getChannel(name, swallowError) {
 		let channel = this._channels.get(name);
 
 		if (channel)
@@ -238,15 +232,12 @@ const Client = class extends BaseClient {
 				return channel;
 			}
 
-			logger.error('Channel not found for name '+name+'.');
+			logger.error(`Channel not found for name ${name}.`);
 
-			if(typeof throwError === 'undefined') {
-				throwError = true;
-			}
-			if(throwError) {
-				throw new Error('Channel not found for name '+name+'.');
-			} else {
+			if(swallowError) {
 				return null;
+			} else {
+				throw new Error(`Channel not found for name ${name}.`);
 			}
 		}
 	}
@@ -319,11 +310,11 @@ const Client = class extends BaseClient {
 	getPeersForOrg(org_name) {
 		if(this._network_config) {
 			if(!org_name && this._network_config.hasClient()) {
-				let client = this._network_config.getClientConfig();
+				const client = this._network_config.getClientConfig();
 				org_name = client.organization;
 			}
 			if(org_name) {
-				let organization = this._network_config.getOrganization(org_name);
+				const organization = this._network_config.getOrganization(org_name);
 				if(organization) {
 					return organization.getPeers();
 				}
@@ -347,9 +338,7 @@ const Client = class extends BaseClient {
 	 * @returns {Orderer} The Orderer instance.
 	 */
 	newOrderer(url, opts) {
-		let orderer = new Orderer(url, this._checkTLScert_n_key(opts));
-
-		return orderer;
+		return new Orderer(url, this._checkTLScert_n_key(opts));
 	}
 
 	/**
@@ -383,8 +372,7 @@ const Client = class extends BaseClient {
 	 * @returns {EventHub} The EventHub instance
 	 */
 	newEventHub() {
-		const event_hub = new EventHub(this);
-		return event_hub;
+		return new EventHub(this);
 	}
 
 	/**
@@ -397,12 +385,11 @@ const Client = class extends BaseClient {
 	 * @returns {EventHub} The EventHub instance that has had the event hub address assigned
 	 */
 	getEventHub(peer_name) {
-		let event_hub = null;
 		if(this._network_config) {
-			event_hub = this._network_config.getEventHub(peer_name);
+			return this._network_config.getEventHub(peer_name);
+		}else {
+			return null;
 		}
-
-		return event_hub;
 	}
 
 	/**
@@ -573,22 +560,10 @@ const Client = class extends BaseClient {
 	 */
 	extractChannelConfig(config_envelope) {
 		logger.debug('extractConfigUpdate - start');
-		try {
-			const envelope = _commonProto.Envelope.decode(config_envelope);
-			const payload = _commonProto.Payload.decode(envelope.getPayload().toBuffer());
-			const configtx = _configtxProto.ConfigUpdateEnvelope.decode(payload.getData().toBuffer());
-			return configtx.getConfigUpdate().toBuffer();
-		}
-		catch(err) {
-			if(err instanceof Error) {
-				logger.error('Problem with extracting the config update object :: %s', err.stack ? err.stack : err);
-				throw err;
-			}
-			else {
-				logger.error('Problem with extracting the config update object :: %s',err);
-				throw new Error(err);
-			}
-		}
+		const envelope = _commonProto.Envelope.decode(config_envelope);
+		const payload = _commonProto.Payload.decode(envelope.getPayload().toBuffer());
+		const configtx = _configtxProto.ConfigUpdateEnvelope.decode(payload.getData().toBuffer());
+		return configtx.getConfigUpdate().toBuffer();
 	}
 
 	/**
@@ -615,7 +590,7 @@ const Client = class extends BaseClient {
 	 */
 	signChannelConfig(config) {
 		logger.debug('signChannelConfigUpdate - start');
-		if (typeof config === 'undefined' || config === null) {
+		if (!config) {
 			throw new Error('Channel configuration update parameter is required.');
 		}
 		if(!(config instanceof Buffer)) {
@@ -681,12 +656,7 @@ const Client = class extends BaseClient {
 	 *                    the channel has been created completely or not.
 	 */
 	createChannel(request) {
-		let have_envelope = false;
-		if(request && request.envelope) {
-			logger.debug('createChannel - have envelope');
-			have_envelope = true;
-		}
-		return this._createOrUpdateChannel(request, have_envelope);
+		return this._createOrUpdateChannel(request, request && request.envelope);
 	}
 
 	/**
@@ -704,57 +674,26 @@ const Client = class extends BaseClient {
 	 *                    to connect to the peers and register a block listener.
 	 */
 	updateChannel(request) {
-		let have_envelope = false;
-		if(request && request.envelope) {
-			logger.debug('updateChannel - have envelope');
-			have_envelope = true;
-		}
-		return this._createOrUpdateChannel(request, have_envelope);
+		return this._createOrUpdateChannel(request, request && request.envelope);
 	}
 
 	/*
 	 * internal method to support create or update of a channel
 	 */
-	_createOrUpdateChannel(request, have_envelope) {
+	async _createOrUpdateChannel(request, have_envelope) {
 		logger.debug('_createOrUpdateChannel - start');
-		let error_msg = null;
-		let orderer = null;
 
 		if(!request) {
-			error_msg = 'Missing all required input request parameters for initialize channel';
+			throw Error('Missing all required input request parameters for initialize channel');
 		}
-		// Verify that a config envelope or config has been included in the request object
-		else if (!request.config && !have_envelope) {
-			error_msg = 'Missing config request parameter containing the configuration of the channel';
+		if(!request.name) {
+			// verify that we have the name of the new channel
+			throw Error('Missing name request parameter');
 		}
-		else if(!request.signatures && !have_envelope) {
-			error_msg = 'Missing signatures request parameter for the new channel';
+		if(!request.txId) {
+			throw Error('Missing txId request parameter');
 		}
-		else if(!Array.isArray(request.signatures ) && !have_envelope) {
-			error_msg = 'Signatures request parameter must be an array of signatures';
-		}
-		else if(!request.txId && !have_envelope) {
-			error_msg = 'Missing txId request parameter';
-		}
-		// verify that we have the name of the new channel
-		else if(!request.name) {
-			error_msg = 'Missing name request parameter';
-		}
-
-		if(error_msg) {
-			logger.error('_createOrUpdateChannel error %s',error_msg);
-			return Promise.reject(new Error(error_msg));
-		}
-
-		try {
-			orderer = this.getTargetOrderer(request.orderer, null, request.name);
-		} catch (err) {
-			return Promise.reject(err);
-		}
-
-		// caller should have gotten a admin based TransactionID
-		// but maybe not, so go with whatever they have decided
-		const signer = this._getSigningIdentity(request.txId.isAdmin());
+		const orderer = this.getTargetOrderer(request.orderer, null, request.name);
 
 		let signature = null;
 		let payload = null;
@@ -763,8 +702,18 @@ const Client = class extends BaseClient {
 			const envelope = _commonProto.Envelope.decode(request.envelope);
 			signature = envelope.signature;
 			payload = envelope.payload;
-		}
-		else {
+		} else {
+			// Verify that a config envelope or config has been included in the request object
+			if (!request.config) {
+				throw Error('Missing config request parameter containing the configuration of the channel');
+			}
+			if(!request.signatures) {
+				throw Error('Missing signatures request parameter for the new channel');
+			}
+			if(!Array.isArray(request.signatures )) {
+				throw Error('Signatures request parameter must be an array of signatures');
+			}
+
 			logger.debug('_createOrUpdateChannel - have config_update');
 			const proto_config_Update_envelope = new _configtxProto.ConfigUpdateEnvelope();
 			proto_config_Update_envelope.setConfigUpdate(request.config);
@@ -777,6 +726,8 @@ const Client = class extends BaseClient {
 				request.txId.getTransactionID()
 			);
 
+			const signer = this._getSigningIdentity(request.txId.isAdmin());
+
 			const proto_header = clientUtils.buildHeader(signer, proto_channel_header, request.txId.getNonce());
 			const proto_payload = new _commonProto.Payload();
 			proto_payload.setHeader(proto_header);
@@ -784,9 +735,7 @@ const Client = class extends BaseClient {
 			const payload_bytes = proto_payload.toBuffer();
 
 			const sig = signer.sign(payload_bytes);
-			const signature_bytes = Buffer.from(sig);
-
-			signature = signature_bytes;
+			signature = Buffer.from(sig);
 			payload = payload_bytes;
 		}
 
@@ -797,26 +746,9 @@ const Client = class extends BaseClient {
 		};
 
 		logger.debug('_createOrUpdateChannel - about to send envelope');
-		return orderer.sendBroadcast(out_envelope)
-			.then(
-				function(results) {
-					logger.debug('_createOrUpdateChannel - good results from broadcast :: %j',results);
-
-					return Promise.resolve(results);
-				}
-			)
-			.catch(
-				function(error) {
-					if(error instanceof Error) {
-						logger.debug('_createOrUpdateChannel - rejecting with %s', error);
-						return Promise.reject(error);
-					}
-					else {
-						logger.error('_createOrUpdateChannel - system error :: %s', error);
-						return Promise.reject(new Error(error));
-					}
-				}
-			);
+		const results = await orderer.sendBroadcast(out_envelope);
+		logger.debug('_createOrUpdateChannel - good results from broadcast :: %j',results);
+		return results;
 	}
 
 	/**
@@ -840,19 +772,14 @@ const Client = class extends BaseClient {
 	 *        using the 'setAdminSigningIdentity' method.
 	 * @returns {Promise} A promise to return a {@link ChannelQueryResponse}
 	 */
-	queryChannels(peer, useAdmin) {
+	async queryChannels(peer, useAdmin) {
 		logger.debug('queryChannels - start');
 		let targets = null;
 		if(!peer) {
-			return Promise.reject( new Error('Peer is required'));
+			throw Error('Peer is required');
 		} else {
-			try {
-				targets = this.getTargetPeers(peer);
-			} catch (err) {
-				return Promise.reject(err);
-			}
+			targets = this.getTargetPeers(peer);
 		}
-		const self = this;
 		const signer = this._getSigningIdentity(useAdmin);
 		const txId = new TransactionID(signer, useAdmin);
 		const request = {
@@ -863,40 +790,31 @@ const Client = class extends BaseClient {
 			fcn : 'GetChannels',
 			args: []
 		};
-		return Channel.sendTransactionProposal(request, '' /* special channel id */, self)
-			.then(
-				function(results) {
-					const responses = results[0];
-					logger.debug('queryChannels - got response');
-					if(responses && Array.isArray(responses)) {
-					//will only be one response as we are only querying one peer
-						if(responses.length > 1) {
-							return Promise.reject(new Error('Too many results returned'));
-						}
-						const response = responses[0];
-						if(response instanceof Error ) {
-							return Promise.reject(response);
-						}
-						if(response.response) {
-							logger.debug('queryChannels - response status :: %d', response.response.status);
-							const queryTrans = _queryProto.ChannelQueryResponse.decode(response.response.payload);
-							logger.debug('queryChannels - ProcessedTransaction.channelInfo.length :: %s', queryTrans.channels.length);
-							for (let channel of queryTrans.channels) {
-								logger.debug('>>> channel id %s ',channel.channel_id);
-							}
-							return Promise.resolve(queryTrans);
-						}
-						// no idea what we have, lets fail it and send it back
-						return Promise.reject(response);
-					}
-					return Promise.reject(new Error('Payload results are missing from the query'));
+		const results = await Channel.sendTransactionProposal(request, '' /* special channel id */, this);
+		const responses = results[0];
+		logger.debug('queryChannels - got response');
+		if(responses && Array.isArray(responses)) {
+			//will only be one response as we are only querying one peer
+			if(responses.length > 1) {
+				throw Error('Too many results returned');
+			}
+			const response = responses[0];
+			if(response instanceof Error ) {
+				throw response;
+			}
+			if(response.response) {
+				logger.debug('queryChannels - response status :: %d', response.response.status);
+				const queryTrans = _queryProto.ChannelQueryResponse.decode(response.response.payload);
+				logger.debug('queryChannels - ProcessedTransaction.channelInfo.length :: %s', queryTrans.channels.length);
+				for (let channel of queryTrans.channels) {
+					logger.debug('>>> channel id %s ',channel.channel_id);
 				}
-			).catch(
-				function(err) {
-					logger.error('Failed Channels Query. Error: %s', err.stack ? err.stack : err);
-					return Promise.reject(err);
-				}
-			);
+				return queryTrans;
+			}
+			// no idea what we have, lets fail it and send it back
+			throw Error(response);
+		}
+		throw Error('Payload results are missing from the query');
 	}
 
 	/**
@@ -1606,31 +1524,31 @@ const Client = class extends BaseClient {
 
 		return new Promise(function(resolve, reject) {
 			self._stateStore.getValue(name)
-			.then((memberStr) => {
-				if (memberStr) {
+				.then((memberStr) => {
+					if (memberStr) {
 					// The member was found in the key value store, so restore the state.
-					const newUser = new User(name);
-					if (!self.getCryptoSuite()) {
-						logger.debug('loadUserFromStateStore, cryptoSuite is not set, will load using defaults');
+						const newUser = new User(name);
+						if (!self.getCryptoSuite()) {
+							logger.debug('loadUserFromStateStore, cryptoSuite is not set, will load using defaults');
+						}
+						newUser.setCryptoSuite(self.getCryptoSuite());
+						return newUser.fromString(memberStr, true);
+					} else {
+						logger.debug('Failed to find "%s" in local key value store', name);
+						return resolve(null);
 					}
-					newUser.setCryptoSuite(self.getCryptoSuite());
-					return newUser.fromString(memberStr, true);
-				} else {
-					logger.debug('Failed to find "%s" in local key value store', name);
-					return resolve(null);
-				}
-			}).then((data) => {
-				if (data) {
-					logger.debug('Successfully loaded user "%s" from local key value store', name);
-					return resolve(data);
-				} else {
-					logger.debug('Failed to load user "%s" from local key value store', name);
-					return resolve(null);
-				}
-			}).catch((err) => {
-				logger.error('Failed to load user "%s" from local key value store. Error: %s', name, err.stack ? err.stack : err);
-				reject(err);
-			});
+				}).then((data) => {
+					if (data) {
+						logger.debug('Successfully loaded user "%s" from local key value store', name);
+						return resolve(data);
+					} else {
+						logger.debug('Failed to load user "%s" from local key value store', name);
+						return resolve(null);
+					}
+				}).catch((err) => {
+					logger.error('Failed to load user "%s" from local key value store. Error: %s', name, err.stack ? err.stack : err);
+					reject(err);
+				});
 		});
 	}
 
