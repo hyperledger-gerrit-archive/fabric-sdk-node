@@ -71,6 +71,13 @@ module.exports.CryptoSuite = class {
 	generateKey(opts) {if(opts);}
 
 	/**
+	 * Generate an ephemeral key.
+	 *
+	 * @returns {module:api.Key} An instance of the Key class
+	 */
+	generateEphemeralKey() {}
+
+	/**
 	 * Derives the new private key from the source public key using the parameters passed in the <code>opts</code>.
 	 * This operation is needed for deriving private keys corresponding to the Transaction Certificates.
 	 *
