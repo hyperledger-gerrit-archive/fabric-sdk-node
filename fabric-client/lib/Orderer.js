@@ -149,7 +149,7 @@ var Orderer = class extends Remote {
 		},
 		(error) =>{
 			logger.error('Orderer %s has an error %s ', self.getUrl(), error.toString());
-			self.close();
+			//self.close();
 			return Promise.reject(error);
 		});
 	}
