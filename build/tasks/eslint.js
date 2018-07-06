@@ -9,6 +9,7 @@ var eslint = require('gulp-eslint');
 gulp.task('lint', function () {
 	return gulp.src([
 		'**/*.js',
+		'!**/*.txt',
 		'fabric-client/**/*.js',
 		'fabric-ca-client/lib/*.js',
 		'!test/typescript/*.js',
