@@ -16,11 +16,11 @@ const checkRegistrar = require('./helper').checkRegistrar;
  * @class
  */
 class AffiliationService {
-	constructor(client) {
-		this.client = client;
-	}
+    constructor(client) {
+        this.client = client;
+    }
 
-	/**
+    /**
 	 * @typedef {Object} AffiliationRequest
 	 * @property {string} name - Required. The affiliation path to create
 	 * @property {string} caname - Optional. Name of the CA to send the request to within the Fabric CA server
@@ -42,7 +42,7 @@ class AffiliationService {
 	 *   </ul>
 	 */
 
-	/**
+    /**
 	 * Create a new affiliation.
 	 * The caller must have hf.AffiliationMgr authority.
 	 *
@@ -50,34 +50,31 @@ class AffiliationService {
 	 * @param {User} registrar - Required. The identity of the registrar (i.e. who is performing the registration).
 	 * @return {Promise} {@link ServiceResponse}
 	 */
-	create(req, registrar) {
-		if (typeof req === 'undefined' || req === null) {
-			throw new Error('Missing required argument "req"');
-		}
+    create(req, registrar) {
+        if (typeof req === 'undefined' || req === null) {
+            throw new Error('Missing required argument "req"');
+        }
 
-		if (!req.name) {
-			throw new Error('Missing required parameters. "req.name" is required.');
-		}
-		checkRegistrar(registrar);
+        if (!req.name) {
+            throw new Error('Missing required parameters. "req.name" is required.');
+        }
+        checkRegistrar(registrar);
 
-		let signingIdentity = registrar.getSigningIdentity();
-		if (!signingIdentity) {
-			throw new Error('Can not get signingIdentity from registrar');
-		}
+        let signingIdentity = registrar.getSigningIdentity();
 
-		let url = 'affiliations';
-		if (req.force === true) {
-			url = url + '?force=true';
-		}
-		logger.debug('create new affiliation with url ' + url);
-		const request = {
-			name: req.name,
-			caname: req.caname
-		};
-		return this.client.post(url, request, signingIdentity);
-	}
+        let url = 'affiliations';
+        if (req.force === true) {
+            url = url + '?force=true';
+        }
+        logger.debug('create new affiliation with url ' + url);
+        const request = {
+            name: req.name,
+            caname: req.caname
+        };
+        return this.client.post(url, request, signingIdentity);
+    }
 
-	/**
+    /**
 	 * List a specific affiliation at or below the caller's affinity.
 	 * The caller must have hf.AffiliationMgr authority.
 	 *
@@ -85,40 +82,34 @@ class AffiliationService {
 	 * @param {User} registrar - Required. The identity of the registrar (i.e. who is performing the registration).
 	 * @return {Promise} {@link ServiceResponse}
 	 */
-	getOne(affiliation, registrar) {
-		if (!affiliation || typeof affiliation !== 'string') {
-			throw new Error('Missing required argument "affiliation", or argument "affiliation" is not a valid string');
-		}
-		checkRegistrar(registrar);
+    getOne(affiliation, registrar) {
+        if (!affiliation || typeof affiliation !== 'string') {
+            throw new Error('Missing required argument "affiliation", or argument "affiliation" is not a valid string');
+        }
+        checkRegistrar(registrar);
 
-		let signingIdentity = registrar.getSigningIdentity();
-		if (!signingIdentity) {
-			throw new Error('Can not get signingIdentity from registrar');
-		}
+        let signingIdentity = registrar.getSigningIdentity();
 
-		const url = 'affiliations/' + affiliation;
-		return this.client.get(url, signingIdentity);
-	}
+        const url = 'affiliations/' + affiliation;
+        return this.client.get(url, signingIdentity);
+    }
 
-	/**
+    /**
 	 * List all affiliations equal to and below the caller's affiliation.
 	 * The caller must have hf.AffiliationMgr authority.
 	 *
 	 * @param {User} registrar - Required. The identity of the registrar (i.e. who is performing the registration).
 	 * @return {Promise} {@link ServiceResponse}
 	 */
-	getAll(registrar) {
-		checkRegistrar(registrar);
+    getAll(registrar) {
+        checkRegistrar(registrar);
 
-		let signingIdentity = registrar.getSigningIdentity();
-		if (!signingIdentity) {
-			throw new Error('Can not get signingIdentity from registrar');
-		}
+        let signingIdentity = registrar.getSigningIdentity();
 
-		return this.client.get('affiliations', signingIdentity);
-	}
+        return this.client.get('affiliations', signingIdentity);
+    }
 
-	/**
+    /**
 	 * Delete an affiliation.
 	 * The caller must have hf.AffiliationMgr authority.
 	 *
@@ -126,29 +117,27 @@ class AffiliationService {
 	 * @param {User} registrar - Required. The identity of the registrar (i.e. who is performing the registration).
 	 * @return {Promise} {@link ServiceResponse}
 	 */
-	delete(req, registrar) {
-		if (typeof req === 'undefined' || req === null) {
-			throw new Error('Missing required argument "req"');
-		}
+    delete(req, registrar) {
+        if (typeof req === 'undefined' || req === null) {
+            throw new Error('Missing required argument "req"');
+        }
 
-		if (!req.name || typeof req.name !== 'string') {
-			throw new Error('Missing required argument "req.name", or argument "req.name" is not a valid string');
-		}
-		checkRegistrar(registrar);
+        if (!req.name || typeof req.name !== 'string') {
+            throw new Error('Missing required argument "req.name", or argument "req.name" is not a valid string');
+        }
 
-		let signingIdentity = registrar.getSigningIdentity();
-		if (!signingIdentity) {
-			throw new Error('Can not get signingIdentity from registrar');
-		}
+        checkRegistrar(registrar);
 
-		let url = 'affiliations/' + req.name;
-		if (req.force === true) {
-			url = url + '?force=true';
-		}
-		return this.client.delete(url, signingIdentity);
-	}
+        let signingIdentity = registrar.getSigningIdentity();
 
-	/**
+        let url = 'affiliations/' + req.name;
+        if (req.force === true) {
+            url = url + '?force=true';
+        }
+        return this.client.delete(url, signingIdentity);
+    }
+
+    /**
 	 * Rename an affiliation.
 	 * The caller must have hf.AffiliationMgr authority.
 	 *
@@ -157,37 +146,34 @@ class AffiliationService {
 	 * @param {User} registrar
 	 * @return {Promise} {@link ServiceResponse}
 	 */
-	update(affiliation, req, registrar) {
-		if (!affiliation || typeof affiliation !== 'string') {
-			throw new Error('Missing required argument "affiliation", or argument "affiliation" is not a valid string');
-		}
-		if (typeof req === 'undefined' || req === null) {
-			throw new Error('Missing required argument "req"');
-		}
+    update(affiliation, req, registrar) {
+        if (!affiliation || typeof affiliation !== 'string') {
+            throw new Error('Missing required argument "affiliation", or argument "affiliation" is not a valid string');
+        }
+        if (typeof req === 'undefined' || req === null) {
+            throw new Error('Missing required argument "req"');
+        }
 
-		if (!req.name || typeof req.name !== 'string') {
-			throw new Error('Missing required argument "req.name", or argument "req.name" is not a valid string');
-		}
-		checkRegistrar(registrar);
+        if (!req.name || typeof req.name !== 'string') {
+            throw new Error('Missing required argument "req.name", or argument "req.name" is not a valid string');
+        }
+        checkRegistrar(registrar);
 
-		let signingIdentity = registrar.getSigningIdentity();
-		if (!signingIdentity) {
-			throw new Error('Can not get signingIdentity from registrar');
-		}
+        let signingIdentity = registrar.getSigningIdentity();
 
-		let url = 'affiliations/' + affiliation;
-		if (req.force === true) {
-			url = url + '?force=true';
-		}
-		const request = {
-			name: req.name
-		};
-		if (req.caname && typeof req.caname === 'string') {
-			request.caname = req.caname;
-		}
+        let url = 'affiliations/' + affiliation;
+        if (req.force === true) {
+            url = url + '?force=true';
+        }
+        const request = {
+            name: req.name
+        };
+        if (req.caname && typeof req.caname === 'string') {
+            request.caname = req.caname;
+        }
 
-		return this.client.put(url, request, signingIdentity);
-	}
+        return this.client.put(url, request, signingIdentity);
+    }
 }
 
 module.exports = AffiliationService;
