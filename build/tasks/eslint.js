@@ -10,7 +10,8 @@ gulp.task('lint', function () {
 	return gulp.src([
 		'**/*.js',
 		'fabric-client/**/*.js',
-		'fabric-ca-client/lib/*.js',
+        'fabric-ca-client/lib/*.js',
+        '!fabric-ca-client/coverage/**',
 		'!test/typescript/*.js',
 		'!node_modules/**',
 		'!fabric-client/node_modules/**',
