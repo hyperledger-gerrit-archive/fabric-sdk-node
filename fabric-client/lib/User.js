@@ -7,14 +7,14 @@
 
 'use strict';
 
-var util = require('util');
-var sdkUtils = require('./utils.js');
-var api = require('./api.js');
-var logger = sdkUtils.getLogger('User.js');
-var idModule = require('./msp/identity.js');
-var Identity = idModule.Identity;
-var SigningIdentity = idModule.SigningIdentity;
-var Signer = idModule.Signer;
+let util = require('util');
+let sdkUtils = require('./utils.js');
+let api = require('./api.js');
+let logger = sdkUtils.getLogger('User.js');
+let idModule = require('./msp/identity.js');
+let Identity = idModule.Identity;
+let SigningIdentity = idModule.SigningIdentity;
+let Signer = idModule.Signer;
 
 /**
  * The User class represents users that have been enrolled and represented by
@@ -35,7 +35,7 @@ var Signer = idModule.Signer;
  *
  * @class
  */
-var User = class {
+let User = class {
 
 	/**
 	 * Constructor for a member.
@@ -52,7 +52,7 @@ var User = class {
 			this._roles = null; //string[]
 			this._affiliation = '';
 		} else if (util.isObject(cfg)) {
-			var req = cfg;
+			let req = cfg;
 			this._name = req.enrollmentID || req.name;
 			this._roles = req.roles || ['fabric.user'];
 			this._affiliation = req.affiliation;
@@ -149,7 +149,7 @@ var User = class {
 	 * @param {string} mspId The Member Service Provider id for the local signing identity
 	 * @returns {Promise} Promise for successful completion of creating the user's signing Identity
 	 */
-	setEnrollment(privateKey, certificate, mspId) {
+	async setEnrollment(privateKey, certificate, mspId, skipPersistence) {
 		if (typeof privateKey === 'undefined' || privateKey === null || privateKey === '') {
 			throw new Error('Invalid parameter. Must have a valid private key.');
 		}
@@ -164,22 +164,27 @@ var User = class {
 
 		this._mspId = mspId;
 
-		if (!this._cryptoSuite) {
-			this._cryptoSuite = sdkUtils.newCryptoSuite();
-			this._cryptoSuite.setCryptoKeyStore(sdkUtils.newCryptoKeyStore());
+		let cryptoSuite = this._cryptoSuite;
+		if (!cryptoSuite) {
+			if (skipPersistence) {
+				cryptoSuite = sdkUtils.newCryptoSuite({ software: true });
+			} else {
+				cryptoSuite = sdkUtils.newCryptoSuite();
+				cryptoSuite.setCryptoKeyStore(sdkUtils.newCryptoKeyStore());
+				this._cryptoSuite = cryptoSuite;
+			}
 		}
-		var promise;
-		if (this._cryptoSuite._cryptoKeyStore) {
-			promise = this._cryptoSuite.importKey(certificate);
+
+		let pubKey;
+		if (this._cryptoSuite._cryptoKeyStore && !skipPersistence) {
+			pubKey = await this._cryptoSuite.importKey(certificate);
 		} else {
-			promise = Promise.resolve(this._cryptoSuite.importKey(certificate, {ephemeral: true}));
+			pubKey = await this._cryptoSuite.importKey(certificate, { ephemeral: true });
 		}
-		return promise
-			.then((pubKey) => {
-				var identity = new Identity(certificate, pubKey, mspId, this._cryptoSuite);
-				this._identity = identity;
-				this._signingIdentity = new SigningIdentity(certificate, pubKey, mspId, this._cryptoSuite, new Signer(this._cryptoSuite, privateKey));
-			});
+
+		const identity = new Identity(certificate, pubKey, mspId, cryptoSuite);
+		this._identity = identity;
+		this._signingIdentity = new SigningIdentity(certificate, pubKey, mspId, cryptoSuite, new Signer(cryptoSuite, privateKey));
 	}
 
 	/**
@@ -243,15 +248,15 @@ var User = class {
 			.then((key) => {
 				pubKey = key;
 
-				var identity = new Identity( state.enrollment.identity.certificate, pubKey, self._mspId, this._cryptoSuite);
+				let identity = new Identity(state.enrollment.identity.certificate, pubKey, self._mspId, this._cryptoSuite);
 				self._identity = identity;
 
 				// during serialization (see toString() below) only the key's SKI are saved
 				// swap out that for the real key from the crypto provider
 				return self._cryptoSuite.getKey(state.enrollment.signingIdentity);
 			}).then((privateKey) => {
-			// the key retrieved from the key store using the SKI could be a public key
-			// or a private key, check to make sure it's a private key
+				// the key retrieved from the key store using the SKI could be a public key
+				// or a private key, check to make sure it's a private key
 				if (privateKey.isPrivate()) {
 					self._signingIdentity = new SigningIdentity(
 						state.enrollment.identity.certificate,
@@ -272,7 +277,7 @@ var User = class {
 	 * @return {string} The state of this member as a string
 	 */
 	toString() {
-		var serializedEnrollment = {};
+		let serializedEnrollment = {};
 		if (this._signingIdentity) {
 			serializedEnrollment.signingIdentity = this._signingIdentity._signer._key.getSKI();
 		}
@@ -283,7 +288,7 @@ var User = class {
 			};
 		}
 
-		var state = {
+		let state = {
 			name: this._name,
 			mspid: this._mspId,
 			roles: this._roles,
