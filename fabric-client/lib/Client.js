@@ -1438,40 +1438,26 @@ const Client = class extends BaseClient {
 	 *                                    always be stored to the persistence store.
 	 * @returns {Promise} Promise of the 'user' object upon successful persistence of the user to the state store
 	 */
-	setUserContext(user, skipPersistence) {
-		logger.debug('setUserContext - user: ' + user + ', skipPersistence: ' + skipPersistence);
-		const self = this;
-		return new Promise((resolve, reject) => {
-			if (user) {
-				if (user.constructor && user.constructor.name === 'User') {
-					self._userContext = user;
-					if (!skipPersistence) {
-						logger.debug('setUserContext - begin promise to saveUserToStateStore');
-						self.saveUserToStateStore()
-							.then((return_user) => {
-								return resolve(return_user);
-							}).catch((err) => {
-								reject(err);
-							});
-					} else {
-						logger.debug('setUserContext - resolved user');
-						return resolve(user);
-					}
-				} else {
-					// must be they have passed in an object
-					logger.debug('setUserContext - will try to use network configuration to set the user');
-					self._setUserFromConfig(user)
-						.then((return_user) => {
-							return resolve(return_user);
-						}).catch((err) => {
-							reject(err);
-						});
-				}
-			} else {
-				logger.debug('setUserContext, Cannot save null userContext');
-				reject(new Error('Cannot save null userContext.'));
+	async setUserContext(user, skipPersistence) {
+		const method = 'setUserContext';
+		logger.debug('%s - enter, user: %j, skipPersistence: %j', method, user, skipPersistence);
+
+		if (!user) {
+			logger.debug('setUserContext, Cannot save null userContext.');
+			throw new Error('Cannot save null userContext.');
+		}
+
+		if (user.constructor && user.constructor.name === 'User') {
+			this._userContext = user;
+			if (skipPersistence) {
+				logger.debug('%s - resolved user', method);
+				return user;
 			}
-		});
+			logger.debug('setUserContext - begin promise to saveUserToStateStore');
+			return this.saveUserToStateStore();
+		}
+		logger.debug('%s - will try to use network configuration to set the user', method);
+		return this._setUserFromConfig(user);
 	}
 
 	/**
@@ -1656,13 +1642,16 @@ const Client = class extends BaseClient {
 			throw new Error('Client.createUser parameter \'opts cryptoContent\' is required.');
 		}
 
-		if (this.getCryptoSuite() == null) {
-			logger.debug('cryptoSuite is null, creating default cryptoSuite and cryptoKeyStore');
-			this.setCryptoSuite(sdkUtils.newCryptoSuite());
-			this.getCryptoSuite().setCryptoKeyStore(Client.newCryptoKeyStore());
-		} else {
-			if (this.getCryptoSuite()._cryptoKeyStore) logger.debug('cryptoSuite has a cryptoKeyStore');
-			else logger.debug('cryptoSuite does not have a cryptoKeyStore');
+		// if we specified skipPersistence = true, no need to create a new cryptoSuite
+		if (!opts.skipPersistence) {
+			if (this.getCryptoSuite() == null) {
+				logger.debug('cryptoSuite is null, creating default cryptoSuite and cryptoKeyStore');
+				this.setCryptoSuite(sdkUtils.newCryptoSuite());
+				this.getCryptoSuite().setCryptoKeyStore(Client.newCryptoKeyStore());
+			} else {
+				if (this.getCryptoSuite()._cryptoKeyStore) logger.debug('cryptoSuite has a cryptoKeyStore');
+				else logger.debug('cryptoSuite does not have a cryptoKeyStore');
+			}
 		}
 
 		// need to load private key and pre-enrolled certificate from files based on the MSP
@@ -1693,17 +1682,14 @@ const Client = class extends BaseClient {
 		}
 		logger.debug('then signedCertPEM data');
 
-		user.setCryptoSuite(this.getCryptoSuite());
+		if (!opts.skipPersistence) {
+			user.setCryptoSuite(this.getCryptoSuite());
+		}
 		await user.setEnrollment(importedKey, signedCertPEM.toString(), opts.mspid);
 		logger.debug('then setUserContext');
 		await this.setUserContext(user, opts.skipPersistence);
 		logger.debug('then user');
 		return user;
-
-		// }).catch((err) => {
-		// 	logger.error(err.stack ? err.stack : err);
-		// 	return reject(new Error('Failed to load key or certificate and save to local stores.'));
-		// });
 	}
 
 	/*
