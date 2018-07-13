@@ -1371,25 +1371,23 @@ const Client = class extends BaseClient {
 	 */
 	async setUserContext(user, skipPersistence) {
 		logger.debug(`setUserContext - user: ${user}, skipPersistence: ${skipPersistence}`);
-		if (user) {
-			if (user instanceof User) {
-				this._userContext = user;
-				if (!skipPersistence) {
-					logger.debug('setUserContext - begin promise to saveUserToStateStore');
-					return this.saveUserToStateStore();
-				} else {
-					logger.debug('setUserContext - resolved user');
-					return user;
-				}
-			} else {
-				// must be they have passed in an object
-				logger.debug('setUserContext - will try to use network configuration to set the user');
-				return this._setUserFromConfig(user);
-			}
-		} else {
-			logger.debug('setUserContext, Cannot save null userContext');
+		if (!user) {
+			logger.debug('setUserContext, Cannot save null userContext.');
 			throw new Error('Cannot save null userContext.');
 		}
+
+		if (user instanceof User) {
+			this._userContext = user;
+			if (!skipPersistence) {
+				logger.debug('setUserContext - begin promise to saveUserToStateStore');
+				return this.saveUserToStateStore();
+			}
+			logger.debug('setUserContext - resolved user');
+			return user;
+		}
+		// must be they have passed in an object
+		logger.debug('setUserContext - will try to use network configuration to set the user');
+		return this._setUserFromConfig(user);
 	}
 
 	/**
@@ -1544,13 +1542,16 @@ const Client = class extends BaseClient {
 			throw new Error('Client.createUser parameter \'opts cryptoContent\' is required.');
 		}
 
-		if (this.getCryptoSuite() == null) {
-			logger.debug('cryptoSuite is null, creating default cryptoSuite and cryptoKeyStore');
-			this.setCryptoSuite(sdkUtils.newCryptoSuite());
-			this.getCryptoSuite().setCryptoKeyStore(Client.newCryptoKeyStore());
-		} else {
-			if (this.getCryptoSuite()._cryptoKeyStore) logger.debug('cryptoSuite has a cryptoKeyStore');
-			else logger.debug('cryptoSuite does not have a cryptoKeyStore');
+		// if we specified skipPersistence = true, no need to create a new cryptoSuite
+		if (!opts.skipPersistence) {
+			if (this.getCryptoSuite() == null) {
+				logger.debug('cryptoSuite is null, creating default cryptoSuite and cryptoKeyStore');
+				this.setCryptoSuite(sdkUtils.newCryptoSuite());
+				this.getCryptoSuite().setCryptoKeyStore(Client.newCryptoKeyStore());
+			} else {
+				if (this.getCryptoSuite()._cryptoKeyStore) logger.debug('cryptoSuite has a cryptoKeyStore');
+				else logger.debug('cryptoSuite does not have a cryptoKeyStore');
+			}
 		}
 
 		// need to load private key and pre-enrolled certificate from files based on the MSP
@@ -1571,7 +1572,13 @@ const Client = class extends BaseClient {
 		}
 		if (privateKeyPEM) {
 			logger.debug('then privateKeyPEM data');
-			importedKey = await this.getCryptoSuite().importKey(privateKeyPEM.toString(), { ephemeral: !this.getCryptoSuite()._cryptoKeyStore });
+			if (opts.skipPersistence) {
+				// need to create a tmp cryptoSuite to get the key obj
+				const cryptoSuite = sdkUtils.newCryptoSuite();
+				importedKey = await cryptoSuite.importKey(privateKeyPEM.toString(), { ephemeral: true });
+			} else {
+				importedKey = await this.getCryptoSuite().importKey(privateKeyPEM.toString(), { ephemeral: !this.getCryptoSuite()._cryptoKeyStore });
+			}
 		} else {
 			importedKey = opts.cryptoContent.privateKeyObj;
 		}
@@ -1581,17 +1588,14 @@ const Client = class extends BaseClient {
 		}
 		logger.debug('then signedCertPEM data');
 
-		user.setCryptoSuite(this.getCryptoSuite());
+		if (!opts.skipPersistence) {
+			user.setCryptoSuite(this.getCryptoSuite());
+		}
 		await user.setEnrollment(importedKey, signedCertPEM.toString(), opts.mspid);
 		logger.debug('then setUserContext');
 		await this.setUserContext(user, opts.skipPersistence);
 		logger.debug('then user');
 		return user;
-
-		// }).catch((err) => {
-		// 	logger.error(err.stack ? err.stack : err);
-		// 	return reject(new Error('Failed to load key or certificate and save to local stores.'));
-		// });
 	}
 
 	/*
