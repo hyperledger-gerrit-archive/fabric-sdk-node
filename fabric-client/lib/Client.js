@@ -939,7 +939,7 @@ const Client = class extends BaseClient {
 				return queryTrans;
 			}
 			// no idea what we have, lets fail it and send it back
-			throw response;
+			throw Error(response);
 		}
 		throw new Error('Payload results are missing from the query');
 	}
