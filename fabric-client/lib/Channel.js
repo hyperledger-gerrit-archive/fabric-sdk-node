@@ -2197,6 +2197,13 @@ const Channel = class {
 			const collectionConfigPackage = this._buildCollectionsConfigPackage(request['collections-config']);
 			lcccSpec_args[6] = collectionConfigPackage.toBuffer();
 		}
+		// client can specify the escc and vscc names
+		if (request.escc && typeof request.escc === 'string') {
+			lcccSpec_args[4] = Buffer.from(request.escc);
+		}
+		if (request.vscc && typeof request.vscc === 'string') {
+			lcccSpec_args[5] = Buffer.from(request.vscc);
+		}
 
 		const lcccSpec = {
 			// type: _ccProto.ChaincodeSpec.Type.GOLANG,
