@@ -23,7 +23,7 @@ test('\n\n***** End-to-end flow: invoke transaction to move money *****\n\n', (t
 		.then((result) => {
 			if(result){
 				t.pass('Successfully invoke transaction chaincode on channel');
-				return sleep(5000);
+				return testUtils.sleep(5000);
 			}
 			else {
 				t.fail('Failed to invoke transaction chaincode ');
@@ -39,7 +39,3 @@ test('\n\n***** End-to-end flow: invoke transaction to move money *****\n\n', (t
 			t.end();
 		});
 });
-
-function sleep(ms) {
-	return new Promise(resolve => setTimeout(resolve, ms));
-}
