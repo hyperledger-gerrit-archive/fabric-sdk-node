@@ -787,7 +787,6 @@ test('\n\n** EventHub test reconnect on block registration \n\n', (t) => {
 					t.fail('Failed callback should not have been called - block test 1');
 				});
 			},
-			null,
 			'Check for The event hub has not been connected to the event source - block test 1'
 		);
 

@@ -269,7 +269,6 @@ test('FabricCAServices:  Test optional constructor', (t) => {
 		() => {
 			new FabricCAServices(opts);
 		},
-		null,
 		'FabricCAServices constructor with object and just url'
 	);
 
@@ -280,7 +279,6 @@ test('FabricCAServices:  Test optional constructor', (t) => {
 			t.equals(service._fabricCAClient._caName, 'someca', 'Caname should have been passed correctly');
 			t.equals(service.getCaName(), 'someca', 'checket getter method for caname');
 		},
-		null,
 		'FabricCAServices constructor with object and just url'
 	);
 
@@ -290,7 +288,6 @@ test('FabricCAServices:  Test optional constructor', (t) => {
 			const service = new FabricCAServices(opts);
 			t.equals(service._fabricCAClient._cryptoPrimitives, 'somesuite', 'CryptoSuite should have been passed correctly');
 		},
-		null,
 		'FabricCAServices constructor with object and just url'
 	);
 
@@ -300,7 +297,6 @@ test('FabricCAServices:  Test optional constructor', (t) => {
 			const service = new FabricCAServices(opts);
 			t.equals(service._fabricCAClient._tlsOptions.verify, 'someverify', 'tlsOptions should have been passed correctly');
 		},
-		null,
 		'FabricCAServices constructor with object and just url'
 	);
 
@@ -518,7 +514,6 @@ test('FabricCAServices: Test revoke() function', (t) => {
 					t.end();
 				});
 		},
-		null,
 		'Test invalid "signingIdentity"'
 	);
 });
@@ -670,7 +665,6 @@ test('FabricCAServices: Test reenroll() function', (t) => {
 		() => {
 			getSubjectCommonName(VALID_CERT);
 		},
-		null,
 		'Must not throw error when target certificate is valid and contains a common name'
 	);
 
@@ -691,7 +685,6 @@ test('FabricCAServices: Test reenroll() function', (t) => {
 					t.fail(err);
 			});
 		},
-		null,
 		'Must not throw error when current user is valid'
 	);
 
