@@ -6,31 +6,31 @@
 */
 
 'use strict';
-var Long = require('long');
-var util = require('util');
-var utils = require('./utils.js');
-var clientUtils = require('./client-utils.js');
-var logger = utils.getLogger('ChannelEventHub.js');
+const Long = require('long');
+const util = require('util');
+const utils = require('./utils.js');
+const clientUtils = require('./client-utils.js');
+const logger = utils.getLogger('ChannelEventHub.js');
 
-var BlockDecoder = require('./BlockDecoder.js');
+const BlockDecoder = require('./BlockDecoder.js');
 
-var grpc = require('grpc');
-var _abProto = grpc.load(__dirname + '/protos/orderer/ab.proto').orderer;
-var _eventsProto = grpc.load(__dirname + '/protos/peer/events.proto').protos;
-var _commonProto = grpc.load(__dirname + '/protos/common/common.proto').common;
-var _transProto = grpc.load(__dirname + '/protos/peer/transaction.proto').protos;
+const grpc = require('grpc');
+const _abProto = grpc.load(__dirname + '/protos/orderer/ab.proto').orderer;
+const _eventsProto = grpc.load(__dirname + '/protos/peer/events.proto').protos;
+const _commonProto = grpc.load(__dirname + '/protos/common/common.proto').common;
+const _transProto = grpc.load(__dirname + '/protos/peer/transaction.proto').protos;
 
-var _validation_codes = {};
-var keys = Object.keys(_transProto.TxValidationCode);
+const _validation_codes = {};
+let keys = Object.keys(_transProto.TxValidationCode);
 for(let i = 0;i<keys.length;i++) {
-	let new_key = _transProto.TxValidationCode[keys[i]];
+	const new_key = _transProto.TxValidationCode[keys[i]];
 	_validation_codes[new_key] = keys[i];
 }
 
-var _header_types = {};
+const _header_types = {};
 keys = Object.keys(_commonProto.HeaderType);
-for(let j in keys) {
-	let new_key = _commonProto.HeaderType[keys[j]];
+for(const j in keys) {
+	const new_key = _commonProto.HeaderType[keys[j]];
 	_header_types[new_key] = keys[j];
 }
 
@@ -59,7 +59,7 @@ const five_minutes_ms = 5*60*1000;
  * components (application, endorsing peer, orderer, committing peer) and takes
  * a relatively lengthy period of time (think seconds instead of milliseconds)
  * to complete. As a result the applications must design their handling of the
- * transaction lifecyle in an asynchrous fashion. After the transaction proposal
+ * transaction lifecycle in an asynchronous fashion. After the transaction proposal
  * has been successfully [endorsed]{@link Channel#sendTransactionProposal}, and before
  * the transaction message has been successfully [broadcast]{@link Channel#sendTransaction}
  * to the orderer, the application should register a listener to be notified of
@@ -120,7 +120,7 @@ const five_minutes_ms = 5*60*1000;
  *
  * @class
  */
-var ChannelEventHub = class {
+const ChannelEventHub = class {
 
 	/**
 	 * Constructs a ChannelEventHub object
@@ -297,11 +297,11 @@ var ChannelEventHub = class {
 
 		this._connect_running = true;
 		this._current_stream++;
-		let stream_id = this._current_stream;
+		const stream_id = this._current_stream;
 		logger.debug('_connect - start stream:',stream_id);
-		let self = this; // for callback context
+		const self = this; // for callback context
 
-		let connecton_setup_timeout = setTimeout(function(){
+		const connecton_setup_timeout = setTimeout(() => {
 			logger.error('_connect - timed out after:%s', self._peer._request_timeout);
 			self._connect_running = false;
 			self._disconnect(new Error('Unable to connect to the peer event hub'));
@@ -311,7 +311,7 @@ var ChannelEventHub = class {
 		// the keep alive interval
 		let options = utils.checkAndAddConfigSetting('grpc.keepalive_time_ms', 360000, this._peer._options);
 		// how long should we wait for the keep alive response
-		let request_timeout_ms = utils.getConfigSetting('request-timeout', 3000);
+		const request_timeout_ms = utils.getConfigSetting('request-timeout', 3000);
 		options = utils.checkAndAddConfigSetting('grpc.keepalive_timeout_ms', request_timeout_ms, options);
 		options = utils.checkAndAddConfigSetting('grpc.http2.min_time_between_pings_ms', five_minutes_ms, options);
 
@@ -323,22 +323,22 @@ var ChannelEventHub = class {
 			this._stream = this._event_client.deliver();
 		}
 
-		this._stream.on('data', function(deliverResponse) {
+		this._stream.on('data', (deliverResponse) => {
 			if(self._connect_running) {
 				self._connect_running = false;
 				clearTimeout(connecton_setup_timeout);
 			}
 
 			logger.debug('on.data - event stream:%s _current_stream:%s  peer:%s',stream_id, self._current_stream, self.getPeerAddr());
-			if(stream_id != self._current_stream) {
+			if(stream_id !== self._current_stream) {
 				logger.debug('on.data - incoming event was from a cancelled stream');
 				return;
 			}
 
-			let state = getStreamState(self);
+			const state = getStreamState(self);
 			logger.debug('on.data - grpc stream state :%s',state);
 			if (deliverResponse.Type === 'block' || deliverResponse.Type === 'filtered_block') {
-				if(self._connected == true) {
+				if(self._connected === true) {
 					logger.debug('on.data - new block received - check event registrations');
 				} else {
 					logger.debug('on.data - first block received , event hub now registered');
@@ -388,35 +388,35 @@ var ChannelEventHub = class {
 			}
 		});
 
-		this._stream.on('status', function (response) {
+		this._stream.on('status', (response) => {
 			logger.debug('on status - status received: %j  peer:%s', response, self.getPeerAddr());
 		});
 
-		this._stream.on('end', function() {
+		this._stream.on('end', () => {
 			self._connect_running = false;
 			clearTimeout(connecton_setup_timeout);
 			logger.debug('on.end - event stream:%s _current_stream:%s peer:%s', stream_id, self._current_stream, self.getPeerAddr());
-			if(stream_id != self._current_stream) {
+			if(stream_id !== self._current_stream) {
 				logger.debug('on.end - incoming event was from a canceled stream');
 				return;
 			}
 
-			let state = getStreamState(self);
+			const state = getStreamState(self);
 			logger.debug('on.end - grpc stream state :%s',state);
 			self._disconnect(new Error('Peer event hub has disconnected due to an "end" event'));
 		});
 
-		this._stream.on('error', function(err) {
+		this._stream.on('error', (err) => {
 			self._connect_running = false;
 			clearTimeout(connecton_setup_timeout);
 			logger.debug('on.error - event stream:%s _current_stream:%s  peer:%s',stream_id, self._current_stream, self.getPeerAddr());
-			if(stream_id != self._current_stream) {
+			if(stream_id !== self._current_stream) {
 				logger.debug('on.error - incoming event was from a canceled stream');
 				logger.debug('on.error - %s %s',new Date(),err);
 				return;
 			}
 
-			let state = getStreamState(self);
+			const state = getStreamState(self);
 			logger.debug('on.error - grpc stream state :%s',state);
 			if(err instanceof Error) {
 				self._disconnect(err);
@@ -489,19 +489,19 @@ var ChannelEventHub = class {
 	 */
 	_sendRegistration() {
 		// build start
-		let seekStart = new _abProto.SeekPosition();
+		const seekStart = new _abProto.SeekPosition();
 		if(this._starting_block_number) {
-			let seekSpecifiedStart = new _abProto.SeekSpecified();
+			const seekSpecifiedStart = new _abProto.SeekSpecified();
 			seekSpecifiedStart.setNumber(this._starting_block_number);
 			seekStart.setSpecified(seekSpecifiedStart);
 		} else {
-			let seekNewest = new _abProto.SeekNewest();
+			const seekNewest = new _abProto.SeekNewest();
 			seekStart.setNewest(seekNewest);
 		}
 
 		// build stop
-		let seekStop = new _abProto.SeekPosition();
-		let seekSpecifiedStop = new _abProto.SeekSpecified();
+		const seekStop = new _abProto.SeekPosition();
+		const seekSpecifiedStop = new _abProto.SeekSpecified();
 		if(this._ending_block_number) {
 			seekSpecifiedStop.setNumber(this._ending_block_number);
 		} else {
@@ -510,18 +510,18 @@ var ChannelEventHub = class {
 		seekStop.setSpecified(seekSpecifiedStop);
 
 		// seek info with all parts
-		let seekInfo = new _abProto.SeekInfo();
+		const seekInfo = new _abProto.SeekInfo();
 		seekInfo.setStart(seekStart);
 		seekInfo.setStop(seekStop);
 		// BLOCK_UNTIL_READY will mean hold the stream open and keep sending as
 		//     the blocks come in
 		// FAIL_IF_NOT_READY will mean if the block is not there throw an error
 		seekInfo.setBehavior(_abProto.SeekInfo.SeekBehavior.BLOCK_UNTIL_READY);
-		let tx_id = this._clientContext.newTransactionID(true);
-		let signer = this._clientContext._getSigningIdentity(true);
+		const tx_id = this._clientContext.newTransactionID(true);
+		const signer = this._clientContext._getSigningIdentity(true);
 
 		// build the header for use with the seekInfo payload
-		let seekInfoHeader = clientUtils.buildChannelHeader(
+		const seekInfoHeader = clientUtils.buildChannelHeader(
 			_commonProto.HeaderType.DELIVER_SEEK_INFO,
 			this._channel._name,
 			tx_id.getTransactionID(),
@@ -531,17 +531,17 @@ var ChannelEventHub = class {
 			this._clientContext.getClientCertHash()
 		);
 
-		let seekHeader = clientUtils.buildHeader(signer, seekInfoHeader, tx_id.getNonce());
-		let seekPayload = new _commonProto.Payload();
+		const seekHeader = clientUtils.buildHeader(signer, seekInfoHeader, tx_id.getNonce());
+		const seekPayload = new _commonProto.Payload();
 		seekPayload.setHeader(seekHeader);
 		seekPayload.setData(seekInfo.toBuffer());
-		let seekPayloadBytes = seekPayload.toBuffer();
+		const seekPayloadBytes = seekPayload.toBuffer();
 
-		let sig = signer.sign(seekPayloadBytes);
-		let signature = Buffer.from(sig);
+		const sig = signer.sign(seekPayloadBytes);
+		const signature = Buffer.from(sig);
 
 		// building manually or will get protobuf errors on send
-		let envelope = {
+		const envelope = {
 			signature: signature,
 			payload : seekPayloadBytes
 		};
@@ -555,12 +555,12 @@ var ChannelEventHub = class {
 	 * Sends an error to all registered event "onError" callbacks
 	 */
 	_closeAllCallbacks(err) {
-		let method = '_closeAllCallbacks -' + this.getPeerAddr();
+		const method = '_closeAllCallbacks -' + this.getPeerAddr();
 		logger.debug('%s - start', method);
 
 		logger.debug('%s - blockOnErrors %s', method, Object.keys(this._blockRegistrations).length);
-		for (let key in this._blockRegistrations) {
-			let block_registration = this._blockRegistrations[key];
+		for (const key in this._blockRegistrations) {
+			const block_registration = this._blockRegistrations[key];
 			if(block_registration.onError) {
 				logger.debug('%s - calling block error callback for %s', method, key);
 				block_registration.onError(err);
@@ -571,8 +571,8 @@ var ChannelEventHub = class {
 		this._blockRegistrations = {};
 
 		logger.debug('%s - transactionOnErrors %s', method, Object.keys(this._transactionRegistrations).length);
-		for (let key in this._transactionRegistrations) {
-			let trans_reg = this._transactionRegistrations[key];
+		for (const key in this._transactionRegistrations) {
+			const trans_reg = this._transactionRegistrations[key];
 			if(trans_reg.onError) {
 				logger.debug('%s - calling transaction error callback for %s', method, key);
 				trans_reg.onError(err);
@@ -582,10 +582,10 @@ var ChannelEventHub = class {
 		}
 		this._transactionRegistrations = {};
 
-		let self = this;
-		let cc_closer = function(key) {
-			let cbtable = self._chaincodeRegistrants[key];
-			cbtable.forEach(function(chaincode_reg) {
+		const self = this;
+		const cc_closer = function(key) {
+			const cbtable = self._chaincodeRegistrants[key];
+			cbtable.forEach((chaincode_reg) => {
 				logger.debug('%s - closing this chaincode event ccid:%s eventNameFilter:%s', method, chaincode_reg.ccid, chaincode_reg.eventNameFilter);
 				if(chaincode_reg.event_reg.onError) {
 					chaincode_reg.event_reg.onError(err);
@@ -611,7 +611,7 @@ var ChannelEventHub = class {
 		let result = NO_START_STOP;
 		let have_start_block = false;
 		let have_end_block = false;
-		let converted_options = {};
+		const converted_options = {};
 		if(options && typeof options.startBlock !== 'undefined') {
 			try {
 				converted_options.start_block = utils.convertToLong(options.startBlock);
@@ -678,12 +678,12 @@ var ChannelEventHub = class {
 	_checkConnection() {
 		logger.debug('_checkConnection - start');
 		if(this._connected || this._connect_running) {
-			let state = getStreamState(this);
+			const state = getStreamState(this);
 			logger.debug('_checkConnection -  %s with stream channel state %s', this._peer.getUrl(), getStateText(state));
 
 			if(state != 2 && !this._connect_running) { //Not READY, but trying
 				logger.error('_checkConnection - connection is not in the ready state. state:',getStateText(state));
-				let error = new Error('Connection is not in the READY state');
+				const error = new Error('Connection is not in the READY state');
 				this._disconnect(error);
 				throw error;
 			}
@@ -702,13 +702,13 @@ var ChannelEventHub = class {
 	 */
 	checkConnection(force_reconnect) {
 		logger.debug('checkConnection - start force_reconnect:%s', force_reconnect);
-		let state = getStreamState(this);
+		const state = getStreamState(this);
 		logger.debug('checkConnection -  %s with stream channel state %s', this._peer.getUrl(), getStateText(state));
 
 		if(force_reconnect) {
 			try {
 				if(this._stream) {
-					let is_paused = this._stream.isPaused();
+					const is_paused = this._stream.isPaused();
 					logger.debug('checkConnection - grpc isPaused :%s',is_paused);
 					if(is_paused) {
 						this._stream.resume();
@@ -728,7 +728,7 @@ var ChannelEventHub = class {
 			}
 			catch(error) {
 				logger.error('checkConnection - error ::' + error.stack ? error.stack : error);
-				let err = new Error('Problem during reconnect and the event hub is not connected ::%s',error);
+				const err = new Error('Problem during reconnect and the event hub is not connected ::%s',error);
 				this._disconnect(err);
 			}
 		}
@@ -826,13 +826,13 @@ var ChannelEventHub = class {
 
 		this._checkAllowRegistrations();
 		let default_disconnect = false;
-		let startstop_mode = this._checkReplay(options);
+		const startstop_mode = this._checkReplay(options);
 		if(startstop_mode > START_ONLY) {
 			default_disconnect = true;
 		}
-		let event_reg = new EventRegistration(onEvent, onError, options, false, default_disconnect);
+		const event_reg = new EventRegistration(onEvent, onError, options, false, default_disconnect);
 
-		let chaincode_reg = new ChaincodeRegistration(ccid, eventname, event_reg);
+		const chaincode_reg = new ChaincodeRegistration(ccid, eventname, event_reg);
 		let cbtable = this._chaincodeRegistrants[ccid];
 		if (!cbtable) {
 			cbtable = new Set();
@@ -841,7 +841,7 @@ var ChannelEventHub = class {
 		cbtable.add(chaincode_reg);
 		if(startstop_mode > NO_START_STOP) {
 			this._start_stop_registration = chaincode_reg.event_reg;
-			let self = this;
+			const self = this;
 			chaincode_reg.event_reg.unregister_action = function() {
 				self.unregisterChaincodeEvent(chaincode_reg);
 			};
@@ -866,7 +866,7 @@ var ChannelEventHub = class {
 		if(!listener_handle) {
 			throw new Error('Missing "listener_handle" parameter');
 		}
-		let cbtable = this._chaincodeRegistrants[listener_handle.ccid];
+		const cbtable = this._chaincodeRegistrants[listener_handle.ccid];
 		if (!cbtable && throwError) {
 			throw new Error(util.format('No event registration for chaincode id %s ', listener_handle.ccid));
 		} else {
@@ -922,15 +922,15 @@ var ChannelEventHub = class {
 
 		this._checkAllowRegistrations();
 		let default_disconnect = false;
-		let startstop_mode = this._checkReplay(options);
+		const startstop_mode = this._checkReplay(options);
 		if(startstop_mode > START_ONLY) {
 			default_disconnect = true;
 		}
 
-		let block_registration_number = ++this._block_registrant_count;
-		let block_registration = new EventRegistration(onEvent, onError, options, true, default_disconnect);
+		const block_registration_number = ++this._block_registrant_count;
+		const block_registration = new EventRegistration(onEvent, onError, options, true, default_disconnect);
 		this._blockRegistrations[block_registration_number] = block_registration;
-		let self = this;
+		const self = this;
 		if(startstop_mode > NO_START_STOP) {
 			this._start_stop_registration = block_registration;
 			block_registration.unregister_action = function() {
@@ -954,7 +954,7 @@ var ChannelEventHub = class {
 	 */
 	unregisterBlockEvent(block_registration_number, throwError) {
 		logger.debug('unregisterBlockEvent - start  %s',block_registration_number);
-		let block_reg = this._blockRegistrations[block_registration_number];
+		const block_reg = this._blockRegistrations[block_registration_number];
 		if(!block_reg && throwError) {
 			throw new Error(util.format('Block listener for block registration number "%" does not exist',block_registration_number));
 		} else {
@@ -993,19 +993,19 @@ var ChannelEventHub = class {
 		}
 
 		this._checkAllowRegistrations();
-		let temp = this._transactionRegistrations[txid];
+		const temp = this._transactionRegistrations[txid];
 		if(temp) {
 			throw new Error(util.format('TransactionId (%s) has already been registered',txid));
 		}
 		let default_disconnect = false;
-		let startstop_mode = this._checkReplay(options);
+		const startstop_mode = this._checkReplay(options);
 		if(startstop_mode > START_ONLY) {
 			default_disconnect = true;
 		}
 
-		let trans_registration = new EventRegistration(onEvent, onError, options, true, default_disconnect);
+		const trans_registration = new EventRegistration(onEvent, onError, options, true, default_disconnect);
 		this._transactionRegistrations[txid] = trans_registration;
-		let self = this;
+		const self = this;
 		if(startstop_mode > NO_START_STOP) {
 			this._start_stop_registration = trans_registration;
 			trans_registration.unregister_action = function() {
@@ -1025,7 +1025,7 @@ var ChannelEventHub = class {
 	 */
 	unregisterTxEvent(txid, throwError) {
 		logger.debug('unregisterTxEvent txid ' + txid);
-		let tx_reg = this._transactionRegistrations[txid];
+		const tx_reg = this._transactionRegistrations[txid];
 		if(!tx_reg && throwError) {
 			throw new Error(util.format('Transaction listener for transaction id "%" does not exist',txid));
 		} else {
@@ -1044,9 +1044,9 @@ var ChannelEventHub = class {
 		}
 
 		// send to all registered block listeners
-		let self = this;
-		Object.keys(this._blockRegistrations).forEach(function(key) {
-			let block_reg = self._blockRegistrations[key];
+		const self = this;
+		Object.keys(this._blockRegistrations).forEach((key) => {
+			const block_reg = self._blockRegistrations[key];
 			logger.debug('_processBlockEvents - calling block listener callback');
 			block_reg.onEvent(block);
 		});
@@ -1064,8 +1064,8 @@ var ChannelEventHub = class {
 
 		if(block.number) {
 			logger.debug('_processTxEvents filtered block num=%s', block.number);
-			if(block.filtered_transactions) for(let index in block.filtered_transactions) {
-				let filtered_transaction = block.filtered_transactions[index];
+			if(block.filtered_transactions) for(const index in block.filtered_transactions) {
+				const filtered_transaction = block.filtered_transactions[index];
 				this._callTransactionListener(filtered_transaction.txid,
 					filtered_transaction.tx_validation_code,
 					block.number);
@@ -1073,9 +1073,9 @@ var ChannelEventHub = class {
 
 		} else {
 			logger.debug('_processTxEvents block num=%s', block.header.number);
-			let txStatusCodes = block.metadata.metadata[_commonProto.BlockMetadataIndex.TRANSACTIONS_FILTER];
+			const txStatusCodes = block.metadata.metadata[_commonProto.BlockMetadataIndex.TRANSACTIONS_FILTER];
 			for (let index=0; index < block.data.data.length; index++) {
-				let channel_header = block.data.data[index].payload.header.channel_header;
+				const channel_header = block.data.data[index].payload.header.channel_header;
 				this._callTransactionListener(channel_header.tx_id,
 					txStatusCodes[index],
 					block.header.number);
@@ -1085,10 +1085,10 @@ var ChannelEventHub = class {
 
 	/* internal utility method */
 	_callTransactionListener(tx_id, val_code, block_num) {
-		let trans_reg = this._transactionRegistrations[tx_id];
+		const trans_reg = this._transactionRegistrations[tx_id];
 		if (trans_reg){
 			logger.debug('_callTransactionListener - about to call the transaction call back for code=%s tx=%s', val_code, tx_id);
-			let status = convertValidationCode(val_code);
+			const status = convertValidationCode(val_code);
 			trans_reg.onEvent(tx_id, status, block_num);
 			if(trans_reg.unregister) {
 				this.unregisterTxEvent(tx_id);
@@ -1113,12 +1113,12 @@ var ChannelEventHub = class {
 		}
 
 		if(block.number) {
-			if(block.filtered_transactions) for(let index in block.filtered_transactions) {
-				let filtered_transaction = block.filtered_transactions[index];
+			if(block.filtered_transactions) for(const index in block.filtered_transactions) {
+				const filtered_transaction = block.filtered_transactions[index];
 				if(filtered_transaction.transaction_actions) {
 					if(filtered_transaction.transaction_actions.chaincode_actions) {
-						for(let index in filtered_transaction.transaction_actions.chaincode_actions) {
-							let chaincode_action = filtered_transaction.transaction_actions.chaincode_actions[index];
+						for(const index in filtered_transaction.transaction_actions.chaincode_actions) {
+							const chaincode_action = filtered_transaction.transaction_actions.chaincode_actions[index];
 
 							this._callChaincodeListener(chaincode_action.chaincode_event,
 								block.number,
@@ -1133,22 +1133,22 @@ var ChannelEventHub = class {
 			for (let index=0; index < block.data.data.length; index++) {
 				logger.debug('_processChaincodeEvents - trans index=%s',index);
 				try {
-					let env = block.data.data[index];
-					let payload = env.payload;
-					let channel_header = payload.header.channel_header;
+					const env = block.data.data[index];
+					const payload = env.payload;
+					const channel_header = payload.header.channel_header;
 					if (channel_header.type === 3) { //only ENDORSER_TRANSACTION have chaincode events
-						let tx = payload.data;
+						const tx = payload.data;
 						if(tx && tx.actions) {
-							for(let action_index in tx.actions) {
-								let chaincodeActionPayload = tx.actions[action_index].payload;
-								let propRespPayload = chaincodeActionPayload.action.proposal_response_payload;
-								let caPayload = propRespPayload.extension;
-								let chaincode_event = caPayload.events;
+							for(const action_index in tx.actions) {
+								const chaincodeActionPayload = tx.actions[action_index].payload;
+								const propRespPayload = chaincodeActionPayload.action.proposal_response_payload;
+								const caPayload = propRespPayload.extension;
+								const chaincode_event = caPayload.events;
 								logger.debug('_processChaincodeEvents - chaincode_event %s',chaincode_event);
 
-								let txStatusCodes = block.metadata.metadata[_commonProto.BlockMetadataIndex.TRANSACTIONS_FILTER];
-								let channel_header = block.data.data[index].payload.header.channel_header;
-								let val_code = txStatusCodes[index];
+								const txStatusCodes = block.metadata.metadata[_commonProto.BlockMetadataIndex.TRANSACTIONS_FILTER];
+								const channel_header = block.data.data[index].payload.header.channel_header;
+								const val_code = txStatusCodes[index];
 
 								this._callChaincodeListener(chaincode_event,
 									block.header.number,
@@ -1171,17 +1171,17 @@ var ChannelEventHub = class {
 
 	_callChaincodeListener(chaincode_event, block_num, tx_id, val_code, filtered) {
 		logger.debug('_callChaincodeListener - chaincode_event %s',chaincode_event);
-		let cbtable = this._chaincodeRegistrants[chaincode_event.chaincode_id];
+		const cbtable = this._chaincodeRegistrants[chaincode_event.chaincode_id];
 		if (!cbtable) {
 			logger.debug('_callChaincodeListener - no chaincode listeners found');
 			return;
 		}
-		let tx_status = convertValidationCode(val_code);
+		const tx_status = convertValidationCode(val_code);
 
 		logger.debug('_callChaincodeListener - txid=%s  val_code=%s', tx_id, tx_status);
 
-		let self = this;
-		cbtable.forEach(function(chaincode_reg) {
+		const self = this;
+		cbtable.forEach((chaincode_reg) => {
 			if (chaincode_reg.eventNameFilter.test(chaincode_event.event_name)) {
 				logger.debug('_callChaincodeListener - calling chaincode listener callback');
 				if(filtered) {
