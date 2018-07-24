@@ -10,7 +10,7 @@ var util = require('util');
 
 
 var Client = require('fabric-client');
-var copService = require('fabric-ca-client/lib/FabricCAClientImpl.js');
+var copService = require('fabric-ca-client/lib/FabricCAServices.js');
 var User = require('fabric-client/lib/User.js');
 var Constants = require('./constants.js');
 
