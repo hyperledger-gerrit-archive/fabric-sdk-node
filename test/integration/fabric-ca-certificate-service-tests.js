@@ -8,7 +8,7 @@ const tape = require('tape');
 const _test = require('tape-promise').default;
 const test = _test(tape);
 const path = require('path');
-const FabricCAServices = require('../../fabric-ca-client');
+const FabricCAServices = require('../../fabric-ca-client/lib/FabricCAServices');
 const User = require('../../fabric-ca-client/lib/User');
 const { HFCAIdentityAttributes, HFCAIdentityType } = require('../../fabric-ca-client/lib/IdentityService');
 
@@ -21,6 +21,7 @@ const tlsOptions = {
 
 test('\n\n ** FabricCAServices - CertificateService Test **\n\n', async (t) => {
 	try {
+		console.log(FabricCAServices);
 		FabricCAServices.addConfigFile(path.join(__dirname, 'e2e', 'config.json'));
 		const ORGS = FabricCAServices.getConfigSetting('test-network');
 
@@ -55,13 +56,18 @@ test('\n\n ** FabricCAServices - CertificateService Test **\n\n', async (t) => {
 		t.equal(resp.result.certs.length, certsNum1 + 1, 'there should be a new certificate after a new identity was created');
 
 		resp = await certificateService1.getCertificates(null, user1);
+		console.log('AAAAAAA ', resp);
+		console.log('AAAAAAA ',resp.result.certs.length);
 		t.equal(resp.success, true, 'certificate service should response success');
 		t.equal(resp.result.certs.length, 1, 'the new created user can only view the certificate it owns');
 
 		// get certificate by enrollment id, user1._name = user1.enrollmentId
+		console.log('BEFORE');
 		resp = await certificateService1.getCertificates({id: user1.getName()}, user1);
+		console.log('AFTER: ', resp);
 		t.equal(resp.success, true, 'certificate service should response success');
 	} catch (e) {
+		console.log('WENT BANG: ', e);
 		t.fail(e);
 		t.end();
 	}
