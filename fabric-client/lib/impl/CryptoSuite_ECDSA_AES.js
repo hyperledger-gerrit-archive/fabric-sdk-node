@@ -107,7 +107,7 @@ class CryptoSuite_ECDSA_AES extends api.CryptoSuite {
 			// unless "opts.ephemeral" is explicitly set to "true", default to saving the key
 			const key = new ECDSAKey(pair.prvKeyObj);
 
-			const store = await this._cryptoKeyStore._getKeyStore();
+			const store = this._cryptoKeyStore;
 			logger.debug('generateKey, store.setValue');
 			await store.putKey(key);
 			return key;
@@ -126,17 +126,16 @@ class CryptoSuite_ECDSA_AES extends api.CryptoSuite {
 	/**
 	 * This is an implementation of {@link module:api.CryptoSuite#importKey}
 	 */
-	importKey(pem, opts) {
+	async importKey(pem, opts = {}) {
 		logger.debug('importKey - start');
 		let store_key = true; //default
-		if (typeof opts !== 'undefined' && typeof opts.ephemeral !== 'undefined' && opts.ephemeral === true) {
+		if (opts.ephemeral === true) {
 			store_key = false;
 		}
 		if (store_key && !this._cryptoKeyStore) {
 			throw new Error('importKey opts.ephemeral is false, which requires CryptoKeyStore to be set.');
 		}
 
-		const self = this;
 		// attempt to import the raw content, assuming it's one of the following:
 		// X.509v1/v3 PEM certificate (RSA/DSA/ECC)
 		// PKCS#8 PEM RSA/DSA/ECC public key
@@ -145,49 +144,24 @@ class CryptoSuite_ECDSA_AES extends api.CryptoSuite {
 		// TODO: add support for the following passcode-protected PEM formats
 		// - PKCS#5 encrypted PEM RSA/DSA private
 		// - PKCS#8 encrypted PEM RSA/ECDSA private key
-		let pemString = Buffer.from(pem).toString();
-		pemString = makeRealPem(pemString);
+		const pemString = makeRealPem(Buffer.from(pem).toString());
 		let key = null;
-		let theKey = null;
-		let error = null;
 		try {
 			key = KEYUTIL.getKey(pemString);
 		} catch (err) {
-			error = new Error('Failed to parse key from PEM: ' + err);
+			throw new Error(`Failed to parse key from PEM: ${err}`);
 		}
 
-		if (key && key.type && key.type === 'EC') {
-			theKey = new ECDSAKey(key);
-			logger.debug('importKey - have the key %j', theKey);
+		if (!(key && key.type && key.type === 'EC')) {
+			throw new Error('Does not understand PEM contents other than ECDSA private keys and certificates');
 		}
-		else {
-			error = new Error('Does not understand PEM contents other than ECDSA private keys and certificates');
-		}
+		const theKey = new ECDSAKey(key);
+		logger.debug(`importKey - have the key ${theKey}`);
 
-		if (!store_key) {
-			if (error) {
-				logger.error('importKey - %s', error);
-				throw error;
-			}
-			return theKey;
+		if (store_key) {
+			await this._cryptoKeyStore.putKey(theKey);
 		}
-		else {
-			if (error) {
-				logger.error('importKey - %j', error);
-				return Promise.reject(error);
-			}
-			return new Promise((resolve, reject) => {
-				return self._cryptoKeyStore._getKeyStore()
-					.then((store) => {
-						return store.putKey(theKey);
-					}).then(() => {
-						return resolve(theKey);
-					}).catch((err) => {
-						reject(err);
-					});
-
-			});
-		}
+		return theKey;
 	}
 
 	async getKey(ski) {
@@ -195,8 +169,7 @@ class CryptoSuite_ECDSA_AES extends api.CryptoSuite {
 		if (!this._cryptoKeyStore) {
 			throw new Error('getKey requires CryptoKeyStore to be set.');
 		}
-		const store = await this._cryptoKeyStore._getKeyStore();
-		const key = await store.getKey(ski);
+		const key = await this._cryptoKeyStore.getKey(ski);
 		if (key instanceof ECDSAKey)
 			return key;
 
