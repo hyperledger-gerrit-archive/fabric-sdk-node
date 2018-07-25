@@ -35,7 +35,6 @@ var org = 'org1';
 //
 test('\n\n** TEST ** orderer via member missing orderer', function(t) {
 	testUtil.resetDefaults();
-	utils.setConfigSetting('key-value-store', 'fabric-ca-client/lib/impl/FileKeyValueStore.js');//force for 'gulp test'
 	Client.addConfigFile(path.join(__dirname, 'e2e', 'config.json'));
 	ORGS = Client.getConfigSetting('test-network');
 	let orgName = ORGS[org].name;

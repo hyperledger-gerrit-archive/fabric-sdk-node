@@ -56,7 +56,6 @@ test('  ---->>>>> Query channel working <<<<<-----', (t) => {
 	let bcInfo = null;
 	let tx_block = null;
 
-	utils.setConfigSetting('key-value-store', 'fabric-client/lib/impl/FileKeyValueStore.js');
 	var cryptoSuite = Client.newCryptoSuite();
 	cryptoSuite.setCryptoKeyStore(Client.newCryptoKeyStore({ path: testUtil.storePathForOrg(orgName) }));
 	client.setCryptoSuite(cryptoSuite);

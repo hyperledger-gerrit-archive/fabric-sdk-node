@@ -28,7 +28,6 @@ test('\n\n ** createUser happy path - file store **\n\n', function (t) {
 	Client.addConfigFile(path.join(__dirname, '../fixtures/caimport.json'));
 	caImport = utils.getConfigSetting('ca-import', 'notfound');
 
-	utils.setConfigSetting('key-value-store', 'fabric-client/lib/impl/FileKeyValueStore.js');
 	utils.setConfigSetting('crypto-keysize', 256);
 	var userOrg = 'org1';
 

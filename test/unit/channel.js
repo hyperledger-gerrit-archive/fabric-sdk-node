@@ -823,7 +823,6 @@ test('\n\n** TEST ** orderer via channel setOrderer/getOrderer', (t) => {
 	//
 	// Create and configure the test channel
 	//
-	utils.setConfigSetting('key-value-store', 'fabric-client/lib/impl/FileKeyValueStore.js');
 	Client.newDefaultKeyValueStore({
 		path: testutil.KVS
 	}).then((store) => {

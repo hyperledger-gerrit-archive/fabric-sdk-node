@@ -9,11 +9,13 @@
 
 const util = require('util');
 const winston = require('winston');
-const fs = require('fs-extra');
 const crypto = require('crypto');
 const path = require('path');
 const os = require('os');
 const Long = require('long');
+const apiPath = path.resolve(__dirname,'./api');//TODO: breaking change needed: to use single prototype chain for both ca-client and client
+const api = require(apiPath);
+
 
 const Config = require('./Config.js');
 const sjcl = require('sjcl');
@@ -83,11 +85,13 @@ module.exports.newCryptoSuite = (setting) => {
 };
 
 // Provide a Promise-based keyValueStore for couchdb, etc.
-module.exports.newKeyValueStore = async (options) =>{
+module.exports.newKeyValueStore = async (options) => {
 	// initialize the correct KeyValueStore
 	const kvsEnv = exports.getConfigSetting('key-value-store');
-	const store = require(kvsEnv);
-	return new store(options);
+	const Store = require(kvsEnv);
+	const store  = new Store(options);
+	await store.init();
+	return store;
 };
 
 const LOGGING_LEVELS = ['debug', 'info', 'warn', 'error'];
@@ -387,73 +391,30 @@ module.exports.getBufferBit = (buf, idx) => {
 module.exports.getDefaultKeyStorePath = () => {
 	return path.join(os.homedir(), '.hfc-key-store');
 };
+const CryptoKeyStore = require('./impl/CryptoKeyStore.js');//this should be placed after getLogger and config related functions
+const FileKeyValueStore = require('./impl/FileKeyValueStore');//this should be placed after getLogger and config related functions
 
-const CryptoKeyStore = function (KVSImplClass, opts) {
-	this.logger = module.exports.getLogger('utils.CryptoKeyStore');
-	this.logger.debug('CryptoKeyStore, constructor - start');
-	if (KVSImplClass && typeof opts === 'undefined') {
-		if (typeof KVSImplClass === 'function') {
-			// the super class module was passed in, but not the 'opts'
-			opts = null;
-		} else {
-			// called with only one argument for the 'opts' but KVSImplClass was skipped
-			opts = KVSImplClass;
-			KVSImplClass = null;
-		}
-	}
-
-	if (typeof opts === 'undefined' || opts === null) {
-		opts = {
-			path: module.exports.getDefaultKeyStorePath()
-		};
-	}
-	let superClass;
-	if (typeof KVSImplClass !== 'undefined' && KVSImplClass !== null) {
-		superClass = KVSImplClass;
-	} else {
-		// no super class specified, use the default key value store implementation
-		superClass = require(exports.getConfigSetting('key-value-store'));
-		this.logger.debug('constructor, no super class specified, using config: ' + module.exports.getConfigSetting('key-value-store'));
-	}
-
-	this._store = null;
-	this._storeConfig = {
-		superClass: superClass,
-		opts: opts
-
-	};
-
-	this._getKeyStore = function () {
-		const CKS = require('./impl/CryptoKeyStore.js');
-
-		const self = this;
-		return new Promise((resolve, reject) => {
-			if (self._store === null) {
-				self.logger.debug(util.format('This class requires a CryptoKeyStore to save keys, using the store: %j', self._storeConfig));
-
-				CKS(self._storeConfig.superClass, self._storeConfig.opts)
-					.then((ks) => {
-						self.logger.debug('_getKeyStore returning ks');
-						self._store = ks;
-						return resolve(self._store);
-					}).catch((err) => {
-						reject(err);
-					});
-			} else {
-				self.logger.debug('_getKeyStore resolving store');
-				return resolve(self._store);
-			}
-		});
-	};
-
-};
-
-module.exports.newCryptoKeyStore = (KVSImplClass, opts) => {
+module.exports.newCryptoKeyStore = (KVSImplClass, opts = {}) => {
 	// this function supports skipping any of the arguments such that it can be called in any of the following fashions:
 	// - newCryptoKeyStore(CouchDBKeyValueStore, {name: 'member_db', url: 'http://localhost:5984'})
 	// - newCryptoKeyStore({path: '/tmp/app-state-store'})
 	// - newCryptoKeyStore()
-	return new CryptoKeyStore(KVSImplClass, opts);
+	if (!api.KeyValueStore.isPrototypeOf(KVSImplClass)) {
+		opts = Object.assign(opts, KVSImplClass);
+		const keyValueStoreConfig = module.exports.getConfigSetting('key-value-store');
+		KVSImplClass = require(keyValueStoreConfig);
+		if (!api.KeyValueStore.isPrototypeOf(KVSImplClass)) {
+			throw Error(`Class in key-value-store config :${keyValueStoreConfig}, 
+				does not extend api.KeyValueStore in ${apiPath}`);
+		}
+	}
+	if (KVSImplClass === FileKeyValueStore) {
+		opts.path = module.exports.getDefaultKeyStorePath();
+	}
+
+	const kvStoreInstance = new KVSImplClass(opts);
+	return new CryptoKeyStore(kvStoreInstance);
+
 };
 
 /*
@@ -470,8 +431,7 @@ module.exports.checkAndAddConfigSetting = (option_name, default_value, options) 
 		const keys = Object.keys(options);
 		for (const i in keys) {
 			const key = keys[i];
-			const value = options[key];
-			return_options[key] = value;
+			return_options[key] = options[key];
 		}
 	}
 	return return_options;

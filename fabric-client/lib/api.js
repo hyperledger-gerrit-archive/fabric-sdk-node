@@ -26,14 +26,26 @@
  */
 module.exports.KeyValueStore = class {
 
+	constructor(options) {
+	}
+
+	/**
+	 * initialize the storage state, this should be called before {@link getValue} or {@link setValue}
+	 * @returns {Promise}
+	 */
+	async init(){
+	}
+
 	/**
 	 * Get the value associated with <code>name</code>.
 	 *
 	 * @param {string} name Name of the key
 	 * @returns {Promise} Promise for the value corresponding to the key. If the value does not exist in the
-	 * store, returns null without rejecting the promise
+	 * store, implementor should return null instead of rejecting the promise
 	 */
-	getValue(name) {if(name);}
+	async getValue(name) {
+		throw Error(`getValue(name:${name}) should be implemented`);
+	}
 
 	/**
 	 * Set the value associated with <code>name</code>.
@@ -41,7 +53,9 @@ module.exports.KeyValueStore = class {
 	 * @param {string} value The Value to save
 	 * @returns {Promise} Promise for the 'value' object upon successful write operation
 	 */
-	setValue(name, value) {if(name||value);}
+	async setValue(name, value) {
+		throw Error(`setValue(name:${name},value:${value}) should be implemented`);
+	}
 
 };
 
@@ -69,7 +83,9 @@ module.exports.CryptoSuite = class {
 	 * @returns {module:api.Key} Promise for an instance of the Key class
 	 * @throws Will throw an error if not implemented
 	 */
-	generateKey(opts) {if(opts);}
+	generateKey(opts) {
+		if (opts) ;
+	}
 
 	/**
 	 * Generate an ephemeral key.
@@ -77,7 +93,8 @@ module.exports.CryptoSuite = class {
 	 * @returns {module:api.Key} An instance of the Key class
 	 * @throws Will throw an error if not implemented
 	 */
-	generateEphemeralKey() {}
+	generateEphemeralKey() {
+	}
 
 	/**
 	 * Derives the new private key from the source public key using the parameters passed in the <code>opts</code>.
@@ -87,7 +104,9 @@ module.exports.CryptoSuite = class {
 	 * @param {KeyOpts} opts Optional
 	 * @returns {module:api.Key} Derived key
 	 */
-	deriveKey(key, opts) {if(key||opts);}
+	deriveKey(key, opts) {
+		if (key || opts) ;
+	}
 
 	/**
 	 * Imports a {@link Key} from its raw representation using <code>opts</code>. If the <code>opts.ephemeral</code>
@@ -101,7 +120,9 @@ module.exports.CryptoSuite = class {
 	 *          If "opts.ephemeral" not set or false, returns a Promise of an instance of the
 	 *          Key class.
 	 */
-	importKey(pem, opts) {if(pem||opts);}
+	importKey(pem, opts) {
+		if (pem || opts) ;
+	}
 
 	/**
 	 * Returns the {@link Key} this implementation associates to the Subject Key Identifier ski.
@@ -110,7 +131,9 @@ module.exports.CryptoSuite = class {
 	 *    unique index to represent the key
 	 * @returns {module:api.Key} Promise of an instance of the Key class corresponding to the ski
 	 */
-	getKey(ski) {if(ski);}
+	getKey(ski) {
+		if (ski) ;
+	}
 
 	/**
 	 * Produce a hash of the message <code>msg</code> using options <code>opts</code>
@@ -120,7 +143,9 @@ module.exports.CryptoSuite = class {
 	 *      algorithm: an identifier for the algorithm to be used, such as "SHA3"
 	 * @returns {string} The hashed digest in hexidecimal string encoding
 	 */
-	hash(msg, opts) {if(msg||opts);}
+	hash(msg, opts) {
+		if (msg || opts) ;
+	}
 
 	/**
 	 * Signs digest using key. The opts argument should be appropriate for the algorithm used.
@@ -131,7 +156,9 @@ module.exports.CryptoSuite = class {
 	 * for hashing the larger message and passing the hash (as digest) to sign.
 	 * @returns {byte[]} the resulting signature
 	 */
-	sign(key, digest) {if(key||digest);}
+	sign(key, digest) {
+		if (key || digest) ;
+	}
 
 	/**
 	 * Verifies signature against key and digest
@@ -141,7 +168,9 @@ module.exports.CryptoSuite = class {
 	 * @param {byte[]} digest The digest that the signature was created for
 	 * @returns {boolean} true if the signature verifies successfully
 	 */
-	verify(key, signature, digest) {if(key|| signature||digest);}
+	verify(key, signature, digest) {
+		if (key || signature || digest) ;
+	}
 
 	/**
 	 * Encrypts plaintext using key.
@@ -152,7 +181,9 @@ module.exports.CryptoSuite = class {
 	 * @param {Object} opts Encryption options
 	 * @returns {byte[]} Cipher text after encryption
 	 */
-	encrypt(key, plaintext, opts) {if(key||plaintext||opts);}
+	encrypt(key, plaintext, opts) {
+		if (key || plaintext || opts) ;
+	}
 
 	/**
 	 * Decrypts ciphertext using key.
@@ -163,7 +194,9 @@ module.exports.CryptoSuite = class {
 	 * @param {Object} opts Decrypt options
 	 * @returns {byte[]} Plain text after decryption
 	 */
-	decrypt(key, ciphertext, opts) {if(key||ciphertext||opts);}
+	decrypt(key, ciphertext, opts) {
+		if (key || ciphertext || opts) ;
+	}
 
 	/**
 	 * Set the cryptoKeyStore.
@@ -176,7 +209,7 @@ module.exports.CryptoSuite = class {
 	 * @abstract
 	 */
 	setCryptoKeyStore(cryptoKeyStore) {
-		if(cryptoKeyStore) {
+		if (cryptoKeyStore) {
 			throw new Error('Can\'t call abstract method, must be implemented by sub-class!');
 		}
 		throw new Error('Can\'t call abstract method, must be implemented by sub-class!');
@@ -199,21 +232,24 @@ module.exports.Key = class {
 	 *
 	 * @returns {string} The subject key identifier of this key as a hexidecial encoded string
 	 */
-	getSKI() {}
+	getSKI() {
+	}
 
 	/**
 	 * Returns true if this key is a symmetric key, false is this key is asymmetric
 	 *
 	 * @returns {boolean} if this key is a symmetric key
 	 */
-	isSymmetric() {}
+	isSymmetric() {
+	}
 
 	/**
 	 * Returns true if this key is an asymmetric private key, false otherwise.
 	 *
 	 * @returns {boolean} if this key is an asymmetric private key
 	 */
-	isPrivate() {}
+	isPrivate() {
+	}
 
 	/**
 	 * Returns the corresponding public key if this key is an asymmetric private key.
@@ -222,14 +258,16 @@ module.exports.Key = class {
 	 * @returns {module:api.Key} the corresponding public key if this key is an asymmetric private key.
 	 * If this key is already public, returns this key itself.
 	 */
-	getPublicKey() {}
+	getPublicKey() {
+	}
 
 	/**
 	 * Converts this key to its PEM representation, if this operation is allowed.
 	 *
 	 * @returns {string} the PEM string representation of the key
 	 */
-	toBytes() {}
+	toBytes() {
+	}
 };
 
 module.exports.CryptoAlgorithms = {
@@ -353,7 +391,7 @@ module.exports.EndorsementHandler = class {
 	 *        method directly.
 	 */
 	endorse(params) {
-		if(params) {
+		if (params) {
 			throw new Error('The "endorse" method must be implemented');
 		}
 		throw new Error('The "endorse" method must be implemented');
@@ -372,7 +410,7 @@ module.exports.EndorsementHandler = class {
 	 * with.
 	 */
 	static create(channel) {
-		if(channel) {
+		if (channel) {
 			throw new Error('The "create" method must be implemented');
 		}
 		throw new Error('The "create" method must be implemented');
@@ -407,7 +445,7 @@ module.exports.CommitHandler = class {
 	 *        method directly.
 	 */
 	commit(params) {
-		if(params) {
+		if (params) {
 			throw new Error('The "commit" method must be implemented');
 		}
 		throw new Error('The "commit" method must be implemented');
@@ -426,7 +464,7 @@ module.exports.CommitHandler = class {
 	 * with.
 	 */
 	static create(channel) {
-		if(channel) {
+		if (channel) {
 			throw new Error('The "create" method must be implemented');
 		}
 		throw new Error('The "create" method must be implemented');

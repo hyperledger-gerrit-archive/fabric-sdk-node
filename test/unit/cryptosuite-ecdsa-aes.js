@@ -61,45 +61,45 @@ const TEST_MSG_SIGNATURE_SHA2_256 = '3046022100a6460b29373fa16ee96172bfe04666140
 const TEST_LONG_MSG_SIGNATURE_SHA2_256 = '3045022073266302d730b07499aabd0f88f12c8749a0f90144034dbc86a8cd742722ad29022100852346f93e50911008ab97afc452f83c5985a19fa3aa6d58f615c03bddaa90a1';
 
 const TEST_CERT_PEM = '-----BEGIN CERTIFICATE-----' +
-'MIIDVDCCAvqgAwIBAgIBATAKBggqhkjOPQQDAjBOMRMwEQYDVQQKDArOoyBBY21l' +
-'IENvMRkwFwYDVQQDExB0ZXN0LmV4YW1wbGUuY29tMQ8wDQYDVQQqEwZHb3BoZXIx' +
-'CzAJBgNVBAYTAk5MMB4XDTE2MTIxNjIzMTAxM1oXDTE2MTIxNzAxMTAxM1owTjET' +
-'MBEGA1UECgwKzqMgQWNtZSBDbzEZMBcGA1UEAxMQdGVzdC5leGFtcGxlLmNvbTEP' +
-'MA0GA1UEKhMGR29waGVyMQswCQYDVQQGEwJOTDBZMBMGByqGSM49AgEGCCqGSM49' +
-'AwEHA0IABFKnXh7hBdp6s9OJ/aadigT1z2WzBbSc7Hzb3rkaWFz4e+9alqqWg9lr' +
-'ur/mDYzG9dudC8jFjVa7KIh+2BxgBayjggHHMIIBwzAOBgNVHQ8BAf8EBAMCAgQw' +
-'JgYDVR0lBB8wHQYIKwYBBQUHAwIGCCsGAQUFBwMBBgIqAwYDgQsBMA8GA1UdEwEB' +
-'/wQFMAMBAf8wDQYDVR0OBAYEBAECAwQwDwYDVR0jBAgwBoAEAQIDBDBiBggrBgEF' +
-'BQcBAQRWMFQwJgYIKwYBBQUHMAGGGmh0dHA6Ly9vY0JDQ1NQLmV4YW1wbGUuY29t' +
-'MCoGCCsGAQUFBzAChh5odHRwOi8vY3J0LmV4YW1wbGUuY29tL2NhMS5jcnQwRgYD' +
-'VR0RBD8wPYIQdGVzdC5leGFtcGxlLmNvbYERZ29waGVyQGdvbGFuZy5vcmeHBH8A' +
-'AAGHECABSGAAACABAAAAAAAAAGgwDwYDVR0gBAgwBjAEBgIqAzAqBgNVHR4EIzAh' +
-'oB8wDoIMLmV4YW1wbGUuY29tMA2CC2V4YW1wbGUuY29tMFcGA1UdHwRQME4wJaAj' +
-'oCGGH2h0dHA6Ly9jcmwxLmV4YW1wbGUuY29tL2NhMS5jcmwwJaAjoCGGH2h0dHA6' +
-'Ly9jcmwyLmV4YW1wbGUuY29tL2NhMS5jcmwwFgYDKgMEBA9leHRyYSBleHRlbnNp' +
-'b24wCgYIKoZIzj0EAwIDSAAwRQIgcguBb6FUxO+X8DbY17gpqSGuNC4NT4BddPg1' +
-'UWUxIC0CIQDNyHQAwzhw+512meXRwG92GfpzSBssDKLdwlrqiHOu5A==' +
-'-----END CERTIFICATE-----';
+	'MIIDVDCCAvqgAwIBAgIBATAKBggqhkjOPQQDAjBOMRMwEQYDVQQKDArOoyBBY21l' +
+	'IENvMRkwFwYDVQQDExB0ZXN0LmV4YW1wbGUuY29tMQ8wDQYDVQQqEwZHb3BoZXIx' +
+	'CzAJBgNVBAYTAk5MMB4XDTE2MTIxNjIzMTAxM1oXDTE2MTIxNzAxMTAxM1owTjET' +
+	'MBEGA1UECgwKzqMgQWNtZSBDbzEZMBcGA1UEAxMQdGVzdC5leGFtcGxlLmNvbTEP' +
+	'MA0GA1UEKhMGR29waGVyMQswCQYDVQQGEwJOTDBZMBMGByqGSM49AgEGCCqGSM49' +
+	'AwEHA0IABFKnXh7hBdp6s9OJ/aadigT1z2WzBbSc7Hzb3rkaWFz4e+9alqqWg9lr' +
+	'ur/mDYzG9dudC8jFjVa7KIh+2BxgBayjggHHMIIBwzAOBgNVHQ8BAf8EBAMCAgQw' +
+	'JgYDVR0lBB8wHQYIKwYBBQUHAwIGCCsGAQUFBwMBBgIqAwYDgQsBMA8GA1UdEwEB' +
+	'/wQFMAMBAf8wDQYDVR0OBAYEBAECAwQwDwYDVR0jBAgwBoAEAQIDBDBiBggrBgEF' +
+	'BQcBAQRWMFQwJgYIKwYBBQUHMAGGGmh0dHA6Ly9vY0JDQ1NQLmV4YW1wbGUuY29t' +
+	'MCoGCCsGAQUFBzAChh5odHRwOi8vY3J0LmV4YW1wbGUuY29tL2NhMS5jcnQwRgYD' +
+	'VR0RBD8wPYIQdGVzdC5leGFtcGxlLmNvbYERZ29waGVyQGdvbGFuZy5vcmeHBH8A' +
+	'AAGHECABSGAAACABAAAAAAAAAGgwDwYDVR0gBAgwBjAEBgIqAzAqBgNVHR4EIzAh' +
+	'oB8wDoIMLmV4YW1wbGUuY29tMA2CC2V4YW1wbGUuY29tMFcGA1UdHwRQME4wJaAj' +
+	'oCGGH2h0dHA6Ly9jcmwxLmV4YW1wbGUuY29tL2NhMS5jcmwwJaAjoCGGH2h0dHA6' +
+	'Ly9jcmwyLmV4YW1wbGUuY29tL2NhMS5jcmwwFgYDKgMEBA9leHRyYSBleHRlbnNp' +
+	'b24wCgYIKoZIzj0EAwIDSAAwRQIgcguBb6FUxO+X8DbY17gpqSGuNC4NT4BddPg1' +
+	'UWUxIC0CIQDNyHQAwzhw+512meXRwG92GfpzSBssDKLdwlrqiHOu5A==' +
+	'-----END CERTIFICATE-----';
 
 const TEST_KEY_PRIVATE_PEM = '-----BEGIN PRIVATE KEY-----' +
-'MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgZYMvf3w5VkzzsTQY' +
-'I8Z8IXuGFZmmfjIX2YSScqCvAkihRANCAAS6BhFgW/q0PzrkwT5RlWTt41VgXLgu' +
-'Pv6QKvGsW7SqK6TkcCfxsWoSjy6/r1SzzTMni3J8iQRoJ3roPmoxPLK4' +
-'-----END PRIVATE KEY-----';
+	'MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgZYMvf3w5VkzzsTQY' +
+	'I8Z8IXuGFZmmfjIX2YSScqCvAkihRANCAAS6BhFgW/q0PzrkwT5RlWTt41VgXLgu' +
+	'Pv6QKvGsW7SqK6TkcCfxsWoSjy6/r1SzzTMni3J8iQRoJ3roPmoxPLK4' +
+	'-----END PRIVATE KEY-----';
 const TEST_KEY_PRIVATE_CERT_PEM = '-----BEGIN CERTIFICATE-----' +
-'MIICEDCCAbagAwIBAgIUXoY6X7jIpHAAgL267xHEpVr6NSgwCgYIKoZIzj0EAwIw' +
-'fzELMAkGA1UEBhMCVVMxEzARBgNVBAgTCkNhbGlmb3JuaWExFjAUBgNVBAcTDVNh' +
-'biBGcmFuY2lzY28xHzAdBgNVBAoTFkludGVybmV0IFdpZGdldHMsIEluYy4xDDAK' +
-'BgNVBAsTA1dXVzEUMBIGA1UEAxMLZXhhbXBsZS5jb20wHhcNMTcwMTAzMDEyNDAw' +
-'WhcNMTgwMTAzMDEyNDAwWjAQMQ4wDAYDVQQDEwVhZG1pbjBZMBMGByqGSM49AgEG' +
-'CCqGSM49AwEHA0IABLoGEWBb+rQ/OuTBPlGVZO3jVWBcuC4+/pAq8axbtKorpORw' +
-'J/GxahKPLr+vVLPNMyeLcnyJBGgneug+ajE8srijfzB9MA4GA1UdDwEB/wQEAwIF' +
-'oDAdBgNVHSUEFjAUBggrBgEFBQcDAQYIKwYBBQUHAwIwDAYDVR0TAQH/BAIwADAd' +
-'BgNVHQ4EFgQU9BUt7QfgDXx9g6zpzCyJGxXsNM0wHwYDVR0jBBgwFoAUF2dCPaqe' +
-'gj/ExR2fW8OZ0bWcSBAwCgYIKoZIzj0EAwIDSAAwRQIgcWQbMzluyZsmvQCvGzPg' +
-'f5B7ECxK0kdmXPXIEBiizYACIQD2x39Q4oVwO5uL6m3AVNI98C2LZWa0g2iea8wk' +
-'BAHpeA==' +
-'-----END CERTIFICATE-----';
+	'MIICEDCCAbagAwIBAgIUXoY6X7jIpHAAgL267xHEpVr6NSgwCgYIKoZIzj0EAwIw' +
+	'fzELMAkGA1UEBhMCVVMxEzARBgNVBAgTCkNhbGlmb3JuaWExFjAUBgNVBAcTDVNh' +
+	'biBGcmFuY2lzY28xHzAdBgNVBAoTFkludGVybmV0IFdpZGdldHMsIEluYy4xDDAK' +
+	'BgNVBAsTA1dXVzEUMBIGA1UEAxMLZXhhbXBsZS5jb20wHhcNMTcwMTAzMDEyNDAw' +
+	'WhcNMTgwMTAzMDEyNDAwWjAQMQ4wDAYDVQQDEwVhZG1pbjBZMBMGByqGSM49AgEG' +
+	'CCqGSM49AwEHA0IABLoGEWBb+rQ/OuTBPlGVZO3jVWBcuC4+/pAq8axbtKorpORw' +
+	'J/GxahKPLr+vVLPNMyeLcnyJBGgneug+ajE8srijfzB9MA4GA1UdDwEB/wQEAwIF' +
+	'oDAdBgNVHSUEFjAUBggrBgEFBQcDAQYIKwYBBQUHAwIwDAYDVR0TAQH/BAIwADAd' +
+	'BgNVHQ4EFgQU9BUt7QfgDXx9g6zpzCyJGxXsNM0wHwYDVR0jBBgwFoAUF2dCPaqe' +
+	'gj/ExR2fW8OZ0bWcSBAwCgYIKoZIzj0EAwIDSAAwRQIgcWQbMzluyZsmvQCvGzPg' +
+	'f5B7ECxK0kdmXPXIEBiizYACIQD2x39Q4oVwO5uL6m3AVNI98C2LZWa0g2iea8wk' +
+	'BAHpeA==' +
+	'-----END CERTIFICATE-----';
 
 const TEST_USER_ENROLLMENT = {
 	'name': 'admin2',
@@ -155,13 +155,12 @@ test('\n\n** utils.newCryptoSuite tests **\n\n', (t) => {
 test('\n\n ** CryptoSuite_ECDSA_AES - error tests **\n\n', (t) => {
 	testutil.resetDefaults();
 	const cryptoUtils = utils.newCryptoSuite();
-	t.throws(
-		() => {
-			cryptoUtils.importKey(TEST_CERT_PEM);
+	testutil.tapeAsyncThrow(t,
+		async () => {
+			await cryptoUtils.importKey(TEST_CERT_PEM);
 		},
 		/importKey opts.ephemeral is false, which requires CryptoKeyStore to be set./,
-		'Test missing cryptoKeyStore: cryptoSuite.importKey'
-	);
+		'Test missing cryptoKeyStore: cryptoSuite.importKey');
 	cryptoUtils.generateKey().catch(err => {
 		t.ok(err.toString()
 			.includes('generateKey opts.ephemeral is false, which requires CryptoKeyStore to be set.'),
@@ -186,29 +185,28 @@ test('\n\n ** CryptoSuite_ECDSA_AES - generateEphemeralKey tests **\n\n', (t) =>
 
 });
 
-test('\n\n ** CryptoSuite_ECDSA_AES - ephemeral true tests **\n\n', (t) => {
+test('\n\n ** CryptoSuite_ECDSA_AES - ephemeral true tests **\n\n', async (t) => {
 	testutil.resetDefaults();
 	const cryptoUtils = utils.newCryptoSuite();
-	const key = cryptoUtils.importKey(TEST_KEY_PRIVATE_PEM, {ephemeral: true});
+	let key = await cryptoUtils.importKey(TEST_KEY_PRIVATE_PEM, {ephemeral: true});
 	if (key && key._key && key._key.type === 'EC') {
 		t.pass('importKey returned key using ephemeral true');
 	} else {
 		t.fail('importKey did not return key using ephemeral true');
 	}
 
-	return cryptoUtils.generateKey({ephemeral: true})
-		.then((key) => {
-			if (key && key._key && key._key.type === 'EC') {
-				t.pass('generateKey returned key using ephemeral true');
-				t.end();
-			} else {
-				t.fail('generateKey did not return key using ephemeral true');
-				t.end();
-			}
-		},(err) => {
-			t.fail('Failed to generateKey. Can not progress any further. Exiting. ' + err.stack ? err.stack : err);
-			t.end();
-		});
+	try {
+		key = await cryptoUtils.generateKey({ephemeral: true});
+		if (key && key._key && key._key.type === 'EC') {
+			t.pass('generateKey returned key using ephemeral true');
+		} else {
+			t.fail('generateKey did not return key using ephemeral true');
+		}
+	} catch (err) {
+		t.fail('Failed to generateKey. Can not progress any further. Exiting. ' + err.stack ? err.stack : err);
+	}
+	t.end();
+
 });
 
 test('\n\n ** CryptoSuite_ECDSA_AES - function tests **\n\n', (t) => {
@@ -234,7 +232,6 @@ test('\n\n ** CryptoSuite_ECDSA_AES - function tests **\n\n', (t) => {
 
 	//reset to default key size
 	utils.setConfigSetting('crypto-keysize', 256);
-	utils.setConfigSetting('key-value-store', 'fabric-client/lib/impl/FileKeyValueStore.js');//force for gulp test
 	cryptoUtils = utils.newCryptoSuite();
 	cryptoUtils.setCryptoKeyStore(utils.newCryptoKeyStore());
 
@@ -249,7 +246,7 @@ test('\n\n ** CryptoSuite_ECDSA_AES - function tests **\n\n', (t) => {
 			cryptoUtils = utils.newCryptoSuite();
 			cryptoUtils.setCryptoKeyStore(utils.newCryptoKeyStore());
 			return cryptoUtils.generateKey();
-		},(err) => {
+		}, (err) => {
 			t.fail('Failed to generateKey. Can not progress any further. Exiting. ' + err.stack ? err.stack : err);
 			t.end();
 		}).then((key) => {
@@ -275,7 +272,7 @@ test('\n\n ** CryptoSuite_ECDSA_AES - function tests **\n\n', (t) => {
 				'CryptoSuite_ECDSA_AES function tests: using "SHA3" hashing algorithm with key size 384');
 
 			return cryptoUtils.generateKey();
-		},(err) => {
+		}, (err) => {
 			t.fail('Failed to generateKey. Can not progress any further. Exiting. ' + err.stack ? err.stack : err);
 			t.end();
 		}).then((key) => {
@@ -295,8 +292,8 @@ test('\n\n ** CryptoSuite_ECDSA_AES - function tests **\n\n', (t) => {
 				'CryptoSuite_ECDSA_AES function tests: using "SHA3" hashing algorithm with key size 384');
 
 			// test generation options
-			return cryptoUtils.generateKey({ ephemeral: true });
-		},(err) => {
+			return cryptoUtils.generateKey({ephemeral: true});
+		}, (err) => {
 			t.fail('Failed to generateKey. Can not progress any further. Exiting. ' + err.stack ? err.stack : err);
 			t.end();
 		}).then((key) => {
@@ -330,7 +327,7 @@ test('\n\n ** CryptoSuite_ECDSA_AES - function tests **\n\n', (t) => {
 			cryptoUtils.setCryptoKeyStore(utils.newCryptoKeyStore());
 
 			return cryptoUtils.generateKey();
-		},(err) => {
+		}, (err) => {
 			t.fail('Failed to generateKey. Can not progress any further. Exiting. ' + err.stack ? err.stack : err);
 			t.end();
 		}).then((key) => {
@@ -406,7 +403,7 @@ test('\n\n ** CryptoSuite_ECDSA_AES - function tests **\n\n', (t) => {
 
 			const testVerify = function (sig, msg, expected) {
 			// manually construct a key based on the saved privKeyHex and pubKeyHex
-				const f = new ECDSA({ curve: 'secp256r1' });
+				const f = new ECDSA({curve: 'secp256r1'});
 				f.setPrivateKeyHex(TEST_KEY_PRIVATE);
 				f.setPublicKeyHex(TEST_KEY_PUBLIC);
 				f.isPrivate = true;
@@ -422,7 +419,7 @@ test('\n\n ** CryptoSuite_ECDSA_AES - function tests **\n\n', (t) => {
 
 			// test importKey()
 			return cryptoUtils.importKey(TEST_CERT_PEM);
-		},(err) => {
+		}, (err) => {
 			t.fail('Failed to importKey. Can not progress any further. Exiting. ' + err.stack ? err.stack : err);
 			t.end();
 		}).then((pubKey) => {
@@ -436,7 +433,7 @@ test('\n\n ** CryptoSuite_ECDSA_AES - function tests **\n\n', (t) => {
 				'Check that the imported public key has been saved in the key store');
 
 			return cryptoUtils.importKey(TEST_KEY_PRIVATE_PEM);
-		},(err) => {
+		}, (err) => {
 			t.fail('Failed to importKey. Can not progress any further. Exiting. ' + err.stack ? err.stack : err);
 			t.end();
 		}).then((privKey) => {
@@ -459,7 +456,7 @@ test('\n\n ** CryptoSuite_ECDSA_AES - function tests **\n\n', (t) => {
 
 			// manufacture an error condition where the private key does not exist for the SKI, and only the public key does
 			return cryptoUtils.importKey(TEST_KEY_PRIVATE_CERT_PEM);
-		},(err) => {
+		}, (err) => {
 			t.fail('Failed to importKey. Can not progress any further. Exiting. ' + err.stack ? err.stack : err);
 			t.end();
 		}).then(() => {
@@ -472,7 +469,7 @@ test('\n\n ** CryptoSuite_ECDSA_AES - function tests **\n\n', (t) => {
 		}).then(() => {
 			t.fail('Failed to catch missing private key expected from a user enrollment object');
 			t.end();
-		},(err) => {
+		}, (err) => {
 			const msg = 'Private key missing from key store';
 			if (err.message && err.message.indexOf(msg) > -1) {
 				t.pass('Successfully caught missing private key expected from a user enrollment object');

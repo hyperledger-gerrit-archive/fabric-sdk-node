@@ -50,8 +50,6 @@ test('\n\n***** Configtx Built config  create flow  *****\n\n', function(t) {
 	// Acting as a client in org1 when creating the channel
 	var org = ORGS.org1.name;
 
-	utils.setConfigSetting('key-value-store', 'fabric-client/lib/impl/FileKeyValueStore.js');
-
 	return e2eUtils.tlsEnroll('org1')
 	.then((enrollment) => {
 		t.pass('Successfully retrieved TLS certificate');
