@@ -460,7 +460,7 @@ var CryptoKeyStore = function(KVSImplClass, opts) {
 
 };
 
-module.exports.newCryptoKeyStore = function(KVSImplClass, opts) {
+module.exports.newCryptoKeyStore = (KVSImplClass, opts) =>{
 	// this function supports skipping any of the arguments such that it can be called in any of the following fashions:
 	// - newCryptoKeyStore(CouchDBKeyValueStore, {name: 'member_db', url: 'http://localhost:5984'})
 	// - newCryptoKeyStore({path: '/tmp/app-state-store'})
