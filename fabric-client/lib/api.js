@@ -33,7 +33,7 @@ module.exports.KeyValueStore = class {
 	 * @returns {Promise} Promise for the value corresponding to the key. If the value does not exist in the
 	 * store, returns null without rejecting the promise
 	 */
-	getValue(name) {if(name);}
+	async getValue(name) {if(name);}
 
 	/**
 	 * Set the value associated with <code>name</code>.
@@ -41,7 +41,7 @@ module.exports.KeyValueStore = class {
 	 * @param {string} value The Value to save
 	 * @returns {Promise} Promise for the 'value' object upon successful write operation
 	 */
-	setValue(name, value) {if(name||value);}
+	async setValue(name, value) {if(name||value);}
 
 };
 

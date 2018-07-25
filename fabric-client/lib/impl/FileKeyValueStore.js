@@ -7,12 +7,12 @@
 
 'use strict';
 
-var api = require('../api.js');
-var fs = require('fs-extra');
-var path = require('path');
-var utils = require('../utils');
+const api = require('../api.js');
+const fsExtra = require('fs-extra');
+const path = require('path');
+const utils = require('../utils');
 
-var logger = utils.getLogger('FileKeyValueStore.js');
+const logger = utils.getLogger('FileKeyValueStore.js');
 
 /**
  * This is a default implementation of the [KeyValueStore]{@link module:api.KeyValueStore} API.
@@ -21,7 +21,7 @@ var logger = utils.getLogger('FileKeyValueStore.js');
  * @class
  * @extends module:api.KeyValueStore
  */
-var FileKeyValueStore = class extends api.KeyValueStore {
+const FileKeyValueStore = class extends api.KeyValueStore {
 
 	/**
 	 * constructor
@@ -30,7 +30,7 @@ var FileKeyValueStore = class extends api.KeyValueStore {
 	 * for the store
 	 */
 	constructor(options) {
-		logger.debug('constructor', { options: options });
+		logger.debug('constructor', {options: options});
 
 		if (!options || !options.path) {
 			throw new Error('Must provide the path to the directory to hold files for the store.');
@@ -39,54 +39,29 @@ var FileKeyValueStore = class extends api.KeyValueStore {
 		// Create the keyValStore instance
 		super();
 
-		var self = this;
 		this._dir = options.path;
-		return new Promise(function (resolve, reject) {
-			fs.mkdirs(self._dir, function (err) {
-				if (err) {
-					logger.error('constructor, error creating directory, code: %s' , err.code);
-					return reject(err);
-				}
-				return resolve(self);
-			});
-		});
+		fsExtra.mkdirsSync(this._dir);
 	}
 
-	getValue(name) {
-		logger.debug('getValue', { key: name });
+	async getValue(name) {
+		logger.debug('getValue', {key: name});
 
-		var self = this;
-
-		return new Promise(function (resolve, reject) {
-			var p = path.join(self._dir, name);
-			fs.readFile(p, 'utf8', function (err, data) {
-				if (err) {
-					if (err.code !== 'ENOENT') {
-						return reject(err);
-					} else {
-						return resolve(null);
-					}
-				}
-				return resolve(data);
-			});
-		});
+		const p = path.join(this._dir, name);
+		try {
+			return fsExtra.readFileSync(p, 'utf8');
+		} catch (err) {
+			if (err.code === 'ENOENT') {
+				return null;
+			} else throw err;
+		}
 	}
 
-	setValue(name, value) {
-		logger.debug('setValue', { key: name });
+	async setValue(name, value) {
+		logger.debug('setValue', {key: name});
 
-		var self = this;
-
-		return new Promise(function (resolve, reject) {
-			var p = path.join(self._dir, name);
-			fs.writeFile(p, value, function (err) {
-				if (err) {
-					reject(err);
-				} else {
-					return resolve(value);
-				}
-			});
-		});
+		const p = path.join(this._dir, name);
+		fsExtra.writeFileSync(p, value);
+		return value;
 	}
 };
 

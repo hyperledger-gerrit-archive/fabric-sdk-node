@@ -68,12 +68,12 @@ var CryptoKeyStoreMixin = (KeyValueStore) => class extends KeyValueStore {
  *
  * @class
  */
-var CryptoKeyStore = function(KVSImplClass, opts) {
+var CryptoKeyStore = function (KVSImplClass, opts) {
 	var superClass;
 
 	if (typeof KVSImplClass !== 'function') {
 		let impl_class = utils.getConfigSetting('crypto-value-store');
-		if(!impl_class) impl_class = utils.getConfigSetting('key-value-store');
+		if (!impl_class) impl_class = utils.getConfigSetting('key-value-store');
 		superClass = require(impl_class);
 	} else {
 		superClass = KVSImplClass;
@@ -84,15 +84,16 @@ var CryptoKeyStore = function(KVSImplClass, opts) {
 		opts = KVSImplClass;
 	}
 
-	var MyClass = class extends CryptoKeyStoreMixin(superClass) {};
+	var MyClass = class extends CryptoKeyStoreMixin(superClass) {
+	};
 	return new MyClass(opts);
 };
 
-function _getKeyIndex(ski, isPrivateKey) {
+const _getKeyIndex = (ski, isPrivateKey) => {
 	if (isPrivateKey)
 		return ski + '-priv';
 	else
 		return ski + '-pub';
-}
+};
 
 module.exports = CryptoKeyStore;
