@@ -1,3 +1,12 @@
+## v1.2.1
+Mon 30 Jul 2018 13:48:57 BST
+
+* [05bfe8d](https://github.com/hyperledger/fabric-sdk-node/commit/05bfe8d) FABN-846 Prepare for 1.2.1 release
+* [55c8a6a](https://github.com/hyperledger/fabric-sdk-node/commit/55c8a6a) FABN-830 addTlsClientCertAndKey wrong cryptosuite
+* [ba0bde1](https://github.com/hyperledger/fabric-sdk-node/commit/ba0bde1) FABN-826 restore backward compatibility for errors
+* [98a2257](https://github.com/hyperledger/fabric-sdk-node/commit/98a2257) [FAB-11231](https://jira.hyperledger.org/browse/FAB-11231) node sdk to handle chaincode errors
+* [2a27df4](https://github.com/hyperledger/fabric-sdk-node/commit/2a27df4) [FAB-11179](https://jira.hyperledger.org/browse/FAB-11179) NodeSDK - handle missing discovery
+
 ## v1.2.0
 Fri Jul  6 08:14:31 EDT 2018
 
