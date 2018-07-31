@@ -2313,6 +2313,8 @@ const Channel = class {
 	 *           only be used to determine if the signing of the request
 	 *           should be done by the admin identity or the user assigned
 	 *           to the client instance.
+	 * @property {Orderer|string} orderer - Optional. The orderer instance or string name
+	 *                     of the orderer to operate. See {@link Client.getTargetOrderer}
 	 */
 
 	/**
@@ -2347,40 +2349,29 @@ const Channel = class {
 	 */
 	async sendTransaction(request, timeout) {
 		logger.debug('sendTransaction - start :: channel %s', this);
-		let errorMsg = null;
 
-		if (request) {
-			// Verify that data is being passed in
-			if (!request.proposalResponses) {
-				errorMsg = 'Missing "proposalResponses" parameter in transaction request';
-			}
-			if (!request.proposal) {
-				errorMsg = 'Missing "proposal" parameter in transaction request';
-			}
-		} else {
-			errorMsg = 'Missing input request object on the transaction request';
+		if(!request){
+			throw Error('Missing input request object on the transaction request');
+		}
+		// Verify that data is being passed in
+		if (!request.proposalResponses) {
+			throw Error('Missing "proposalResponses" parameter in transaction request');
+		}
+		if (!request.proposal) {
+			throw Error('Missing "proposal" parameter in transaction request');
 		}
 
-		if (errorMsg) {
-			logger.error('sendTransaction error ' + errorMsg);
-			throw new Error(errorMsg);
-		}
-
-		const proposalResponses = request.proposalResponses;
+		let proposalResponses = request.proposalResponses;
 		const chaincodeProposal = request.proposal;
 
 		const endorsements = [];
-		let proposalResponse = proposalResponses;
-		if (Array.isArray(proposalResponses)) {
-			for (let i = 0; i < proposalResponses.length; i++) {
-				// make sure only take the valid responses to set on the consolidated response object
-				// to use in the transaction object
-				if (proposalResponses[i].response && proposalResponses[i].response.status === 200) {
-					proposalResponse = proposalResponses[i];
-					endorsements.push(proposalResponse.endorsement);
-				}
-			}
-		} else {
+		if (!Array.isArray(proposalResponses)) {
+			//convert to array
+			proposalResponses = [proposalResponses];
+		}
+		for (const proposalResponse of proposalResponses) {
+			// make sure only take the valid responses to set on the consolidated response object
+			// to use in the transaction object
 			if (proposalResponse && proposalResponse.response && proposalResponse.response.status === 200) {
 				endorsements.push(proposalResponse.endorsement);
 			}
@@ -2390,11 +2381,35 @@ const Channel = class {
 			logger.error('sendTransaction - no valid endorsements found');
 			throw new Error('no valid endorsements found');
 		}
+		const proposalResponse = proposalResponses[0];
 
 		let use_admin_signer = false;
 		if (request.txId) {
 			use_admin_signer = request.txId.isAdmin();
 		}
+
+		const envelope = Channel.buildTransactionEnvelope(this._clientContext,chaincodeProposal,endorsements,proposalResponse,use_admin_signer);
+
+		if (this._commit_handler) {
+			const params = {
+				signed_envelope: envelope,
+				request: request,
+				timeout: timeout
+			};
+			return this._commit_handler.commit(params);
+
+		} else {
+			// verify that we have an orderer configured
+			const orderer = this._clientContext.getTargetOrderer(request.orderer, this.getOrderers(), this._name);
+			return orderer.sendBroadcast(envelope,timeout);
+		}
+	}
+
+	/*
+	 * Internal static method to allow transaction envelop to be built without
+	 * creating a new channel
+	 */
+	static buildTransactionEnvelope(clientContext,chaincodeProposal,endorsements,proposalResponse,use_admin_signer){
 
 		const header = _commonProto.Header.decode(chaincodeProposal.getHeader());
 
@@ -2432,31 +2447,16 @@ const Channel = class {
 
 		const payload_bytes = payload.toBuffer();
 
-		const signer = this._clientContext._getSigningIdentity(use_admin_signer);
-		const sig = signer.sign(payload_bytes);
-		const signature = Buffer.from(sig);
+		const signer = clientContext._getSigningIdentity(use_admin_signer);
+		const signature = Buffer.from(signer.sign(payload_bytes));
 
 		// building manually or will get protobuf errors on send
 		const envelope = {
 			signature: signature,
 			payload: payload_bytes
 		};
-
-		if (this._commit_handler) {
-			const params = {
-				signed_envelope: envelope,
-				request: request,
-				timeout: timeout
-			};
-			return this._commit_handler.commit(params);
-
-		} else {
-			// verify that we have an orderer configured
-			const orderer = this._clientContext.getTargetOrderer(request.orderer, this.getOrderers(), this._name);
-			return orderer.sendBroadcast(envelope);
-		}
+		return envelope;
 	}
-
 	/**
 	 * @typedef {Object} ChaincodeQueryRequest
 	 * @property {Peer[]} targets - Optional. The peers that will receive this request,
