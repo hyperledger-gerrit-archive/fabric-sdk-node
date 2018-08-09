@@ -192,6 +192,10 @@ actions {array}
 									key -- {string}
 									is_delete -- {boolean}
 									value -- {string}
+						collection_hashed_rwset -- {array}
+							collection_name -- {string}
+							hashed_rwset -- {byte[]}
+							pvt_rwset_hash -- {byte[]}
 					events
 						chaincode_id --  {string}
 						tx_id -- {string}
@@ -1244,6 +1248,7 @@ function decodeReadWriteSets(rw_sets_bytes) {
 			const proto_kv_rw_set = proto_ns_rwset[i];
 			kv_rw_set.namespace = proto_kv_rw_set.getNamespace();
 			kv_rw_set.rwset = decodeKVRWSet(proto_kv_rw_set.getRwset());
+			kv_rw_set.collection_hashed_rwset = decodeCollectionHashedRWSet(proto_kv_rw_set.getCollectionHashedRwset());
 			tx_read_write_set.ns_rwset.push(kv_rw_set);
 		}
 	} else {
@@ -1356,6 +1361,21 @@ function decodeVersion(version_long) {
 	const version_int = Number.parseInt(version_string);
 
 	return version_int;
+}
+
+function decodeCollectionHashedRWSet(proto_collection_hashed_rwset) {
+	let collection_hashed_rwset = [];
+	for (const i in proto_collection_hashed_rwset) {
+		const proto_collection = proto_collection_hashed_rwset[i];
+		const collection = {};
+
+		collection.collection_name = proto_collection.getCollectionName();
+		collection.hashed_rwset = proto_collection.getHashedRwset().toBuffer();
+		collection.pvt_rwset_hash = proto_collection.getPvtRwsetHash().toBuffer();
+
+		collection_hashed_rwset.push(collection);
+	}
+	return collection_hashed_rwset;
 }
 
 const type_as_string = {

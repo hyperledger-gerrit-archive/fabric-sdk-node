@@ -144,6 +144,32 @@ test('\n\n*** BlockDecoder test for readwrite sets', (t) => {
 	t.equal(33,results_json.ns_rwset[0].rwset.range_queries_info[0].reads_merkle_hashes.max_level,' check results_json.ns_rwset[0].rwset.range_queries_info[0].reads_merkle_hashes.max_level');
 	t.equal('some hash',results_json.ns_rwset[0].rwset.range_queries_info[0].reads_merkle_hashes.max_level_hashes[0].toString('utf8'),' check results_json.ns_rwset[0].rwset.range_queries_info[0].reads_merkle_hashes.max_level_hashes[0]');
 
+	// Private data
+	const collection_rwset_array = [];
+	const collection_rwset = new rwsetProto.CollectionHashedReadWriteSet();
+	collection_rwset.setCollectionName('test4private');
+	collection_rwset.setHashedRwset(Buffer.from('00000BCDEFGHIJKL'));
+	collection_rwset.setPvtRwsetHash(Buffer.from('11111ABCDEFGHIJK'));
+	collection_rwset_array.push(collection_rwset);
+
+	ns_rwset_array = [];
+	ns_rwset_proto = new rwsetProto.NsReadWriteSet();
+	ns_rwset_proto.setNamespace('test4');
+	ns_rwset_proto.setRwset(kvrwset_proto.toBuffer());
+	ns_rwset_proto.setCollectionHashedRwset(collection_rwset_array);
+	ns_rwset_array.push(ns_rwset_proto);
+
+	results_proto.setNsRwset(ns_rwset_array);
+
+	results_json = decodeReadWriteSets(results_proto.toBuffer());
+	logger.debug('results test4 %j', results_json);
+
+	t.equal('test4',results_json.ns_rwset[0].namespace, ' check results_json.ns_rwset[0].namespace');
+	t.equal(1, results_json.ns_rwset[0].collection_hashed_rwset.length, ' check results_json.ns_rwset[0].collection_hashed_rwset.length');
+	t.equal('test4private', results_json.ns_rwset[0].collection_hashed_rwset[0].collection_name, ' check results_json.ns_rwset[0].collection_hashed_rwset[0].collection_name');
+	t.equal('00000BCDEFGHIJKL', results_json.ns_rwset[0].collection_hashed_rwset[0].hashed_rwset.toString(), ' check results_json.ns_rwset[0].collection_hashed_rwset[0].hashed_rwset');
+	t.equal('11111ABCDEFGHIJK', results_json.ns_rwset[0].collection_hashed_rwset[0].pvt_rwset_hash.toString(), ' check results_json.ns_rwset[0].collection_hashed_rwset[0].pvt_rwset_hash');
+
 	t.end();
 
 });
