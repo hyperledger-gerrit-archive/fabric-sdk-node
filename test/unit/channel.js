@@ -541,7 +541,7 @@ test('\n\n ** Channel _buildDefaultEndorsementPolicy() tests **\n\n', (t) => {
 
 	t.throws(
 		() => {
-			c._buildEndorsementPolicy({identities: {}});
+			c._buildEndorsementPolicy({identities: {name: 'something'}});
 		},
 		/Invalid policy, the "identities" property must be an array/,
 		'Checking policy spec: identities must be an array'
@@ -549,7 +549,13 @@ test('\n\n ** Channel _buildDefaultEndorsementPolicy() tests **\n\n', (t) => {
 
 	t.throws(
 		() => {
-			c._buildEndorsementPolicy({identities: []});
+			const identities = [{
+				role: {
+					name: 'member',
+					mspId: 'Org1MSP'
+				}
+			}];
+			c._buildEndorsementPolicy({identities: identities});
 		},
 		/Invalid policy, missing the "policy" property/,
 		'Checking policy spec: must have "policy"'
@@ -557,7 +563,7 @@ test('\n\n ** Channel _buildDefaultEndorsementPolicy() tests **\n\n', (t) => {
 
 	t.throws(
 		() => {
-			c._buildEndorsementPolicy({identities: [{dummy: 'value', dummer: 'value'}], policy: {}});
+			c._buildEndorsementPolicy({identities: [{dummy: 'value', dummer: 'value'}], policy: {}}, {});
 		},
 		/Invalid identity type found: must be one of role, organization-unit or identity, but found dummy,dummer/,
 		'Checking policy spec: each identity must be "role", "organization-unit" or "identity"'
@@ -565,7 +571,7 @@ test('\n\n ** Channel _buildDefaultEndorsementPolicy() tests **\n\n', (t) => {
 
 	t.throws(
 		() => {
-			c._buildEndorsementPolicy({identities: [{role: 'value'}], policy: {}});
+			c._buildEndorsementPolicy({identities: [{role: 'value'}], policy: {}}, {});
 		},
 		/Invalid role name found: must be one of "peer", "member" or "admin", but found/,
 		'Checking policy spec: value identity type "role" must have valid "name" value'
@@ -573,7 +579,7 @@ test('\n\n ** Channel _buildDefaultEndorsementPolicy() tests **\n\n', (t) => {
 
 	t.throws(
 		() => {
-			c._buildEndorsementPolicy({identities: [{'organization-unit': 'value'}], policy: {}});
+			c._buildEndorsementPolicy({identities: [{'organization-unit': 'value'}], policy: {}}, {});
 		},
 		/NOT IMPLEMENTED/,
 		'Checking policy spec: value identity type "organization-unit"'
