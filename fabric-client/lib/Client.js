@@ -1246,14 +1246,17 @@ const Client = class extends BaseClient {
 		});
 		logger.debug(`Successfully enrolled user "${opts.username}"`);
 
+		let cryptoContent = { signedCertPEM: enrollment.certificate }
+		if (enrollment.key.constructor && enrollment.key.constructor.name == 'PKCS11_ECDSA_KEY') {
+			cryptoContent.privateKeyObj = enrollment.key;
+		} else {
+			cryptoContent.privateKeyPEM = enrollment.key.toBytes();
+		}
 		return this.createUser(
 			{
 				username: opts.username,
 				mspid: mspid,
-				cryptoContent: {
-					privateKeyPEM: enrollment.key.toBytes(),
-					signedCertPEM: enrollment.certificate
-				}
+				cryptoContent: cryptoContent
 			});
 	}
 
