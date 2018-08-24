@@ -199,7 +199,7 @@ describe('Organization', () => {
 	});
 
 	describe('#toString', () => {
-		it('should return a string representation of the Organzartion object', () => {
+		it('should return a string representation of the Organization object', () => {
 			const myOrg = new Organization('my_org_name', 'my_org_mspid');
 
 			// Add peers
@@ -215,7 +215,8 @@ describe('Organization', () => {
 			myOrg.addCertificateAuthority(CA2);
 
 			const result = myOrg.toString();
-			result.should.equal('Organization : {name : my_org_name, mspid : my_org_mspid, peers : [Peer:{url:grpc://this.domain.one},Peer:{url:grpc://this.domain.two}], certificateAuthorities : [ CertificateAuthority : {name : ca1, url : grpc://this.domain.one}, CertificateAuthority : {name : ca2, url : grpc://this.domain.two}]}');
+			console.log(result);
+			result.should.equal('Organization : {name : my_org_name, mspid : my_org_mspid, peers : [Peer:{url:grpc://this.domain.one},Peer:{url:grpc://this.domain.two}], certificateAuthorities : [CertificateAuthority : {name : ca1, url : grpc://this.domain.one},CertificateAuthority : {name : ca2, url : grpc://this.domain.two}]}');
 		});
 	});
 });
