@@ -208,7 +208,8 @@ gulp.task('run-full', ['clean-up', 'lint', 'pre-test', 'compile', 'docker-ready'
 			'test/typescript/test.js',
 			//
 			'test/integration/perf/orderer.js',
-			'test/integration/perf/peer.js'
+			'test/integration/perf/peer.js',
+			'test/integration/javachaincode/e2e.js'
 		]))
 			.pipe(addsrc.append(
 				'test/unit/logger.js' // put this to the last so the debugging levels are not mixed up
