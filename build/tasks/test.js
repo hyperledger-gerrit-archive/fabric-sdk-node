@@ -203,6 +203,7 @@ gulp.task('run-full', ['clean-up', 'lint', 'pre-test', 'compile', 'docker-ready'
 			'test/integration/invoke.js',
 			'test/integration/network-config.js',
 			'test/integration/only-admin.js',
+			'test/integration/javachaincode/e2e.js',
 			'test/integration/discovery.js',
 			'test/integration/grpc.js',
 			// channel: mychannelts chaincode: examplets:v1
