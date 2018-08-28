@@ -35,6 +35,8 @@ module.exports.METADATA_PATH = path.resolve(__dirname, '../fixtures/metadata');
 module.exports.METADATA_PATH_PRIVATE_DATA = path.resolve(__dirname, '../fixtures/src/github.com/example_cc_private/META-INF');
 module.exports.COLLECTIONS_CONFIG_PATH = path.resolve(__dirname, '../fixtures/src/github.com/example_cc_private/collections_config.json');
 
+module.exports.JAVA_CHAINCODE_PATH = path.resolve(__dirname, '../fixtures/src/java_cc/example_cc');
+
 module.exports.NODE_END2END = {
 	channel: 'mychannel',
 	chaincodeId: 'e2enodecc',
@@ -744,4 +746,3 @@ exports.tapeAsyncThrow = async (t, asyncFun, regx, message) => {
 		}
 	}
 };
-

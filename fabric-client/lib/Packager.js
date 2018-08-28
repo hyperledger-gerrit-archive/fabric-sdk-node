@@ -10,6 +10,7 @@
 var Golang = require('./packager/Golang.js');
 var Car = require('./packager/Car.js');
 var Node = require('./packager/Node.js');
+var Java = require('./packager/Java.js');
 var utils = require('./utils.js');
 
 var logger = utils.getLogger('packager');
@@ -51,6 +52,9 @@ module.exports.package = function(chaincodePath, chaincodeType, devmode, metadat
 			break;
 		case 'node':
 			handler = new Node();
+			break;
+		case 'java':
+			handler = new Java();
 			break;
 		default:
 			handler = new Golang(['.go','.c','.h','.s']);
