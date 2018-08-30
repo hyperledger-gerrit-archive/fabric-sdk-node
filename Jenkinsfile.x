@@ -103,6 +103,13 @@ if (env.GERRIT_EVENT_TYPE == "change-merged") {
      } finally {
            junit '**/cobertura-coverage.xml'
            step([$class: 'CoberturaPublisher', autoUpdateHealth: false, autoUpdateStability: false, coberturaReportFile: '**/cobertura-coverage.xml', failUnhealthy: false, failUnstable: false, maxNumberOfBuilds: 0, onlyStable: false, sourceEncoding: 'ASCII', zoomCoverageChart: false])
+           // Sends notification to Rocket.Chat
+           failure {
+              rocketSend 
+              channel: 'jenkins-robot',
+              message: "Build Started - ${env.JOB_NAME} ${env.BUILD_NUMBER} (<${env.BUILD_URL}|Open>)",
+              rawMessage: true
+           }
        }
 }
 
