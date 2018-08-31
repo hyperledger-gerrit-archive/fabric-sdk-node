@@ -165,7 +165,7 @@ const Client = class extends BaseClient {
 				// generate X509 cert pair
 				// use the default software cryptosuite, not the client assigned cryptosuite, which may be
 				// HSM, or the default has been set to HSM. FABN-830
-				const key = Client.newCryptoSuite({software: true}).generateEphemeralKey();
+				const key = Client.newCryptoSuite({ software: true }).generateEphemeralKey();
 				this._tls_mutual.clientKey = key.toBytes();
 				this._tls_mutual.clientCert = key.generateX509Certificate(this._userContext.getName());
 			}
@@ -987,36 +987,15 @@ const Client = class extends BaseClient {
 			throw new Error(error_msg);
 		}
 
-		const ccSpec = {
-			type: clientUtils.translateCCType(request.chaincodeType),
-			chaincode_id: {
-				name: request.chaincodeId,
-				path: request.chaincodePath,
-				version: request.chaincodeVersion
-			}
-		};
-		logger.debug(`installChaincode - ccSpec ${JSON.stringify(ccSpec)} `);
-
-		// step 2: construct the ChaincodeDeploymentSpec
-		const chaincodeDeploymentSpec = new _ccProto.ChaincodeDeploymentSpec();
-		chaincodeDeploymentSpec.setChaincodeSpec(ccSpec);
-
-		const data = await _getChaincodePackageData(request, this.isDevMode());
-		// DATA may or may not be present depending on devmode settings
-		if (data) {
-			chaincodeDeploymentSpec.setCodePackage(data);
-			logger.debug('installChaincode - found packaged data');
-		}
-		logger.debug(`installChaincode - sending deployment spec ${chaincodeDeploymentSpec} `);
-
+		const cdsBytes = await _getChaincodeDeploymentSpec(request, this.isDevMode());
 		// TODO add ESCC/VSCC info here ??????
 		const lcccSpec = {
-			type: ccSpec.type,
+			type: clientUtils.translateCCType(request.chaincodeType),
 			chaincode_id: {
 				name: Constants.LSCC
 			},
 			input: {
-				args: [Buffer.from('install', 'utf8'), chaincodeDeploymentSpec.toBuffer()]
+				args: [Buffer.from('install', 'utf8'), cdsBytes]
 			}
 		};
 
@@ -1251,7 +1230,7 @@ const Client = class extends BaseClient {
 		let keyBytes = null;
 		try {
 			keyBytes = enrollment.key.toBytes();
-		} catch(err) {
+		} catch (err) {
 			logger.debug('Cannot access enrollment private key bytes');
 		}
 		if (keyBytes != null && keyBytes.startsWith('-----BEGIN')) {
@@ -1685,15 +1664,38 @@ function readFile(path) {
 	});
 }
 
-// internal utility method to get the chaincodePackage data in bytes
-async function _getChaincodePackageData(request, devMode) {
-	if (!request.chaincodePackage) {
-		logger.debug('_getChaincodePackageData -  build package with chaincodepath %s, chaincodeType %s, devMode %s, metadataPath %s',
-			request.chaincodePath, request.chaincodeType, devMode, request.metadataPath);
-		return Packager.package(request.chaincodePath, request.chaincodeType, devMode, request.metadataPath);
-	} else {
-		logger.debug('_getChaincodePackageData - working with included chaincodePackage');
+// internal utility to get the serialized deployment spec for installing chaincode
+async function _getChaincodeDeploymentSpec(request, devMode) {
+
+	if (request.chaincodePackage && Buffer.isBuffer(request.chaincodePackage)) {
+		logger.debug('installChaincode - using included package');
 		return request.chaincodePackage;
+	} else {
+		return new Promise((resolve, reject) => {
+			return Packager.package(request.chaincodePath, request.chaincodeType, devMode)
+				.then((data) => {
+					let ccSpec = {
+						type: clientUtils.translateCCType(request.chaincodeType),
+						chaincode_id: {
+							name: request.chaincodeId,
+							path: request.chaincodePath,
+							version: request.chaincodeVersion
+						}
+					};
+					logger.debug('installChaincode - ccSpec %s ', JSON.stringify(ccSpec));
+					let chaincodeDeploymentSpec = new _ccProto.ChaincodeDeploymentSpec();
+					chaincodeDeploymentSpec.setChaincodeSpec(ccSpec);
+					// DATA may or may not be present depending on devmode settings
+					if (data) {
+						chaincodeDeploymentSpec.setCodePackage(data);
+						logger.debug('installChaincode - created new package');
+					}
+					resolve(chaincodeDeploymentSpec.toBuffer());
+				})
+				.catch((err) => {
+					reject(err);
+				});
+		});
 	}
 }
 
