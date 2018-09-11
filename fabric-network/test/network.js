@@ -154,7 +154,9 @@ describe('Network', () => {
 		it('should initialize the internal channels', async () => {
 			network.initialized = false;
 			sandbox.stub(network, '_initializeInternalChannel').returns();
-			sandbox.stub(network, '_mapPeersToMSPid').returns({});
+			const mockPeerMap = new Map();
+			mockPeerMap.set(mspId, [mockPeer1]);
+			sandbox.stub(network, '_mapPeersToMSPid').returns(mockPeerMap);
 			await network._initialize();
 			network.initialized.should.equal(true);
 		});
@@ -242,6 +244,15 @@ describe('Network', () => {
 			network.initialized.should.equal(false);
 		});
 
+		it('should cleanup the event handler manager, if defined', () => {
+			const cleanupStub = sinon.stub();
+			network.eventHandlerFactory = {
+				cleanup: cleanupStub
+			};
+			network._dispose();
+			sinon.assert.calledOnce(cleanupStub);
+		});
+
 		it('should call dispose on the queryHandler if defined and work if no contracts have been got', () => {
 			const disposeStub = sinon.stub();
 			network.queryHandler = {
@@ -274,7 +285,7 @@ describe('Network', () => {
 				await initNetwork();
 				const timeout = mockGateway.getOptions().eventHandlerOptions.commitTimeout;
 				const eventHandler = network.eventHandlerFactory.createTxEventHandler(txId);
-				eventHandler.options.timeout.should.equal(timeout);
+				eventHandler.options.commitTimeout.should.equal(timeout);
 			});
 
 			it('return null if no event strategy set', async () => {
@@ -282,13 +293,12 @@ describe('Network', () => {
 					useDiscovery: false,
 					eventHandlerOptions: {
 						commitTimeout: 300,
-						eventStrategy: null
+						strategy: null
 					}
 				});
 				network = new Network(mockGateway, mockChannel);
 				await initNetwork();
-				const eventHandler = network.eventHandlerFactory.createTxEventHandler(txId);
-				should.equal(eventHandler, null);
+				should.equal(network.eventHandlerFactory, null);
 			});
 		});
 	});
