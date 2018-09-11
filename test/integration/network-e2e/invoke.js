@@ -46,7 +46,7 @@ async function createContract(t, gateway, gatewayOptions) {
 	const network = await gateway.getNetwork(channelName);
 	t.pass('Initialized the network, ' + channelName);
 
-	const contract = await network.getContract(chaincodeId);
+	const contract = network.getContract(chaincodeId);
 	t.pass('Got the contract, about to submit "move" transaction');
 
 	return contract;
@@ -89,10 +89,8 @@ test('\n\n***** Network End-to-end flow: invoke transaction to move money using 
 		org1EventHub = await getEventHubForOrg(gateway, 'Org1MSP');
 		const org2EventHub = await getEventHubForOrg(gateway, 'Org2MSP');
 
-		// eventFired set to -1 to ignore the connected event returned because
-		// connection takes place during submitTransaction and not upfront
-		// once upfront connection is provided, set this value to 0
-		let eventFired = -1;
+		// initialize eventFired to 0
+		let eventFired = 0;
 
 		// have to register for all transaction events (a new feature in 1.3) as
 		// there is no way to know what the initial transaction id is
@@ -104,6 +102,7 @@ test('\n\n***** Network End-to-end flow: invoke transaction to move money using 
 
 		const response = await contract.submitTransaction('move', 'a', 'b','100');
 
+		t.true(org1EventHub.isconnected(), 'org1 event hub correctly connected');
 		t.false(org2EventHub.isconnected(), 'org2 event hub correctly not connected');
 		t.equal(eventFired, 1, 'single event for org1 correctly unblocked submitTransaction');
 
@@ -117,8 +116,8 @@ test('\n\n***** Network End-to-end flow: invoke transaction to move money using 
 	} catch(err) {
 		t.fail('Failed to invoke transaction chaincode on channel. ' + err.stack ? err.stack : err);
 	} finally {
-		org1EventHub.disconnect(); // remove when gateway.disconnect implements eventhub cleanup
 		gateway.disconnect();
+		t.false(org1EventHub.isconnected(), 'org1 event hub correctly been disconnected');
 	}
 
 
@@ -146,10 +145,8 @@ test('\n\n***** Network End-to-end flow: invoke transaction to move money using 
 		org1EventHub = await getEventHubForOrg(gateway, 'Org1MSP');
 		const org2EventHub = await getEventHubForOrg(gateway, 'Org2MSP');
 
-		// eventFired set to -1 to ignore the connected event returned because
-		// connection takes place during submitTransaction and not upfront
-		// once upfront connection is provided, set this value to 0
-		let eventFired = -1;
+		// initialize eventFired to 0
+		let eventFired = 0;
 
 		// have to register for all transaction events (a new feature in 1.3) as
 		// there is no way to know what the initial transaction id is
@@ -201,11 +198,8 @@ test('\n\n***** Network End-to-end flow: invoke transaction to move money using 
 		const org2EventHub = await getEventHubForOrg(gateway, 'Org2MSP');
 
 
-		// eventFired set to -1 to ignore the connected event returned because
-		// connection takes place during submitTransaction and not upfront
-		// once upfront connection is provided, set this value to 0
-		let eventFired = -1;
-
+		// initialize eventFired to 0
+		let eventFired = 0;
 		// have to register for all transaction events (a new feature in 1.3) as
 		// there is no way to know what the initial transaction id is
 		org1EventHub.registerTxEvent('all', (txId, code) => {
@@ -257,11 +251,9 @@ test('\n\n***** Network End-to-end flow: invoke transaction to move money using 
 		org1EventHub = await getEventHubForOrg(gateway, 'Org1MSP');
 		org2EventHub = await getEventHubForOrg(gateway, 'Org2MSP');
 
-		// eventFired set to -1 to ignore the connected event returned because
-		// connection takes place during submitTransaction and not upfront
-		// once upfront connection is provided, set this value to 0
-		let org1EventFired = -1;
-		let org2EventFired = -1;
+		// initialize eventFired to 0
+		let org1EventFired = 0;
+		let org2EventFired = 0;
 		org1EventHub.registerTxEvent('all', (txId, code) => {
 			if (code === 'VALID') {
 				org1EventFired++;
@@ -321,11 +313,9 @@ test('\n\n***** Network End-to-end flow: invoke transaction to move money using 
 		org1EventHub = await getEventHubForOrg(gateway, 'Org1MSP');
 		org2EventHub = await getEventHubForOrg(gateway, 'Org2MSP');
 
-		// eventFired set to -1 to ignore the connected event returned because
-		// connection takes place during submitTransaction and not upfront
-		// once upfront connection is provided, set this value to 0
-		let org1EventFired = -1;
-		let org2EventFired = -1;
+		// initialize eventFired to 0
+		let org1EventFired = 0;
+		let org2EventFired = 0;
 
 		org1EventHub.registerTxEvent('all', (txId, code) => {
 			if (code === 'VALID') {
@@ -487,7 +477,9 @@ test('\n\n***** Network End-to-end flow: invoke transaction to move money using 
 			wallet: inMemoryWallet,
 			identity: 'User1@org1.example.com',
 			clientTlsIdentity: 'tlsId',
-			eventStrategy: null
+			eventHandlerOptions: {
+				strategy: null
+			}
 		});
 
 		const response = await contract.submitTransaction('move', 'a', 'b','100');
