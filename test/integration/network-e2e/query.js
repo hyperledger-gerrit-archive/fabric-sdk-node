@@ -11,6 +11,7 @@
 const tape = require('tape');
 const _test = require('tape-promise').default;
 const test = _test(tape);
+require('fabric-client');
 const {Gateway, FileSystemWallet, X509WalletMixin} = require('../../../fabric-network/index.js');
 const fs = require('fs-extra');
 const os = require('os');
