@@ -16,9 +16,8 @@ const fs = require('fs');
 const path = require('path');
 
 const testUtil = require('../unit/util.js');
-const e2eUtils = require('../integration/e2e/e2eUtils.js');
 
-test('\n\n***** D I S C O V E R Y  *****\n\n', async function(t) {
+test('\n\n***** D I S C O V E R Y  *****\n\n', async (t) => {
 
 	// this will use the connection profile to set up the client
 	const client_org1 = await testUtil.getClientForOrg(t, 'org1');
@@ -96,6 +95,7 @@ test('\n\n***** D I S C O V E R Y  *****\n\n', async function(t) {
 		interests: [{chaincodes: [{name:first_chaincode_name}]}],
 		config: true
 	});
+	t.comment('Found first test information ::' + JSON.stringify(results));
 
 	const ledger_height = 3;
 	t.equals(results.msps.OrdererMSP.id, 'OrdererMSP', 'Checking MSP ID');
@@ -124,6 +124,7 @@ test('\n\n***** D I S C O V E R Y  *****\n\n', async function(t) {
 		interests: [{chaincodes: [{name:first_chaincode_name}]}],
 		config: true
 	});
+	t.comment('Found second test information ::' + JSON.stringify(results));
 
 	t.equals(results.msps.OrdererMSP.id, 'OrdererMSP', 'Checking MSP ID');
 	t.equals(results.msps.Org1MSP.id, 'Org1MSP', 'Checking MSP ID');
@@ -150,6 +151,7 @@ test('\n\n***** D I S C O V E R Y  *****\n\n', async function(t) {
 		interests: [{chaincodes: [{name:first_chaincode_name}]}],
 		config: true
 	});
+	t.comment('Found third test information ::' + JSON.stringify(results));
 
 	t.equals(results.msps.OrdererMSP.id, 'OrdererMSP', 'Checking MSP ID');
 	t.equals(results.msps.Org1MSP.id, 'Org1MSP', 'Checking MSP ID');
@@ -170,6 +172,22 @@ test('\n\n***** D I S C O V E R Y  *****\n\n', async function(t) {
 		t.fail('MISSING group results');
 	}
 
+	// check that we are able to make a query for the local peers
+	const queryPeerRequest = {
+		target: peer_org1,
+		useAdmin: true,
+		asLocalhost: true
+	};
+
+	results = await client_org1.queryPeers(queryPeerRequest);
+
+	t.comment('Found local peer information ::' + JSON.stringify(results));
+
+	t.equals(results.peers_by_org.Org1MSP.peers[0].endpoint, 'peer0.org1.example.com:7051', 'Checking org1 peer endpoint');
+	t.equals(results.peers_by_org.Org2MSP.peers[0].endpoint, 'peer0.org2.example.com:8051', 'Checking org2 peer endpoint');
+
+
+	// clean up
 	channel_org1.removePeer(peer_org1);
 	channel_org1._use_discovery = false;
 
@@ -186,7 +204,7 @@ test('\n\n***** D I S C O V E R Y  *****\n\n', async function(t) {
 
 	// check orgs ... actually gets names from the msps loaded
 	const orgs = channel_org1.getOrganizations();
-	for(let index in orgs) {
+	for(const index in orgs) {
 		const org = orgs[index].id;
 		if(org === 'Org1MSP' || org === 'Org2MSP' || org === 'OrdererMSP') {
 			t.pass('Checking call to get organizations on the channel after using the discovery service for ' + org);
@@ -211,6 +229,8 @@ test('\n\n***** D I S C O V E R Y  *****\n\n', async function(t) {
 	await testUtil.queryChannelAsAdmin(t, client_org1, channel_org1, tx_id_string, null, first_chaincode_name);
 
 	const discovered_peers = channel_org1.getPeers();
+	t.equals(discovered_peers.length, 2, 'Checking the size of discovered peers');
+
 	const force_target_request = {
 		chaincodeId: first_chaincode_name,
 		target: 'peer0.org1.example.com'
@@ -219,7 +239,7 @@ test('\n\n***** D I S C O V E R Y  *****\n\n', async function(t) {
 
 	t.pass('***** Invokes and Queries complete *****');
 
-	let tx_id = client_org1.newTransactionID(true);
+	const tx_id = client_org1.newTransactionID(true);
 	tx_id_string = tx_id.getTransactionID();
 	request = {
 		chaincodeId : 'first',
@@ -412,9 +432,9 @@ async function createUpdateChannel(t, create, file, channel_name, client_org1, c
 	// now we have enough signatures...
 
 	// get an admin based transaction
-	let tx_id = client_org1.newTransactionID(true);
+	const tx_id = client_org1.newTransactionID(true);
 
-	let request = {
+	const request = {
 		config: config,
 		signatures : signatures,
 		name : channel_name,
@@ -467,7 +487,7 @@ async function joinChannel(t, channel_name, peer, orderer, client) {
 			txId : 	tx_id
 		};
 
-		let join_results = await channel.joinChannel(request, 30000);
+		const join_results = await channel.joinChannel(request, 30000);
 		if(join_results && join_results[0] && join_results[0].response && join_results[0].response.status == 200) {
 			t.pass('Successfully joined channnel on org');
 		} else {

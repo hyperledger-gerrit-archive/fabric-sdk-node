@@ -752,6 +752,65 @@ const Client = class extends BaseClient {
 	}
 
 	/**
+	 * @typedef {Object} PeerQueryRequest
+	 * @property {Peer | string} target - The {@link Peer} object or peer name to
+	 *           use for the serive discovery request
+	 * @property {boolean} useAdmin - Optional. Indicates that the admin credentials
+	 *           should be used in making this call to the peer. An administrative
+	 *           identity must have been loaded by network configuration or by
+	 *           using the 'setAdminSigningIdentity' method.
+	 */
+
+	/**
+	 * @typedef {Object} PeerQueryResponse
+	 * @property {Peer[]} peers
+	 */
+
+	/**
+	 * Queries the target peer for a list of {@link Peer} objects of all peers
+	 * known by the target peer.
+	 *
+	 * @param {PeerQueryRequest} request - The request parameters.
+	 * @returns {PeerQueryResponse} The list of peers
+	 */
+	async queryPeers(request) {
+		const method = 'queryPeers';
+		logger.debug('%s - start', method);
+
+		let targets = null;
+		if (!request && !request.target) {
+			throw Error('Peer is required');
+		} else {
+			targets = this.getTargetPeers(request.target);
+			if(!targets && !targets[0]) {
+				throw Error('Peer not found');
+			}
+		}
+
+		try {
+			const discover_request = {
+				target: targets[0],
+				local: true,
+				config: false, //config only for channel queries
+				useAdmin: request.useAdmin
+			};
+
+			// create dummy channel just to use the dicovery code
+			// since channel does not exist only the local query will work
+			const channel = new Channel('discover-peers', this);
+			const results = {};
+
+			const discovery_results = await channel._discover(discover_request);
+
+			return discovery_results;
+		}
+		catch(error) {
+			logger.error(error);
+			throw Error('Failed to discover local peers ::'+ error.toString());
+		}
+	}
+
+	/**
 	 * @typedef {Object} ChannelQueryResponse
 	 * @property {ChannelInfo[]} channels
 	 */
