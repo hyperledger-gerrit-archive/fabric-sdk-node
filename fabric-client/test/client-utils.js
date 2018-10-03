@@ -358,6 +358,15 @@ describe('client-utils', () => {
 		});
 	});
 
+	describe('#ccTypeToString', () => {
+		it('should return the correct string', () => {
+			ClientUtils.ccTypeToString(ClientUtils.__get__('_ccProto.ChaincodeSpec.Type.GOLANG')).should.equal('golang');
+			ClientUtils.ccTypeToString(ClientUtils.__get__('_ccProto.ChaincodeSpec.Type.CAR')).should.equal('car');
+			ClientUtils.ccTypeToString(ClientUtils.__get__('_ccProto.ChaincodeSpec.Type.JAVA')).should.equal('java');
+			ClientUtils.ccTypeToString(ClientUtils.__get__('_ccProto.ChaincodeSpec.Type.NODE')).should.equal('node');
+		});
+	});
+
 	describe('#buildCurrentTimestamp', () => {
 		let setSecondsStub;
 		let setNanosStub;

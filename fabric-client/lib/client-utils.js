@@ -195,6 +195,17 @@ module.exports.translateCCType = (type) => {
 	return value;
 };
 
+module.exports.ccTypeToString = (ccType) => {
+	const map = {};
+	map[_ccProto.ChaincodeSpec.Type.GOLANG] = 'golang';
+	map[_ccProto.ChaincodeSpec.Type.CAR] = 'car';
+	map[_ccProto.ChaincodeSpec.Type.JAVA] = 'java';
+	map[_ccProto.ChaincodeSpec.Type.NODE] = 'node';
+	const value = map[ccType];
+
+	return value;
+};
+
 /*
  * This function will create a timestamp from the current time
  */
