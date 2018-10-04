@@ -1,0 +1,7 @@
+Verified+1: Bret Harrison <beharrison@nc.rr.com>
+Code-Review+2: David Enyeart <enyeart@us.ibm.com>
+Submitted-by: David Enyeart <enyeart@us.ibm.com>
+Submitted-at: Thu, 04 Oct 2018 00:45:38 +0000
+Reviewed-on: https://gerrit.hyperledger.org/r/26731
+Project: fabric-sdk-node
+Branch: refs/heads/release-1.3
