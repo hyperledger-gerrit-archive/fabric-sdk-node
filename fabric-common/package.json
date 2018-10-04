@@ -17,7 +17,7 @@
     "email": "fabric@lists.hyperledger.org"
   },
   "scripts": {
-    "test": "nyc mocha --recursive -t 10000"
+    "test": "nyc mocha --exclude 'test/data/**/*.js' --recursive  -t 10000"
   },
   "dependencies": {
   },
