@@ -12,6 +12,7 @@ const addsrc = require('gulp-add-src');
 const gulp = require('gulp');
 const mocha = require('gulp-mocha');
 const tape = require('gulp-tape');
+const cucumber = require('gulp-cucumber');
 
 const tapColorize = require('tap-colorize');
 
@@ -113,21 +114,34 @@ gulp.task('compile', shell.task([
 	ignoreErrors: false // once compile failed, throw error
 }));
 
-// Use nyc instead of gulp-istanbul to generate coverage report
-// Cannot use gulp-istabul because it throws "unexpected identifier" for async/await functions
+// Execute specific tests  with code coverage enabled
+//  - Use nyc instead of gulp-istanbul to generate coverage report
+//  - Cannot use gulp-istabul because it throws "unexpected identifier" for async/await functions
+
+// Main test to run all tests
 gulp.task('test', shell.task(
 	'./node_modules/nyc/bin/nyc.js gulp run-test'
 ));
 
+// Test to run all unit tests
 gulp.task('test-headless', shell.task(
 	'./node_modules/nyc/bin/nyc.js gulp run-test-headless'
 ));
 
+// Only run Mocha unit tests
 gulp.task('test-mocha', shell.task(
 	'./node_modules/nyc/bin/nyc.js gulp run-test-mocha'
 ));
 
-gulp.task('run-test-mocha', ['mocha-fabric-client', 'mocha-fabric-network'],
+// Only run scenario tests
+gulp.task('test-cucumber', shell.task(
+	'./node_modules/nyc/bin/nyc.js gulp run-test-cucumber'
+));
+
+// Definition of Mocha (unit) test suites and main runner for all
+gulp.task('run-test-mocha', ['mocha-fabric-ca-client','mocha-fabric-client', 'mocha-fabric-network']);
+
+gulp.task('mocha-fabric-ca-client',
 	() => {
 		return gulp.src(['./fabric-ca-client/test/**/*.js'], { read: false })
 			.pipe(mocha({ reporter: 'list', exit: true }));
@@ -148,21 +162,24 @@ gulp.task('mocha-fabric-network',
 	}
 );
 
-gulp.task('run-test', ['run-full', 'mocha-fabric-client', 'mocha-fabric-network'],
-	() => {
-		return gulp.src(['./fabric-ca-client/test/**/*.js'], { read: false })
-			.pipe(mocha({ reporter: 'list', exit: true }));
-	}
-);
+// Definition of Cucumber (scenario) test suite
+gulp.task('run-test-cucumber', () => {
+	return gulp.src('./test/features/*').pipe(cucumber({
+		'steps': './test/features/steps/*.js',
+		'support': './test/features/support/*.js',
+		'format': 'summary'
+	}));
+});
 
-gulp.task('run-test-headless', ['run-headless', 'mocha-fabric-client', 'mocha-fabric-network'],
-	() => {
-		return gulp.src(['./fabric-ca-client/test/**/*.js'], { read: false })
-			.pipe(mocha({ reporter: 'list', exit: true }));
-	}
-);
+// Main test method to run all test suites
+// - lint, unit first, then FV, then scenario
+gulp.task('run-test', ['clean-up', 'pre-test', 'ca', 'compile', 'lint', 'run-test-mocha', 'run-tape-unit', 'run-tape-e2e', 'run-test-cucumber']);
 
-gulp.task('run-full', ['clean-up', 'lint', 'pre-test', 'compile', 'docker-ready', 'ca'],
+// Run all non-integration tests
+gulp.task('run-test-headless', ['clean-up', 'pre-test', 'ca', 'lint', 'run-test-mocha', 'run-tape-unit']);
+
+// Run tape e2e test suite
+gulp.task('run-tape-e2e', ['docker-ready'],
 	() => {
 		// use individual tests to control the sequence they get executed
 		// first run the ca-tests that tests all the member registration
@@ -172,14 +189,8 @@ gulp.task('run-full', ['clean-up', 'lint', 'pre-test', 'compile', 'docker-ready'
 		// network
 		return gulp.src(shouldRunPKCS11Tests([
 			'test/unit/config.js', // needs to be first
-			'test/unit/**/*.js',
-			'!test/unit/constants.js',
-			'!test/unit/util.js',
-			'!test/unit/logger.js',
-			// channel: mychannel, chaincode: e2enodecc:v0
 			'test/integration/nodechaincode/e2e.js',
 			'test/integration/network-e2e/e2e.js',
-			// channel: mychannel, chaincode: end2endnodesdk:v0/v1
 			'test/integration/e2e.js',
 			'test/integration/signTransactionOffline.js',
 			'test/integration/query.js',
@@ -195,10 +206,8 @@ gulp.task('run-full', ['clean-up', 'lint', 'pre-test', 'compile', 'docker-ready'
 			'test/integration/install.js',
 			'test/integration/events.js',
 			'test/integration/channel-event-hub.js',
-			// channel: mychannel, chaincode: end2endnodesdk:v3
 			'test/integration/upgrade.js',
 			'test/integration/get-config.js',
-			// channel: mychanneltx, chaincode: end2endnodesdk:v0
 			'test/integration/create-configtx-channel.js',
 			'test/integration/e2e/join-channel.js',
 			'test/integration/instantiate.js',
@@ -210,21 +219,16 @@ gulp.task('run-full', ['clean-up', 'lint', 'pre-test', 'compile', 'docker-ready'
 			'test/integration/javachaincode/e2e.js',
 			'test/integration/discovery.js',
 			'test/integration/grpc.js',
-			// channel: mychannelts chaincode: examplets:v1
-			'test/typescript/test.js',
-			//
 			'test/integration/perf/orderer.js',
 			'test/integration/perf/peer.js'
 		]))
-			.pipe(addsrc.append(
-				'test/unit/logger.js' // put this to the last so the debugging levels are not mixed up
-			))
 			.pipe(tape({
 				reporter: tapColorize()
 			}));
 	});
 
-gulp.task('run-headless', ['clean-up', 'lint', 'pre-test', 'ca'],
+// Run tape based unit tests
+gulp.task('run-tape-unit',
 	() => {
 		// this is needed to avoid a problem in tape-promise with adding
 		// too many listeners
@@ -235,7 +239,8 @@ gulp.task('run-headless', ['clean-up', 'lint', 'pre-test', 'ca'],
 			'test/unit/**/*.js',
 			'!test/unit/constants.js',
 			'!test/unit/util.js',
-			'!test/unit/logger.js'
+			'!test/unit/logger.js',
+			'test/typescript/test.js'
 		]))
 			.pipe(addsrc.append(
 				'test/unit/logger.js' // put this to the last so the debugging levels are not mixed up
@@ -245,11 +250,9 @@ gulp.task('run-headless', ['clean-up', 'lint', 'pre-test', 'ca'],
 			}));
 	});
 
-// currently only the x64 CI jobs are configured with SoftHSM
-// disable the pkcs11.js test for s390 or other jobs
-// also skip it by default and allow it to be turned on manuall
-// with an environment variable so everyone don't have to
-// install SoftHsm just to run unit tests
+// Filter out tests that should not be run on specific operating systems since only the x64 CI jobs are configured with SoftHSM
+// - disable the pkcs11.js test for s390 or other jobs
+// - may be enabled manually with an environment variable
 function shouldRunPKCS11Tests(tests) {
 	if (os.arch().match(/(x64|x86)/) === null ||
 		!(typeof process.env.PKCS11_TESTS === 'string' && process.env.PKCS11_TESTS.toLowerCase() == 'true')) {
