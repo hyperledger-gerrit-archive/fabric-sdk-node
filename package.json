@@ -16,7 +16,8 @@
   "scripts": {
     "test": "gulp test-headless",
     "compile": "tsc --project test/typescript",
-    "compile:w": "tsc --project test/typescript --watch"
+    "compile:w": "tsc --project test/typescript --watch",
+    "cucumber": "cucumber-js  --fail-fast"
   },
   "devDependencies": {
     "@cloudant/cloudant": "^2.1.0",
@@ -24,6 +25,7 @@
     "bunyan": "^1.8.10",
     "chai": "^4.1.2",
     "chai-as-promised": "^7.1.1",
+    "cucumber": "5.0.1",
     "del": "^3.0.0",
     "elliptic": "^6.3.2",
     "eslint": "^5.1.0",
@@ -34,6 +36,7 @@
     "fs-extra": "^6.0.1",
     "gulp": "^3.9.1",
     "gulp-add-src": "^1.0.0",
+    "gulp-cucumber": "^0.0.23",
     "gulp-debug": "^4.0.0",
     "gulp-eslint": "^3.0.1",
     "gulp-jsdoc3": "^2.0.0",
