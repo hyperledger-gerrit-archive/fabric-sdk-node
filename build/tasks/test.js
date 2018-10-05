@@ -12,6 +12,7 @@ const addsrc = require('gulp-add-src');
 const gulp = require('gulp');
 const mocha = require('gulp-mocha');
 const tape = require('gulp-tape');
+const cucumber = require('gulp-cucumber');
 
 const tapColorize = require('tap-colorize');
 
@@ -113,21 +114,34 @@ gulp.task('compile', shell.task([
 	ignoreErrors: false // once compile failed, throw error
 }));
 
-// Use nyc instead of gulp-istanbul to generate coverage report
-// Cannot use gulp-istabul because it throws "unexpected identifier" for async/await functions
+// Execute specific tests  with code coverage enabled
+//  - Use nyc instead of gulp-istanbul to generate coverage report
+//  - Cannot use gulp-istabul because it throws "unexpected identifier" for async/await functions
+
+// Main test to run all tests
 gulp.task('test', shell.task(
 	'./node_modules/nyc/bin/nyc.js gulp run-test'
 ));
 
+// Test to run all unit tests
 gulp.task('test-headless', shell.task(
 	'./node_modules/nyc/bin/nyc.js gulp run-test-headless'
 ));
 
+// Only run Mocha unit tests
 gulp.task('test-mocha', shell.task(
 	'./node_modules/nyc/bin/nyc.js gulp run-test-mocha'
 ));
 
-gulp.task('run-test-mocha', ['mocha-fabric-client', 'mocha-fabric-network'],
+// Only run scenario tests
+gulp.task('test-cucumber', shell.task(
+	'./node_modules/nyc/bin/nyc.js gulp run-test-cucumber'
+));
+
+// Definition of Mocha (unit) test suites and main runner for all
+gulp.task('run-test-mocha', ['mocha-fabric-ca-client','mocha-fabric-client', 'mocha-fabric-network']);
+
+gulp.task('mocha-fabric-ca-client',
 	() => {
 		return gulp.src(['./fabric-ca-client/test/**/*.js'], { read: false })
 			.pipe(mocha({ reporter: 'list', exit: true }));
@@ -148,21 +162,39 @@ gulp.task('mocha-fabric-network',
 	}
 );
 
-gulp.task('run-test', ['run-full', 'mocha-fabric-client', 'mocha-fabric-network'],
+// Definition of Cucumber (scenario) test suite
+gulp.task('run-test-cucumber', () => {
+	return gulp.src('./test/features/*').pipe(cucumber({
+		'steps': './test/features/steps/*.js',
+		'support': './test/features/support/*.js',
+		'format': 'summary'
+	}));
+});
+
+// Main test method to run all test suites
+// - lint, unit first, then FV, then scenario
+gulp.task('run-test', ['clean-up', 'lint', 'pre-test', 'compile', 'ca', 'run-test-mocha', 'run-tape-all'],
+	() => {
+		return gulp.src('./test/features/*').pipe(cucumber({
+			'steps': './test/features/steps/*.js',
+			'support': './test/features/support/*.js',
+			'format': 'summary'
+		}));
+	}
+);
+
+// Run all non-integration tests
+gulp.task('run-test-headless', ['clean-up', 'lint', 'pre-test', 'ca', 'run-tape-unit', 'mocha-fabric-client', 'mocha-fabric-network'],
 	() => {
 		return gulp.src(['./fabric-ca-client/test/**/*.js'], { read: false })
 			.pipe(mocha({ reporter: 'list', exit: true }));
 	}
 );
 
-gulp.task('run-test-headless', ['run-headless', 'mocha-fabric-client', 'mocha-fabric-network'],
-	() => {
-		return gulp.src(['./fabric-ca-client/test/**/*.js'], { read: false })
-			.pipe(mocha({ reporter: 'list', exit: true }));
-	}
-);
-
-gulp.task('run-full', ['clean-up', 'lint', 'pre-test', 'compile', 'docker-ready', 'ca'],
+// Run full tape test suite
+// - integration (e2e)
+// - unit
+gulp.task('run-tape-all', ['docker-ready'],
 	() => {
 		// use individual tests to control the sequence they get executed
 		// first run the ca-tests that tests all the member registration
@@ -224,7 +256,8 @@ gulp.task('run-full', ['clean-up', 'lint', 'pre-test', 'compile', 'docker-ready'
 			}));
 	});
 
-gulp.task('run-headless', ['clean-up', 'lint', 'pre-test', 'ca'],
+// Run tape based unit tests
+gulp.task('run-tape-unit',
 	() => {
 		// this is needed to avoid a problem in tape-promise with adding
 		// too many listeners
@@ -245,11 +278,9 @@ gulp.task('run-headless', ['clean-up', 'lint', 'pre-test', 'ca'],
 			}));
 	});
 
-// currently only the x64 CI jobs are configured with SoftHSM
-// disable the pkcs11.js test for s390 or other jobs
-// also skip it by default and allow it to be turned on manuall
-// with an environment variable so everyone don't have to
-// install SoftHsm just to run unit tests
+// Filter out tests that should not be run on specific operating systems since only the x64 CI jobs are configured with SoftHSM
+// - disable the pkcs11.js test for s390 or other jobs
+// - may be enabled manually with an environment variable
 function shouldRunPKCS11Tests(tests) {
 	if (os.arch().match(/(x64|x86)/) === null ||
 		!(typeof process.env.PKCS11_TESTS === 'string' && process.env.PKCS11_TESTS.toLowerCase() == 'true')) {
