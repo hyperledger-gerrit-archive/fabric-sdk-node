@@ -1,9 +1,2 @@
-#
-# Copyright 2018 IBM All Rights Reserved.
-#
-# SPDX-License-Identifier: Apache-2.0
-#
+./test
 coverage
-node_modules
-config
-.nyc_output
