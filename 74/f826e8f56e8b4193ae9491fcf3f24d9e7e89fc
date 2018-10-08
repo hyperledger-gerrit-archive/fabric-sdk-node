@@ -1,0 +1,7 @@
+Verified+1: Bret Harrison <beharrison@nc.rr.com>
+Code-Review+2: Andrew Coleman <andrew_coleman@uk.ibm.com>
+Submitted-by: Andrew Coleman <andrew_coleman@uk.ibm.com>
+Submitted-at: Mon, 08 Oct 2018 13:48:58 +0000
+Reviewed-on: https://gerrit.hyperledger.org/r/26761
+Project: fabric-sdk-node
+Branch: refs/heads/release-1.3
