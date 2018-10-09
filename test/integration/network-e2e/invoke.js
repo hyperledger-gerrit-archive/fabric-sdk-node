@@ -52,12 +52,12 @@ async function createContract(t, gateway, gatewayOptions) {
 	return contract;
 }
 
-const getEventHubForOrg = async (gateway, orgMSP) => {
-	// bit horrible until we provide a proper api to get the underlying event hubs
+async function getFirstEventHubForOrg(gateway, orgMSP) {
 	const network = await gateway.getNetwork(channelName);
-	const orgpeer = network.getPeerMap().get(orgMSP)[0];
-	return network.getChannel().getChannelEventHub(orgpeer.getName());
-};
+	const channel = network.getChannel();
+	const orgPeer = channel.getPeersForOrg(orgMSP)[0];
+	return channel.getChannelEventHub(orgPeer.getName());
+}
 
 test('\n\n***** Network End-to-end flow: import identity into wallet *****\n\n', async (t) => {
 	await inMemoryIdentitySetup();
@@ -86,11 +86,12 @@ test('\n\n***** Network End-to-end flow: invoke transaction to move money using 
 		});
 
 		// Obtain an event hub that that will be used by the underlying implementation
-		org1EventHub = await getEventHubForOrg(gateway, 'Org1MSP');
-		const org2EventHub = await getEventHubForOrg(gateway, 'Org2MSP');
+		org1EventHub = await getFirstEventHubForOrg(gateway, 'Org1MSP');
+		const org2EventHub = await getFirstEventHubForOrg(gateway, 'Org2MSP');
 
-		// initialize eventFired to 0
-		let eventFired = 0;
+		// Initialize eventFired to -1 since the event hub connection event will happen during
+		// the first call to submitTransaction() after the network is created
+		let eventFired = -1;
 
 		// have to register for all transaction events (a new feature in 1.3) as
 		// there is no way to know what the initial transaction id is
@@ -140,11 +141,12 @@ test('\n\n***** Network End-to-end flow: invoke multiple transactions to move mo
 		});
 
 		// Obtain an event hub that that will be used by the underlying implementation
-		org1EventHub = await getEventHubForOrg(gateway, 'Org1MSP');
-		const org2EventHub = await getEventHubForOrg(gateway, 'Org2MSP');
+		org1EventHub = await getFirstEventHubForOrg(gateway, 'Org1MSP');
+		const org2EventHub = await getFirstEventHubForOrg(gateway, 'Org2MSP');
 
-		// initialize eventFired to 0
-		let eventFired = 0;
+		// Initialize eventFired to -1 since the event hub connection event will happen during
+		// the first call to submitTransaction() after the network is created
+		let eventFired = -1;
 
 		// have to register for all transaction events (a new feature in 1.3) as
 		// there is no way to know what the initial transaction id is
@@ -220,11 +222,12 @@ test('\n\n***** Network End-to-end flow: invoke transaction to move money using 
 		});
 
 		// Obtain an event hub that that will be used by the underlying implementation
-		org1EventHub = await getEventHubForOrg(gateway, 'Org1MSP');
-		const org2EventHub = await getEventHubForOrg(gateway, 'Org2MSP');
+		org1EventHub = await getFirstEventHubForOrg(gateway, 'Org1MSP');
+		const org2EventHub = await getFirstEventHubForOrg(gateway, 'Org2MSP');
 
-		// initialize eventFired to 0
-		let eventFired = 0;
+		// Initialize eventFired to -1 since the event hub connection event will happen during
+		// the first call to submitTransaction() after the network is created
+		let eventFired = -1;
 
 		// have to register for all transaction events (a new feature in 1.3) as
 		// there is no way to know what the initial transaction id is
@@ -272,12 +275,13 @@ test('\n\n***** Network End-to-end flow: invoke transaction to move money using 
 		});
 
 		// Obtain an event hub that that will be used by the underlying implementation
-		org1EventHub = await getEventHubForOrg(gateway, 'Org1MSP');
-		const org2EventHub = await getEventHubForOrg(gateway, 'Org2MSP');
+		org1EventHub = await getFirstEventHubForOrg(gateway, 'Org1MSP');
+		const org2EventHub = await getFirstEventHubForOrg(gateway, 'Org2MSP');
 
+		// Initialize eventFired to -1 since the event hub connection event will happen during
+		// the first call to submitTransaction() after the network is created
+		let eventFired = -1;
 
-		// initialize eventFired to 0
-		let eventFired = 0;
 		// have to register for all transaction events (a new feature in 1.3) as
 		// there is no way to know what the initial transaction id is
 		org1EventHub.registerTxEvent('all', (txId, code) => {
@@ -326,12 +330,13 @@ test('\n\n***** Network End-to-end flow: invoke transaction to move money using 
 		});
 
 		// Obtain the event hubs that that will be used by the underlying implementation
-		org1EventHub = await getEventHubForOrg(gateway, 'Org1MSP');
-		org2EventHub = await getEventHubForOrg(gateway, 'Org2MSP');
+		org1EventHub = await getFirstEventHubForOrg(gateway, 'Org1MSP');
+		org2EventHub = await getFirstEventHubForOrg(gateway, 'Org2MSP');
 
-		// initialize eventFired to 0
-		let org1EventFired = 0;
-		let org2EventFired = 0;
+		// Initialize eventFired to -1 since the event hub connection event will happen during
+		// the first call to submitTransaction() after the network is created
+		let org1EventFired = -1;
+		let org2EventFired = -1;
 		org1EventHub.registerTxEvent('all', (txId, code) => {
 			if (code === 'VALID') {
 				org1EventFired++;
@@ -387,12 +392,13 @@ test('\n\n***** Network End-to-end flow: invoke transaction to move money using 
 		});
 
 		// Obtain the event hubs that that will be used by the underlying implementation
-		org1EventHub = await getEventHubForOrg(gateway, 'Org1MSP');
-		org2EventHub = await getEventHubForOrg(gateway, 'Org2MSP');
+		org1EventHub = await getFirstEventHubForOrg(gateway, 'Org1MSP');
+		org2EventHub = await getFirstEventHubForOrg(gateway, 'Org2MSP');
 
-		// initialize eventFired to 0
-		let org1EventFired = 0;
-		let org2EventFired = 0;
+		// Initialize eventFired to -1 since the event hub connection event will happen during
+		// the first call to submitTransaction() after the network is created
+		let org1EventFired = -1;
+		let org2EventFired = -1;
 
 		org1EventHub.registerTxEvent('all', (txId, code) => {
 			if (code === 'VALID') {
