@@ -390,14 +390,14 @@ declare namespace Client {
   }
   export interface ChaincodeInstallRequest {
     targets?: Peer[] | string[];
-    chaincodePath: string;
+    chaincodePath?: string;
     metadataPath?: string;
-    chaincodeId: string;
-    chaincodeVersion: string;
+    chaincodeId?: string;
+    chaincodeVersion?: string;
     chaincodePackage?: Buffer;
     chaincodeType?: ChaincodeType;
     channelNames?: string[] | string;
-    txId: TransactionId;
+    txId?: TransactionId;
   }
 
   export interface ChaincodeInstantiateUpgradeRequest {
