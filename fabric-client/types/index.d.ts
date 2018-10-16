@@ -388,17 +388,26 @@ declare namespace Client {
     getMSPs(): any;
     loadMSPs(mspConfigs: any): void;
   }
-  export interface ChaincodeInstallRequest {
-    targets?: Peer[] | string[];
-    chaincodePath: string;
-    metadataPath?: string;
+
+  export interface ChaincodePackageInstallRequest {
+	targets?: Peer[] | string[];
+    channelNames?: string[] | string;
+    txId?: TransactionId;
+    chaincodePackage: Buffer;
+  }
+
+  export interface ChaincodePathInstallRequest {
+	targets?: Peer[] | string[];
+    channelNames?: string[] | string;
+    txId?: TransactionId;
     chaincodeId: string;
     chaincodeVersion: string;
-    chaincodePackage?: Buffer;
-    chaincodeType?: ChaincodeType;
-    channelNames?: string[] | string;
-    txId: TransactionId;
+	chaincodePath: string;
+	chaincodeType?: ChaincodeType;
+	metadataPath?: string;
   }
+
+  export type ChaincodeInstallRequest = ChaincodePackageInstallRequest | ChaincodePathInstallRequest;
 
   export interface ChaincodeInstantiateUpgradeRequest {
     targets?: Peer[] | string[];
