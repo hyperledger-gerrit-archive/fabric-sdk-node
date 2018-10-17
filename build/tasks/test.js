@@ -251,10 +251,12 @@ gulp.task('run-headless', ['clean-up', 'lint', 'pre-test', 'ca'],
 // with an environment variable so everyone don't have to
 // install SoftHsm just to run unit tests
 function shouldRunPKCS11Tests(tests) {
-	if (os.arch().match(/(x64|x86)/) === null ||
-		!(typeof process.env.PKCS11_TESTS === 'string' && process.env.PKCS11_TESTS.toLowerCase() == 'true')) {
-		tests.push('!test/unit/pkcs11.js');
+	if (os.arch().match(/(x64|x86)/) === null) {
 		tests.push('!test/integration/javachaincode/e2e.js');
+		if (typeof process.env.NO_HSM === 'string' && process.env.NO_HSM.toLowerCase() === 'true') {
+			tests.push('!test/integration/network-e2e/invoke-hsm.js');
+			tests.push('!test/unit/pkcs11.js');
+		}
 	}
 
 	return tests;
