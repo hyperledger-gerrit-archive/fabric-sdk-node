@@ -65,11 +65,10 @@ You can build the docker images in your native host (Mac, Ubuntu, Windows, etc.)
     * `test/integration/cloudant-fabricca-tests.js`
   * To re-run `node test/integration/e2e.js` or `fabric-ca-services-tests.js` stop the network (ctrl-c), clean up the docker instances (`docker rm $(docker ps -aq)`) and restart the network with `docker-compose up` as described above.
 
-### Special Tests for Hardware Security Module support (experimental) via PKCS#11 interface
-The SDK has experimental support for PKCS#11 interface in order to allow applications to make use of HSM devices for key management. Unit tests for this feature are skipped by default. To run these testss:
+### Special Tests for Hardware Security Module support via PKCS#11 interface
+The SDK has support for PKCS#11 interface in order to allow applications to make use of HSM devices for key management. To turn these tests off, set environment variable "NO_HSM" to "true". In order to run the tests:
 
-* set environment variable "PKCS11_TESTS" to "true"
-* install a software emulator of the PKCS#11 interface. The unit tests have been tried with SoftHSM2:
+* Install a software emulator of the PKCS#11 interface. The unit tests have been tried with SoftHSM2:
   * install using the package manager for your host system:
     * Ubuntu:  apt-get install softhsm2
     * macOS: brew install softhsm

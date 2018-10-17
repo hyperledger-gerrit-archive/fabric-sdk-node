@@ -25,7 +25,6 @@ const testUtils = require('../../unit/util');
 const channelName = testUtils.NETWORK_END2END.channel;
 const chaincodeId = testUtils.NETWORK_END2END.chaincodeId;
 
-
 const fixtures = process.cwd() + '/test/fixtures';
 const credPath = fixtures + '/channel/crypto-config/peerOrganizations/org1.example.com/users/User1@org1.example.com';
 const cert = fs.readFileSync(credPath + '/signcerts/User1@org1.example.com-cert.pem').toString();
@@ -72,6 +71,7 @@ test('\n\n***** Network End-to-end flow: import identity into wallet *****\n\n',
 	}
 	t.end();
 });
+
 
 test('\n\n***** Network End-to-end flow: invoke transaction to move money using in memory wallet and default event strategy *****\n\n', async (t) => {
 	const gateway = new Gateway();

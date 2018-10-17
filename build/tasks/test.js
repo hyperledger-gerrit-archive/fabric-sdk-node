@@ -176,17 +176,20 @@ gulp.task('run-full', ['clean-up', 'lint', 'pre-test', 'compile', 'docker-ready'
 			'!test/unit/constants.js',
 			'!test/unit/util.js',
 			'!test/unit/logger.js',
-			// channel: mychannel, chaincode: e2enodecc:v0
-			'test/integration/nodechaincode/e2e.js',
-			'test/integration/network-e2e/e2e.js',
-			// channel: mychannel, chaincode: end2endnodesdk:v0/v1
-			'test/integration/e2e.js',
-			'test/integration/signTransactionOffline.js',
-			'test/integration/query.js',
 			'test/integration/fabric-ca-affiliation-service-tests.js',
 			'test/integration/fabric-ca-identity-service-tests.js',
 			'test/integration/fabric-ca-certificate-service-tests.js',
 			'test/integration/fabric-ca-services-tests.js',
+			// channel: mychannel, chaincode: e2enodecc:v0
+			'test/integration/nodechaincode/e2e.js',
+			'test/integration/network-e2e/e2e.js',
+			'test/integration/network-e2e/invoke-hsm.js', // Added so it can be ignored
+			'test/integration/network-e2e/invoke.js', // Added so it is run in the correct order
+			'test/integration/network-e2e/query.js', // Added so it is run in the correct order
+			// channel: mychannel, chaincode: end2endnodesdk:v0/v1
+			'test/integration/e2e.js',
+			'test/integration/signTransactionOffline.js',
+			'test/integration/query.js',
 			'test/integration/client.js',
 			'test/integration/orderer-channel-tests.js',
 			'test/integration/cloudant-fabricca-tests.js',
@@ -212,7 +215,7 @@ gulp.task('run-full', ['clean-up', 'lint', 'pre-test', 'compile', 'docker-ready'
 			'test/integration/grpc.js',
 			// channel: mychannelts chaincode: examplets:v1
 			'test/typescript/test.js',
-			//
+
 			'test/integration/perf/orderer.js',
 			'test/integration/perf/peer.js'
 		]))
@@ -251,8 +254,11 @@ gulp.task('run-headless', ['clean-up', 'lint', 'pre-test', 'ca'],
 // with an environment variable so everyone don't have to
 // install SoftHsm just to run unit tests
 function shouldRunPKCS11Tests(tests) {
-	if (os.arch().match(/(x64|x86)/) === null ||
-		!(typeof process.env.PKCS11_TESTS === 'string' && process.env.PKCS11_TESTS.toLowerCase() == 'true')) {
+	if (typeof process.env.NO_HSM === 'string' && process.env.NO_HSM.toLowerCase() === 'true' && os.arch().match(/(x64|x86)/) !== null) {
+		tests.push('!test/integration/network-e2e/invoke-hsm.js');
+		tests.push('!test/unit/pkcs11.js');
+	} else if (os.arch().match(/(x64|x86)/) === null) {
+		tests.push('!test/integration/network-e2e/invoke-hsm.js');
 		tests.push('!test/unit/pkcs11.js');
 		tests.push('!test/integration/javachaincode/e2e.js');
 	}
