@@ -110,15 +110,15 @@ test('\n\n ** FabricCAServices - IdentityService Test **\n\n', async (t) => {
 		resp = await hfcaIdentityService1.getOne(testIdentity.enrollmentID, admin1);
 		t.equal(resp.success, true);
 
-		// identity can only find itself
+		// identity can only find itself and the hsm user
 		resp = await hfcaIdentityService1.getAll(identity);
 		t.equal(resp.success, true);
-		t.equal(resp.result.identities.length, 1);
+		t.equal(resp.result.identities.length, 2);
 
-		// admin of ca1 can find two identities
+		// admin of ca1 can find three identities
 		resp = await hfcaIdentityService1.getAll(admin1);
 		t.equal(resp.success, true);
-		t.equal(resp.result.identities.length, 2);
+		t.equal(resp.result.identities.length, 3);
 
 		// admin of ca2 can only find 1 identity
 		resp = await hfcaIdentityService2.getAll(admin2);

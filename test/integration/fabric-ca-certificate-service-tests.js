@@ -56,7 +56,7 @@ test('\n\n ** FabricCAServices - CertificateService Test **\n\n', async (t) => {
 
 		resp = await certificateService1.getCertificates(null, user1);
 		t.equal(resp.success, true, 'certificate service should response success');
-		t.equal(resp.result.certs.length, 1, 'the new created user can only view the certificate it owns');
+		t.equal(resp.result.certs.length, 2, 'the new created user can only view the certificate it owns');
 
 		// get certificate by enrollment id, user1._name = user1.enrollmentId
 		resp = await certificateService1.getCertificates({id: user1.getName()}, user1);
