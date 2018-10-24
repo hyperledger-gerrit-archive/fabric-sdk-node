@@ -65,7 +65,7 @@ test('\n\n***** Network End-to-end flow: execute transaction to get information 
 
 
 		// try a standard query
-		const responseBuffer = await contract.executeTransaction('query', 'a');
+		const responseBuffer = await contract.evaluateTransaction('query', 'a');
 		let response = responseBuffer.toString();
 
 		if(response * 1 === parseInt(response)){
@@ -77,7 +77,7 @@ test('\n\n***** Network End-to-end flow: execute transaction to get information 
 
 		// check we deal with an error returned.
 		try {
-			response = await contract.executeTransaction('throwError', 'a', 'b','100');
+			response = await contract.evaluateTransaction('throwError', 'a', 'b','100');
 			t.fail('Transaction "throwError" should have thrown an error.  Got response: ' + response.toString());
 		} catch(expectedErr) {
 			if(expectedErr.message.includes('throwError: an error occurred')) {
