@@ -1,0 +1,20 @@
+[FABN-12567] Renamed executeTransaction to evaluateTransaction
+
+- Updated unit and integration tests
+
+Change-Id: I61ff3a1a1e98ca56ff1c902e5bfcac7764a0a41d
+Signed-off-by: Liam Grace <liamgrace.896@gmail.com>
+
+# Please enter the commit message for your changes. Lines starting
+# with '#' will be ignored, and an empty message aborts the commit.
+#
+# Date:      Tue Oct 23 14:42:35 2018 +0100
+#
+# On branch evaluate-transaction
+# Changes to be committed:
+#	modified:   fabric-network/lib/contract.js
+#	modified:   fabric-network/test/contract.js
+#	modified:   fabric-network/types/index.d.ts
+#	modified:   test/integration/network-e2e/query.js
+#	modified:   test/typescript/network.ts
+#
