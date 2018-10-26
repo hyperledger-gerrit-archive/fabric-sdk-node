@@ -16,11 +16,13 @@
 
 const sinon = require('sinon');
 const chai = require('chai');
+const rewire = require('rewire');
 const chaiAsPromised = require('chai-as-promised');
 chai.use(chaiAsPromised);
 const expect = chai.expect;
 
 const Channel = require('fabric-client/lib/Channel');
+const ChannelRewire = rewire('fabric-client/lib/Channel');
 const ChannelEventHub = require('fabric-client/lib/ChannelEventHub');
 const Client = require('fabric-client/lib/Client');
 const { Identity, SigningIdentity } = require('fabric-client/lib/msp/identity');
@@ -892,6 +894,319 @@ describe('Channel', () => {
 				configUpdate: configUpdate.toBuffer()
 			};
 			return expect(channel.initialize(request)).to.be.fulfilled;
+		});
+	});
+
+	describe('#_initialize', () => {});
+
+	describe('_buildDiscoveryMSPs', () => {});
+
+	describe('#_buildDiscoveryOrderers', () => {});
+
+	describe('#_buildDiscoveryPeers', () => {});
+
+	describe('#_buildDiscoveryEndorsementPlan', () => {});
+
+	describe('#getDiscoveryResults', () => {});
+
+	describe('#getEndorsementPlan', () => {});
+
+	describe('#refresh', () => {
+		it('should call initialize and return the result', async () => {
+			sinon.stub(channel, '_initialize').resolves('initialize-result');
+			const result = await channel.refresh();
+			sinon.assert.calledWith(channel._initialize, channel._last_refresh_request);
+			result.should.equal('initialize-result');
+		});
+
+		it('should log if Channel._initialize throws an error', async () => {
+			sinon.stub(channel, '_initialize').rejects(new Error('initialize-failed'));
+			try {
+				await channel.refresh();
+			} catch (err) {
+				err.message.should.equal('initialize-failed');
+			}
+		});
+	});
+
+	describe('#getOrganizations', () => {});
+
+	describe('#setMSPManager', () => {});
+
+	describe('#getMSPManager', () => {});
+
+	describe('#addPeer', () => {});
+
+	describe('#remoePeer', () => {});
+
+	describe('#gePeer', () => {});
+
+	describe('#getChannelPeers', () => {});
+
+	describe('#addOrderer', () => {});
+
+	describe('#removeOrderer', () => {});
+
+	describe('#getOrderer', () => {});
+
+	describe('#getOrderers', () => {});
+
+	describe('#newChannelEventHub', () => {});
+
+	describe('#getChannelEventHub', () => {});
+
+	describe('#getChannelEventHubsForOrg', () => {});
+
+	describe('#getPeersForOrg', () => {});
+
+	describe('#getGenesisBlock', () => {});
+
+	describe('#_discover', () => {});
+
+	describe('#_processDiscoveryChaincodeResults', () => {});
+
+	describe('#_processDiscoveryResults', () => {});
+
+	describe('#_processDiscoveryMembershipResults', () => {});
+
+	describe('#_processPeers', () => {});
+
+	describe('#_processPeers', () => {});
+
+	describe('#_buildOrdererName', () => {});
+
+	describe('#_buildPeerName', () => {});
+
+	describe('#_buildUrl', () => {});
+
+	describe('#_buildOptions', () => {});
+
+	describe('#_buildTlsChaincodeCerts', () => {});
+
+	describe('#_buildProtoChaincodeInterest', () => {});
+
+	describe('#_merge_hints', () => {});
+
+	describe('#buildDiscoveryInterest', () => {});
+
+	describe('#_buildDiscoveryChaincodeCall', () => {});
+
+	describe('#joinChannel', () => {});
+
+	describe('#getChannelConfig', () => {});
+
+	describe('#getChannelConfigFromOrderer', () => {});
+
+	describe('#loadConfigUpdate', () => {});
+
+	describe('#loadConfigEnvelope', () => {});
+
+	describe('#queryInfo', () => {});
+
+	describe('#queryByBlockId', () => {});
+
+	describe('#queryBlockByHash', () => {});
+
+	describe('#queryBlock', () => {});
+
+	describe('#queryTransaction', () => {});
+
+	describe('#queryInstantiatedChaincodes', () => {});
+
+	describe('#queryCollectionsConfig', () => {});
+
+	describe('#sendInstantiateProposal', () => {});
+
+	describe('#sendUpgradeProposal', () => {});
+
+	describe('#_sendChaincodeProposal', () => {});
+
+	describe('#sendTransactionProposal', () => {});
+
+	describe('sendTransactionProposal', () => {});
+
+	describe('#sendTransaction', () => {});
+
+	describe('#sendSignedTransation', () => {});
+
+	describe('#buildEnvelope', () => {});
+
+	describe('#queryByChaincode', () => {});
+
+	describe('#_getTargetForQuery', () => {});
+
+	describe('#_getTargetForDiscovery', () => {});
+
+	describe('#_getTargets', () => {});
+
+	describe('#_getOrderer', () => {});
+
+	describe('#_buildEndorsementPolicy', () => {});
+
+	describe('#_getProposalResponseResults', () => {});
+
+	describe('#loadConfigGroup', () => {});
+
+	describe('#loadConfigValue', () => {});
+});
+
+describe('ChannelPeer', () => {
+	let ChannelPeer;
+	let peer;
+	let channel;
+	let eventHub;
+	let instance;
+	beforeEach(() => {
+		ChannelPeer = ChannelRewire.__get__('ChannelPeer');
+		peer = sinon.createStubInstance(Peer);
+		peer.getName.returns('peerName');
+		peer.getUrl.returns('http://someurl');
+		channel = sinon.createStubInstance(Channel);
+		eventHub = sinon.createStubInstance(ChannelEventHub);
+		instance = new ChannelPeer('mspId', channel, peer);
+		instance._channel_event_hub = eventHub;
+	});
+
+	describe('#constructor', () => {
+		it('should throw an error if the channel parameter is missing', () => {
+			(() => {
+				new ChannelPeer('mspid');
+			}).should.throw(Error, 'Missing Channel parameter');
+		});
+
+		it('should throw an error if the peer parameter is missing', () => {
+			(() => {
+				new ChannelPeer('mspid', sinon.createStubInstance(Channel));
+			}).should.throw(Error, 'Missing Peer parameter');
+		});
+
+		it('should set the correct class properties', () => {
+			const channelStub = sinon.createStubInstance(Channel);
+			const peerStub = sinon.createStubInstance(Peer);
+			peerStub.getName.returns('peerName');
+			const channelPeer = new ChannelPeer('mspId', channelStub, peerStub);
+			channelPeer._mspid.should.equal('mspId');
+			channelPeer._name.should.equal('peerName');
+			channelPeer._channel.should.equal(channelStub);
+			channelPeer._peer.should.equal(peerStub);
+			channelPeer._roles.should.deep.equal({});
+		});
+
+		it('should set the correct roles', () => {
+			const channelStub = sinon.createStubInstance(Channel);
+			const peerStub = sinon.createStubInstance(Peer);
+			peerStub.getName.returns('peerName');
+			const channelPeer = new ChannelPeer('mspId', channelStub, peerStub, {'role1': 'role1'});
+			channelPeer._roles.should.deep.equal({role1: 'role1'});
+		});
+	});
+
+	describe('#close' , () => {
+		it('should close the peer connection', () => {
+			instance._channel_event_hub = null;
+			instance.close();
+			sinon.assert.called(peer.close);
+		});
+
+		it('should close the connection to the event hub', () => {
+			instance.close();
+			sinon.assert.called(instance._channel_event_hub.close);
+		});
+	});
+
+	describe('#getMspId', () => {
+		it('should return the mspid', () => {
+			instance.getMspid().should.equal('mspId');
+		});
+	});
+
+	describe('#getName', () => {
+		it('should return the name', () => {
+			instance.getName().should.equal('peerName');
+		});
+	});
+
+	describe('#getUrl', () => {
+		it('should return the peer url', () => {
+			instance.getUrl().should.equal('http://someurl');
+		});
+	});
+
+	describe('#setRole', () => {
+		it('should set a role', () => {
+			instance.setRole('aSetRole', 'theRole');
+			instance._roles.should.deep.equal({aSetRole: 'theRole'});
+		});
+	});
+
+	describe('#isInRole', () => {
+		it('should throw an error if no role is given', () => {
+			(() => {
+				instance.isInRole();
+			}).should.throw(Error, 'Missing "role" parameter');
+		});
+
+		it('should return true if role not found', () => {
+			instance.isInRole('someRole').should.be.true;
+		});
+
+		it('should return the role if found', () => {
+			instance._roles = {someRole: 'theRole'};
+			instance.isInRole('someRole').should.equal('theRole');
+		});
+	});
+
+	describe('#isInOrg', () => {
+		it('should return true if no mspId is given', () => {
+			instance._mspid = null;
+			instance.isInOrg().should.be.true;
+		});
+
+		it('should check if the mspid matches', () => {
+			instance.isInOrg('mspId').should.be.true;
+		});
+	});
+
+	describe('#getChannelEventHub', () => {
+		it('should return the event hub if it is set', () => {
+			instance.getChannelEventHub().should.equal(eventHub);
+		});
+
+		it('should create a new event hub if one is not set', () => {
+			instance._channel_event_hub = null;
+			const newEventHub = instance.getChannelEventHub();
+			newEventHub.should.be.instanceof(ChannelEventHub);
+			newEventHub._channel.should.equal(channel);
+			newEventHub._peer.should.equal(peer);
+		});
+	});
+
+	describe('#getPeer', () => {
+		it('should return the peer', () => {
+			instance.getPeer().should.equal(peer);
+		});
+	});
+
+	describe('#sendProposal', () => {
+		it('should return the proposal request', () => {
+			peer.sendProposal.returns('proposal');
+			instance.sendProposal('proposal', 'request').should.equal('proposal');
+			sinon.assert.calledWith(peer.sendProposal, 'proposal', 'request');
+		});
+	});
+
+	describe('#sendDiscovery', () => {
+		it('should return the discovery request', () => {
+			peer.sendDiscovery.returns('discovery');
+			instance.sendDiscovery('request', 'timeout').should.equal('discovery');
+			sinon.assert.calledWith(peer.sendDiscovery, 'request', 'timeout');
+		});
+	});
+
+	describe('#toString', () => {
+		it('should call peer.toString', () => {
+			instance.toString();
+			sinon.assert.called(peer.toString);
 		});
 	});
 });
