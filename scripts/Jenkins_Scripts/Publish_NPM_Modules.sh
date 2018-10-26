@@ -62,7 +62,6 @@ versions() {
 
 }
 
-
 echo "----------> START PUBLISHING FROM HERE"
 
 ARCH=$(uname -m)
@@ -85,18 +84,4 @@ else
    cd ../fabric-client
    versions
    npmPublish fabric-client
-
-   # Publish fabric-network node module
-   if [ -d "../fabric-network" ]; then
-      cd ../fabric-network
-      versions
-      npmPublish fabric-network
-   fi
-
-   # Publish fabric-common node module
-   if [ -d "../fabric-common" ]; then
-      cd ../fabric-common
-      versions
-      npmPublish fabric-common
-   fi
 fi

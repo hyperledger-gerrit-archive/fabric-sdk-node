@@ -30,6 +30,7 @@ node ('hyp-x') { // trigger build on x86_64 node
           }
           catch (err) {
                  failure_stage = "Fetch patchset"
+                 currentBuild.result = 'FAILURE'
                  throw err
            }
          }
@@ -44,6 +45,7 @@ node ('hyp-x') { // trigger build on x86_64 node
                }
            catch (err) {
                  failure_stage = "Clean Environment - Get Env Info"
+                 currentBuild.result = 'FAILURE'
                  throw err
            }
          }
@@ -59,6 +61,7 @@ node ('hyp-x') { // trigger build on x86_64 node
                }
            catch (err) {
                  failure_stage = "sdk_E2e_Tests"
+                 currentBuild.result = 'FAILURE'
                  throw err
            }
          }
@@ -77,18 +80,19 @@ if (env.GERRIT_EVENT_TYPE == "change-merged") {
 } else {
      echo "------> Don't publish API Docs from verify job"
    }
-
-// Archive Build artifacts (logs)
-      stage("Archive Build artifacts") {
-          archiveArtifacts artifacts: '**/*.log'
-      }
      } finally {
            junit '**/cobertura-coverage.xml'
            step([$class: 'CoberturaPublisher', autoUpdateHealth: false, autoUpdateStability: false, coberturaReportFile: '**/cobertura-coverage.xml', failUnhealthy: false, failUnstable: false, maxNumberOfBuilds: 0, onlyStable: false, sourceEncoding: 'ASCII', zoomCoverageChart: false])
-           // Sends notification to Rocket.Chat
-           rocketSend channel: 'jenkins-robot', message: "Build Notification - Branch: ${env.GERRIT_BRANCH} - Project: ${env.PROJECT} - Commit: ${env.GERRIT_PATCHSET_REVISION}- (<${env.BUILD_URL}|Open>)"
+           archiveArtifacts allowEmptyArchive: true, artifacts: '**/*.log'
+           if (env.GERRIT_EVENT_TYPE == 'change-merged') {
+              if (currentBuild.result == 'FAILURE') { // Other values: SUCCESS, UNSTABLE
+               // Sends notification to Rocket.Chat
+               rocketSend channel: 'jenkins-robot', message: "Build Notification - STATUS: ${currentBuild.result} - BRANCH: ${env.GERRIT_BRANCH} - PROJECT: ${env.PROJECT} - (<${env.BUILD_URL}|Open>)"
+              }
+           }
        }
-}
+  } // timestamps block
+} // node block
 
 def unstableNpm() {
 // Publish unstable npm modules after successful merge
@@ -100,6 +104,7 @@ def unstableNpm() {
                }
            catch (err) {
                  failure_stage = "publish_Unstable"
+                 currentBuild.result = 'FAILURE'
                  throw err
            }
       }
@@ -115,6 +120,7 @@ def apiDocs() {
                }
            catch (err) {
                  failure_stage = "publish_Api_Docs"
+                 currentBuild.result = 'FAILURE'
                  throw err
            }
       }

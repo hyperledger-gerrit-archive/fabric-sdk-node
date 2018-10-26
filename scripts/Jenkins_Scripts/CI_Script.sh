@@ -5,12 +5,10 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-# exit on first error
-
 export BASE_FOLDER=$WORKSPACE/gopath/src/github.com/hyperledger
 # error check
 err_Check() {
-echo "ERROR !!!! --------> $1 <---------"
+echo -e "\033[31m $1" "\033[0m"
 exit 1
 }
 
@@ -95,8 +93,6 @@ env_Info() {
 	docker info
 	docker-compose version
 	pgrep -a docker
-	docker images
-	docker ps -a
 }
 
 # run sdk e2e tests

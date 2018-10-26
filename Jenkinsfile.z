@@ -28,6 +28,7 @@ node('hyp-z') {
           }
           catch (err) {
                  failure_stage = "Fetch patchset"
+                 currentBuild.result = 'FAILURE'
                  throw err
            }
       }
@@ -40,6 +41,7 @@ node('hyp-z') {
                }
            catch (err) {
                  failure_stage = "Clean Environment - Get Env Info"
+                 currentBuild.result = 'FAILURE'
                  throw err
            }
       }
@@ -53,15 +55,13 @@ node('hyp-z') {
                }
            catch (err) {
                  failure_stage = "sdk_E2e_Tests"
+                 currentBuild.result = 'FAILURE'
                  throw err
            }
       }
-      stage("Archive Build artifacts") {
-          archiveArtifacts artifacts: '**/*.log'
-      }
     } finally {
-             junit '**/cobertura-coverage.xml'
              step([$class: 'CoberturaPublisher', autoUpdateHealth: false, autoUpdateStability: false, coberturaReportFile: '**/cobertura-coverage.xml', failUnhealthy: false, failUnstable: false, maxNumberOfBuilds: 0, onlyStable: false, sourceEncoding: 'ASCII', zoomCoverageChart: false])
+             archiveArtifacts allowEmptyArchive: true, artifacts: '**/*.log'
               // Sends notification to Rocket.Chat
              rocketSend channel: 'jenkins-robot', message: "Build Notification - Branch: ${env.GERRIT_BRANCH} - Project: ${env.PROJECT} - Commit: ${env.GERRIT_PATCHSET_REVISION}- (<${env.BUILD_URL}|Open>)"
        }
