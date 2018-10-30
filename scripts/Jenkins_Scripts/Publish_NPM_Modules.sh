@@ -7,7 +7,9 @@
 
 npmPublish() {
 
-  if [[ "$CURRENT_TAG" = *"unstable"* ]] || [[ "$CURRENT_TAG" = *"skip"* ]]; then
+ if [[ "$CURRENT_TAG" = *"skip"* ]]; then
+     echo "----> Don't publish npm modules on skip tag"
+ elif [[ "$CURRENT_TAG" = *"unstable"* ]]; then
       echo
       UNSTABLE_VER=$(npm dist-tags ls "$1" | awk "/$CURRENT_TAG"":"/'{
       ver=$NF
@@ -37,9 +39,11 @@ npmPublish() {
       sed -i 's/\(.*\"version\"\: \"\)\(.*\)/\1'$UNSTABLE_INCREMENT_VERSION\"\,'/' package.json
       npm publish --tag $CURRENT_TAG
 
-  else
-          echo "----> Publish $RELEASE from fabric-sdk-node-npm-release-x86_64 job"
-  fi
+ else
+      # Publish node modules on latest tag
+      echo "========> PUBLISH --> $RELEASE_VERSION"
+      npm publish --tag $CURRENT_TAG
+ fi
 }
 
 ##########################
