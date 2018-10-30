@@ -48,8 +48,8 @@ Parse_Arguments() {
                       --pull_Thirdparty_Images)
                             pull_Thirdparty_Images
                             ;;
-                      --publish_Unstable)
-                            publish_Unstable
+                      --publish_NpmModules)
+                            publish_NpmModules
                             ;;
                       --publish_Api_Docs)
                             publish_Api_Docs
@@ -160,7 +160,7 @@ pull_Docker_Images() {
 # run sdk e2e tests
 sdk_E2e_Tests() {
         echo
-        echo "-----------> Execute NODE SDK E2E Tests"
+        echo "-----------> Execute NODE SDK Integration Tests"
         cd ${WORKSPACE}/gopath/src/github.com/hyperledger/fabric-sdk-node || exit
         # Install nvm to install multi node versions
         wget -qO- https://raw.githubusercontent.com/creationix/nvm/v0.33.11/install.sh | bash
@@ -180,9 +180,9 @@ sdk_E2e_Tests() {
         npm config set prefix ~/npm && npm install -g gulp && npm install -g istanbul
         ~/npm/bin/gulp || err_Check "ERROR!!! gulp failed"
         ~/npm/bin/gulp ca || err_Check "ERROR!!! gulp ca failed"
-        rm -rf node_modules/fabric-ca-client && npm install || err_Check "ERROR!!! npm install failed"
+        rm -rf node_modules && npm install || err_Check "ERROR!!! npm install failed"
 
-        echo "------> Run node headless & e2e tests"
+        echo "------> Run node headless & integration tests"
         echo "============"
         ~/npm/bin/gulp test
         if [ $? == 0 ]; then
@@ -194,10 +194,10 @@ sdk_E2e_Tests() {
            exit 1
         fi
 }
-# Publish unstable npm modules after successful merge on amd64
-publish_Unstable() {
+# Publish npm modules after successful merge on amd64
+publish_NpmModules() {
         echo
-        echo "-----------> Publish unstable npm modules from amd64"
+        echo "-----------> Publish npm modules from amd64"
         ./Publish_NPM_Modules.sh
 }
 

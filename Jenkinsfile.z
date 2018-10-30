@@ -8,18 +8,14 @@ node('hyp-z') {
 
      def ROOTDIR = pwd() // workspace dir (/w/workspace/<job_name>
      env.NODE_VER = "8.11.3"
-     env.GO_VER = "1.11.1"
      env.STABLE_TAG = "1.4.0-stable"
      env.PROJECT_DIR = "gopath/src/github.com/hyperledger"
      env.GOPATH = "$WORKSPACE/gopath"
      env.PATH = "$GOPATH/bin:/usr/local/bin:/usr/bin:/usr/local/sbin:/usr/sbin:~/npm/bin:/home/jenkins/.nvm/versions/node/v${NODE_VER}/bin:$PATH"
-     env.GOROOT = "/opt/go/go${GO_VER}.linux.s390x"
-     env.PATH = "$GOROOT/bin:$PATH"
      def failure_stage = "none"
 // delete working directory
      deleteDir()
       stage("Fetch Patchset") { // fetch gerrit refspec on latest commit
-         wrap([$class: 'AnsiColorBuildWrapper', 'colorMapName': 'xterm']) {
           try {
               dir("${ROOTDIR}"){
               sh '''
@@ -36,10 +32,8 @@ node('hyp-z') {
                  throw err
            }
          }
-      }
 // clean environment and get env data
       stage("Clean Environment - Get Env Info") {
-         wrap([$class: 'AnsiColorBuildWrapper', 'colorMapName': 'xterm']) {
            try {
                  dir("${ROOTDIR}/$PROJECT_DIR/fabric-sdk-node/scripts/Jenkins_Scripts") {
                  sh './CI_Script.sh --clean_Environment --env_Info'
@@ -83,7 +77,7 @@ node('hyp-z') {
          }
       }
 
-// Run gulp tests (headless and e2e tests)
+// Run gulp tests (headless and integration tests)
       stage("Run gulp_Tests") {
          wrap([$class: 'AnsiColorBuildWrapper', 'colorMapName': 'xterm']) {
            try {
