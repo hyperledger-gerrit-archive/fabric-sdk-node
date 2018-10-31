@@ -72,7 +72,7 @@ class Transaction {
 	 * will be evaluated on the endorsing peers and then submitted to the ordering service
 	 * for committing to the ledger.
 	 * @async
-     * @param {...string} args Transaction function arguments.
+     * @param {...string} [args] Transaction function arguments.
      * @returns {Buffer} Payload response from the transaction function.
      */
 	async submit(...args) {
@@ -165,6 +165,24 @@ class Transaction {
 		}
 
 		return { validResponses, invalidResponses };
+	}
+
+	/**
+	 * Evaluate a transaction function and return its results.
+	 * The transaction function will be evaluated on the endorsing peers but
+	 * the responses will not be sent to the ordering service and hence will
+	 * not be committed to the ledger.
+	 * This is used for querying the world state.
+	 * @async
+     * @param {...string} [args] Transaction function arguments.
+     * @returns {Buffer} Payload response from the transaction function.
+     */
+	async evaluate(...args) {
+		Transaction.verifyArguments(args);
+
+		const queryHandler = this._contract.getQueryHandler();
+		const chaincodeId = this._contract.getChaincodeId();
+		return queryHandler.queryChaincode(chaincodeId, this._transactionId, this._name, args, this._transientMap);
 	}
 }
 
