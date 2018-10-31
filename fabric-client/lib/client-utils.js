@@ -7,7 +7,6 @@
 'use strict';
 
 const util = require('util');
-const settle = require('promise-settle');
 const utils = require('./utils.js');
 const logger = utils.getLogger('client-utils.js');
 
@@ -61,7 +60,7 @@ module.exports.sendPeersProposal = async (peers, proposal, timeout) => {
 		return peer.sendProposal(proposal, timeout);
 	});
 	const responses = [];
-	const results = await settle(promises);
+	const results = await Promise.all(promises);
 	results.forEach((result) => {
 		if (result.isFulfilled()) {
 			logger.debug(`sendPeersProposal - Promise is fulfilled: ${result.value()}`);
