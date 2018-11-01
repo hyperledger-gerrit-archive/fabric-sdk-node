@@ -20,7 +20,7 @@ const Peer = require('./Peer.js');
 const ChannelEventHub = require('./ChannelEventHub');
 const Orderer = require('./Orderer.js');
 const TransactionID = require('./TransactionID.js');
-const { Signer, SigningIdentity } = require('./msp/identity.js');
+const {Signer, SigningIdentity} = require('./msp/identity.js');
 const crypto = require('crypto');
 
 const util = require('util');
@@ -38,7 +38,7 @@ const _queryProto = ProtoLoader.load(__dirname + '/protos/peer/query.proto').pro
 const config = sdkUtils.getConfig();
 // setup the location of the default config shipped with code
 const default_config = path.resolve(__dirname, '../config/default.json');
-config.reorderFileStores(default_config); //make sure this default has precedences
+config.reorderFileStores(default_config); // make sure this default has precedences
 // set default SSL ciphers for gRPC
 process.env.GRPC_SSL_CIPHER_SUITES = sdkUtils.getConfigSetting('grpc-ssl-cipher-suites');
 
@@ -104,12 +104,12 @@ const Client = class extends BaseClient {
 	/**
 	 * Load a network configuration object or load a JSON file and return a Client object.
 	 *
-	 * @param {object | string} config - This may be the config object or a path to the configuration file
+	 * @param {object | string} loadConfig - This may be the config object or a path to the configuration file
 	 * @return {Client} An instance of this class initialized with the network end points.
 	 */
-	static loadFromConfig(config) {
+	static loadFromConfig(loadConfig) {
 		const client = new Client();
-		client.loadFromConfig(config);
+		client.loadFromConfig(loadConfig);
 		return client;
 	}
 
@@ -119,8 +119,8 @@ const Client = class extends BaseClient {
 	 *
 	 * @param {object | string} config - This may be the config object or a path to the configuration file
 	 */
-	loadFromConfig(config) {
-		const additional_network_config = _getNetworkConfig(config, this);
+	loadFromConfig(loadConfig) {
+		const additional_network_config = _getNetworkConfig(loadConfig, this);
 		if (!this._network_config) {
 			this._network_config = additional_network_config;
 		} else {
@@ -164,7 +164,7 @@ const Client = class extends BaseClient {
 				// generate X509 cert pair
 				// use the default software cryptosuite, not the client assigned cryptosuite, which may be
 				// HSM, or the default has been set to HSM. FABN-830
-				const key = Client.newCryptoSuite({ software: true }).generateEphemeralKey();
+				const key = Client.newCryptoSuite({software: true}).generateEphemeralKey();
 				this._tls_mutual.clientKey = key.toBytes();
 				this._tls_mutual.clientCert = key.generateX509Certificate(this._userContext.getName());
 			}
@@ -410,7 +410,7 @@ const Client = class extends BaseClient {
 			}
 		}
 		for (const name in temp_peers) {
-			//TODO: Need to check the roles but cannot do so at present awaiting fix
+			// TODO: Need to check the roles but cannot do so at present awaiting fix
 			peers.push(temp_peers[name]);
 		}
 		return peers;
@@ -474,7 +474,7 @@ const Client = class extends BaseClient {
 			tlsCACerts = [];
 		}
 		const connection_options = ca_info.getConnectionOptions();
-		let verify = true; //default if not found
+		let verify = true; // default if not found
 		if (connection_options && typeof connection_options.verify === 'boolean') {
 			verify = connection_options.verify;
 		}
@@ -587,15 +587,15 @@ const Client = class extends BaseClient {
 	 * configuration bytes passed in, and returns the signature that is ready to be
 	 * included in the configuration update protobuf message to send to the orderer.
 	 *
-	 * @param {byte[]} config - The Configuration Update in byte form
+	 * @param {byte[]} loadConfig - The Configuration Update in byte form
 	 * @return {ConfigSignature} - The signature of the current user on the config bytes
 	 */
-	signChannelConfig(config) {
+	signChannelConfig(loadConfig) {
 		logger.debug('signChannelConfigUpdate - start');
-		if (!config) {
+		if (!loadConfig) {
 			throw new Error('Channel configuration update parameter is required.');
 		}
-		if (!Buffer.isBuffer(config)) {
+		if (!Buffer.isBuffer(loadConfig)) {
 			throw new Error('Channel configuration update parameter is not in the correct form.');
 		}
 		// should try to use the admin signer if assigned
@@ -609,7 +609,7 @@ const Client = class extends BaseClient {
 		const signature_header_bytes = proto_signature_header.toBuffer();
 
 		// get all the bytes to be signed together, then sign
-		const signing_bytes = Buffer.concat([signature_header_bytes, config]);
+		const signing_bytes = Buffer.concat([signature_header_bytes, loadConfig]);
 		const sig = signer.sign(signing_bytes);
 		const signature_bytes = Buffer.from(sig);
 
@@ -807,7 +807,7 @@ const Client = class extends BaseClient {
 			const discover_request = {
 				target: targets[0],
 				local: true,
-				config: false, //config only for channel queries
+				config: false, // config only for channel queries
 				useAdmin: request.useAdmin
 			};
 
@@ -818,8 +818,7 @@ const Client = class extends BaseClient {
 			const discovery_results = await channel._discover(discover_request);
 
 			return discovery_results;
-		}
-		catch (error) {
+		} catch (error) {
 			logger.error(error);
 			throw Error('Failed to discover local peers ::' + error.toString());
 		}
@@ -868,7 +867,7 @@ const Client = class extends BaseClient {
 		const responses = results[0];
 		logger.debug('queryChannels - got response');
 		if (responses && Array.isArray(responses)) {
-			//will only be one response as we are only querying one peer
+			// will only be one response as we are only querying one peer
 			if (responses.length > 1) {
 				throw Error('Too many results returned');
 			}
@@ -942,7 +941,7 @@ const Client = class extends BaseClient {
 		const responses = results[0];
 		logger.debug('queryInstalledChaincodes - got response');
 		if (responses && Array.isArray(responses)) {
-			//will only be one response as we are only querying one peer
+			// will only be one response as we are only querying one peer
 			if (responses.length > 1) {
 				throw new Error('Too many results returned');
 			}
@@ -1083,7 +1082,7 @@ const Client = class extends BaseClient {
 
 			const channelHeader = clientUtils.buildChannelHeader(
 				_commonProto.HeaderType.ENDORSER_TRANSACTION,
-				'', //install does not target a channel
+				'', // install does not target a channel
 				tx_id.getTransactionID(),
 				null,
 				Constants.LSCC
@@ -1202,8 +1201,8 @@ const Client = class extends BaseClient {
 		if (!crypto_suite) {
 			crypto_suite = BaseClient.newCryptoSuite();
 		}
-		const key = crypto_suite.importKey(private_key, { ephemeral: true });
-		const public_key = crypto_suite.importKey(certificate, { ephemeral: true });
+		const key = crypto_suite.importKey(private_key, {ephemeral: true});
+		const public_key = crypto_suite.importKey(certificate, {ephemeral: true});
 
 		this._adminSigningIdentity = new SigningIdentity(certificate, public_key, mspid, crypto_suite, new Signer(crypto_suite, key));
 	}
@@ -1303,14 +1302,14 @@ const Client = class extends BaseClient {
 		});
 		logger.debug(`Successfully enrolled user "${opts.username}"`);
 
-		const cryptoContent = { signedCertPEM: enrollment.certificate };
+		const cryptoContent = {signedCertPEM: enrollment.certificate};
 		let keyBytes = null;
 		try {
 			keyBytes = enrollment.key.toBytes();
 		} catch (err) {
 			logger.debug('Cannot access enrollment private key bytes');
 		}
-		if (keyBytes != null && keyBytes.startsWith('-----BEGIN')) {
+		if (keyBytes !== null && keyBytes.startsWith('-----BEGIN')) {
 			cryptoContent.privateKeyPEM = keyBytes;
 		} else {
 			cryptoContent.privateKeyObj = enrollment.key;
@@ -1427,12 +1426,14 @@ const Client = class extends BaseClient {
 	 */
 	async getUserContext(name, checkPersistence) {
 		// first check if only one param is passed in for "checkPersistence"
-		if (typeof name === 'boolean' && name && typeof checkPersistence === 'undefined')
+		if (typeof name === 'boolean' && name && typeof checkPersistence === 'undefined') {
 			throw new Error('Illegal arguments: "checkPersistence" is truthy but "name" is undefined');
+		}
 
 		if (typeof checkPersistence === 'boolean' && checkPersistence &&
-			(typeof name !== 'string' || name === null || name === ''))
+			(typeof name !== 'string' || name === null || name === '')) {
 			throw new Error('Illegal arguments: "checkPersistence" is truthy but "name" is not a valid string value');
+		}
 
 		const username = name;
 		if ((this._userContext && name && this._userContext.getName() === name) || (this._userContext && !name)) {
@@ -1456,7 +1457,7 @@ const Client = class extends BaseClient {
 
 				if (userContext) {
 					logger.debug(`Requested user "${name}" loaded successfully from the state store on this Client instance`);
-					return this.setUserContext(userContext, true); //skipPersistence as we just got it from there
+					return this.setUserContext(userContext, true); // skipPersistence as we just got it from there
 				} else {
 					logger.debug(`Requested user "${name}" not loaded from the state store on this Client instance`);
 					return null;
@@ -1557,7 +1558,7 @@ const Client = class extends BaseClient {
 			throw new Error('Client.createUser parameter \'opts cryptoContent\' is required.');
 		}
 
-		if (this.getCryptoSuite() == null) {
+		if (this.getCryptoSuite() === null) {
 			logger.debug('cryptoSuite is null, creating default cryptoSuite and cryptoKeyStore');
 			this.setCryptoSuite(sdkUtils.newCryptoSuite());
 			this.getCryptoSuite().setCryptoKeyStore(Client.newCryptoKeyStore()); // This is impossible
@@ -1588,9 +1589,9 @@ const Client = class extends BaseClient {
 		if (privateKeyPEM) {
 			logger.debug('then privateKeyPEM data');
 			if (opts.skipPersistence) {
-				importedKey = await this.getCryptoSuite().importKey(privateKeyPEM.toString(), { ephemeral: true });
+				importedKey = await this.getCryptoSuite().importKey(privateKeyPEM.toString(), {ephemeral: true});
 			} else {
-				importedKey = await this.getCryptoSuite().importKey(privateKeyPEM.toString(), { ephemeral: !this.getCryptoSuite()._cryptoKeyStore });
+				importedKey = await this.getCryptoSuite().importKey(privateKeyPEM.toString(), {ephemeral: !this.getCryptoSuite()._cryptoKeyStore});
 			}
 		} else {
 			importedKey = opts.cryptoContent.privateKeyObj;
@@ -1727,9 +1728,9 @@ function computeHash(data) {
 	return sha256.update(data).digest();
 }
 
-function readFile(path) {
+function readFile(filePath) {
 	return new Promise((resolve, reject) => {
-		fs.readFile(path, 'utf8', (err, data) => {
+		fs.readFile(filePath, 'utf8', (err, data) => {
 			if (err) {
 				if (err.code !== 'ENOENT') {
 					return reject(err);
@@ -1793,12 +1794,12 @@ function _stringToSignature(string_signatures) {
 	return signatures;
 }
 
-//internal utility method to get a NetworkConfig
-function _getNetworkConfig(config, client) {
+// internal utility method to get a NetworkConfig
+function _getNetworkConfig(loadConfig, client) {
 	let network_config = null;
 	let network_data = null;
-	if (typeof config === 'string') {
-		const config_loc = path.resolve(config);
+	if (typeof loadConfig === 'string') {
+		const config_loc = path.resolve(loadConfig);
 		logger.debug('%s - looking at absolute path of ==>%s<==', '_getNetworkConfig', config_loc);
 		const file_data = fs.readFileSync(config_loc);
 		const file_ext = path.extname(config_loc);
@@ -1809,7 +1810,7 @@ function _getNetworkConfig(config, client) {
 			network_data = JSON.parse(file_data);
 		}
 	} else {
-		network_data = config;
+		network_data = loadConfig;
 	}
 
 	let error_msg = null;
