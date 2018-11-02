@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -e
 #
 # Copyright IBM Corp All Rights Reserved
 #
@@ -25,7 +25,7 @@ Parse_Arguments() {
                             sdk_E2e_Tests
                             ;;
                       --publish_NpmModules)
-                            --publish_NpmModules
+                            publish_NpmModules
                             ;;
                       --publish_ApiDocs)
                             publish_ApiDocs
@@ -100,17 +100,17 @@ sdk_E2e_Tests() {
 	echo
 	echo "-----------> Execute HeadLess and Integration tests"
         cd ${WORKSPACE}/gopath/src/github.com/hyperledger/fabric-sdk-node || exit
-        # Install nvm to install multi node versions
-        wget -qO- https://raw.githubusercontent.com/creationix/nvm/v0.33.2/install.sh | bash
-        # shellcheck source=/dev/null
-        export NVM_DIR="$HOME/.nvm"
-        # shellcheck source=/dev/null
-        [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"  # This loads nvm
+#        # Install nvm to install multi node versions
+#        wget -qO- https://raw.githubusercontent.com/creationix/nvm/v0.33.2/install.sh | bash
+#        # shellcheck source=/dev/null
+#        export NVM_DIR="$HOME/.nvm"
+#        # shellcheck source=/dev/null
+#        [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"  # This loads nvm
 
-        echo "------> Install NodeJS"
-        # This also depends on the fabric-baseimage. Make sure you modify there as well.
-        nvm install $NODE_VER || true
-        nvm use --delete-prefix v$NODE_VER --silent
+#        echo "------> Install NodeJS"
+#        # This also depends on the fabric-baseimage. Make sure you modify there as well.
+#        nvm install $NODE_VER || true
+#        nvm use --delete-prefix v$NODE_VER --silent
 
         echo "npm version ------> $(npm -v)"
         echo "node version ------> $(node -v)"
