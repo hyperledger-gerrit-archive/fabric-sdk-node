@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 //
-node ('hyp-x') { // trigger build on x86_64 node
+node ('hyp-x') { // trigger build on x86_64 node test
   timestamps {
     try {
      def ROOTDIR = pwd() // workspace dir (/w/workspace/<job_name>
