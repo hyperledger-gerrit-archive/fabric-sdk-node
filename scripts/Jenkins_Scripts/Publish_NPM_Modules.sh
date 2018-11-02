@@ -70,7 +70,8 @@ echo "----------> START PUBLISHING FROM HERE"
 echo "-------> Publish npm node modules from $ARCH <----------"
 cd $WORKSPACE/gopath/src/github.com/hyperledger/fabric-sdk-node
 # Set NPM_TOKEN from CI configuration
-npm config set //registry.npmjs.org/:_authToken=$NPM_TOKEN
+export PATH=$PATH:/home/jenkins/.nvm/versions/node/v8.11.3/bin
+npm config set //registry.npmjs.org/:_authToken=$TOKEN
 
 # Publish fabric-ca-client node module
 cd fabric-ca-client
