@@ -128,7 +128,7 @@ pull_Thirdparty_Images() {
                  echo
                  docker images | grep hyperledger/fabric
 }
-# pull fabric, fabric-ca images from nexus
+# pull fabric, fabric-ca, javaenv images from nexus
 pull_Docker_Images() {
             for IMAGES in peer orderer ca javaenv; do
                  echo "-----------> pull $IMAGES image"
