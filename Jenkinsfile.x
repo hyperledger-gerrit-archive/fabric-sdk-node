@@ -2,10 +2,10 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 //
-node ('hyp-x') { // trigger build on x86_64 node
+node ('hyp-x') { // trigger build on x86_64 node test
   timestamps {
     try {
-     def ROOTDIR = pwd() // workspace dir (/w/workspace/<job_name>
+     def ROOTDIR = pwd() // workspace dir (/w/workspace/<job_name>)
      env.PROJECT_DIR = "gopath/src/github.com/hyperledger"
      env.GOPATH = "$WORKSPACE/gopath"
      env.NODE_VER = "8.9.4"
@@ -60,36 +60,11 @@ node ('hyp-x') { // trigger build on x86_64 node
          }
       }
 
-// Publish npm modules from merged job
-if (env.GERRIT_EVENT_TYPE == "change-merged") {
-    publishNpm()
-}  else {
-     echo "------> Don't publish npm modules from verify job"
-   }
-
-// Publish API Docs from merged job only
-if (env.GERRIT_EVENT_TYPE == "change-merged") {
-    apiDocs()
-} else {
-     echo "------> Don't publish API Docs from verify job"
-   }
-     } finally {
-           step([$class: 'CoberturaPublisher', autoUpdateHealth: false, autoUpdateStability: false, coberturaReportFile: '**/cobertura-coverage.xml', failUnhealthy: false,  failNoReports: false, failUnstable: false, maxNumberOfBuilds: 0, onlyStable: false, sourceEncoding: 'ASCII', zoomCoverageChart: false])
-           archiveArtifacts allowEmptyArchive: true, artifacts: '**/*.log'
-           if (env.GERRIT_EVENT_TYPE == 'change-merged') {
-              if (currentBuild.result == 'FAILURE') { // Other values: SUCCESS, UNSTABLE
-               // Sends notification to Rocket.Chat
-               rocketSend channel: 'jenkins-robot', message: "Build Notification - STATUS: ${currentBuild.result} - BRANCH: ${env.GERRIT_BRANCH} - PROJECT: ${env.PROJECT} - (<${env.BUILD_URL}|Open>)"
-              }
-           }
-       }
-  } // timestamps block
-} // node block
-
 def publishNpm() {
 // Publish npm modules after successful merge
-      stage("Publish npm modules") {
+      stage("Publish npm Modules") {
            try {
+                 echo "-------> Publish npm Module"
                  dir("${ROOTDIR}/$PROJECT_DIR/fabric-sdk-node/scripts/Jenkins_Scripts") {
                  sh './CI_Script.sh --publish_NpmModules'
                  }
@@ -106,6 +81,7 @@ def apiDocs() {
 // Publish SDK_NODE API docs after successful merge
       stage("Publish API Docs") {
            try {
+                 echo "-------> Publish API Docs"
                  dir("${ROOTDIR}/$PROJECT_DIR/fabric-sdk-node/scripts/Jenkins_Scripts") {
                  sh './CI_Script.sh --publish_ApiDocs'
                  }
@@ -117,3 +93,30 @@ def apiDocs() {
            }
       }
 }
+
+// Publish npm modules from merged job
+if (env.GERRIT_EVENT_TYPE == "patchset-created") {
+    publishNpm()
+}  else {
+     echo "------> Don't publish npm modules from verify job"
+   }
+
+// Publish API Docs from merged job only
+if (env.GERRIT_EVENT_TYPE == "patchset-created") {
+    apiDocs()
+} else {
+     echo "------> Don't publish API Docs from verify job"
+   }
+     } finally {
+           step([$class: 'CoberturaPublisher', autoUpdateHealth: false, autoUpdateStability: false, coberturaReportFile: '**/cobertura-coverage.xml', failUnhealthy: false,  failNoReports: false, failUnstable: false, maxNumberOfBuilds: 0, onlyStable: false, sourceEncoding: 'ASCII', zoomCoverageChart: false])
+           archiveArtifacts allowEmptyArchive: true, artifacts: '**/*.log'
+           if (env.GERRIT_EVENT_TYPE == 'change-merged') {
+              if (currentBuild.result == 'FAILURE') { // Other values: SUCCESS, UNSTABLE
+               // Sends notification to Rocket.Chat
+               rocketSend channel: 'jenkins-robot', message: "Build Notification - STATUS: ${currentBuild.result} - BRANCH: ${env.GERRIT_BRANCH} - PROJECT: ${env.PROJECT} - (<${env.BUILD_URL}|Open>), rawMessage: true"
+              }
+           }
+       }
+  } // timestamps block
+} // node block
+
