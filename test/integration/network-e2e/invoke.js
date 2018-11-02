@@ -679,19 +679,19 @@ test('\n\n***** Network End-to-end flow: invoke transaction with transient data 
 test('\n\n***** Network End-to-end flow: handle transaction error *****\n\n', async (t) => {
 	const gateway = new Gateway();
 
-	await inMemoryIdentitySetup();
-	await tlsSetup();
-
-	const contract = await createContract(t, gateway, {
-		wallet: inMemoryWallet,
-		identity: 'User1@org1.example.com',
-		clientTlsIdentity: 'tlsId',
-		discovery: {
-			enabled: false
-		}
-	});
-
 	try {
+		await inMemoryIdentitySetup();
+		await tlsSetup();
+
+		const contract = await createContract(t, gateway, {
+			wallet: inMemoryWallet,
+			identity: 'User1@org1.example.com',
+			clientTlsIdentity: 'tlsId',
+			discovery: {
+				enabled: false
+			}
+		});
+
 		const response = await contract.submitTransaction('throwError', 'a', 'b', '100');
 		t.fail('Transaction "throwError" should have thrown an error.  Got response: ' + response.toString());
 	} catch (expectedErr) {
