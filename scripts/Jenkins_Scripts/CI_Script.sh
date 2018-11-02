@@ -141,7 +141,7 @@ pull_Thirdparty_Images() {
 }
 # pull fabric, fabric-ca images from nexus
 pull_Docker_Images() {
-            for IMAGES in peer orderer ca; do
+            for IMAGES in peer orderer ca javaenv; do
                  echo "-----------> pull $IMAGES image"
                  echo
                  docker pull $NEXUS_URL/$ORG_NAME-$IMAGES:$STABLE_TAG > /dev/null 2>&1
