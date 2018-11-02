@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -e
 #
 # Copyright IBM Corp All Rights Reserved
 #
@@ -25,7 +25,7 @@ Parse_Arguments() {
                             sdk_E2e_Tests
                             ;;
                       --publish_NpmModules)
-                            --publish_NpmModules
+                            publish_NpmModules
                             ;;
                       --publish_ApiDocs)
                             publish_ApiDocs
