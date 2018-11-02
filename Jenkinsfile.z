@@ -10,7 +10,7 @@ node('hyp-z') {
      env.NODE_VER = "8.11.3"
      env.VERSION = sh(returnStdout: true, script: 'curl -O https://raw.githubusercontent.com/hyperledger/fabric/master/Makefile && cat Makefile | grep "PREV_VERSION =" | cut -d "=" -f2').trim()
      env.VERSION = "$VERSION" // BASE_VERSION from fabric Makefile
-     env.ARCH = "s390x" // `uname -m` 
+     env.ARCH = "s390x" // `uname -m`
      env.IMAGE_TAG = "${ARCH}-${VERSION}-stable" // fabric latest stable version from nexus
      env.PROJECT_VERSION = "${VERSION}-stable"
      env.BASE_IMAGE_VER = sh(returnStdout: true, script: 'cat Makefile | grep BASEIMAGE_RELEASE= | cut -d "=" -f2').trim() // BASEIMAGE Version from fabric Makefile
