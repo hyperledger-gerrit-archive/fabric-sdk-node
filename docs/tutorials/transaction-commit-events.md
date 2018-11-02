@@ -55,8 +55,8 @@ received from peers.
 
 ### Plug-in event handlers
 
-If behavior not provided by the default event handling strategies is
-required, it is possible to implement your own event handling. This is
+If behavior is required that is not provided by the default event handling
+strategies, it is possible to implement your own event handling. This is
 achieved by specifying your own factory function as the event handling
 strategy. The factory function should return a *transaction event handler*
 object and take two parameters:
