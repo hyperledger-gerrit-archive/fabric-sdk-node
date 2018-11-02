@@ -61,13 +61,18 @@ async function getFirstEventHubForOrg(gateway, orgMSP) {
 	return channel.getChannelEventHub(orgPeer.getName());
 }
 
-test('\n\n***** Network End-to-end flow: import identity into wallet *****\n\n', async (t) => {
-	await inMemoryIdentitySetup();
-	const exists = await inMemoryWallet.exists('User1@org1.example.com');
-	if (exists) {
-		t.pass('Successfully imported User1@org1.example.com into wallet');
-	} else {
-		t.fail('Failed to import User1@org1.example.com into wallet');
+test('\n\n***** Network End-to-end flow: import identity into wallet and configure tls *****\n\n', async (t) => {
+	try {
+		await inMemoryIdentitySetup();
+		await tlsSetup();
+		const exists = await inMemoryWallet.exists('User1@org1.example.com');
+		if (exists) {
+			t.pass('Successfully imported User1@org1.example.com into wallet');
+		} else {
+			t.fail('Failed to import User1@org1.example.com into wallet');
+		}
+	} catch (err) {
+		t.fail('Failed to import identity into wallet and configure tls. ' + err.stack ? err.stack : err);
 	}
 	t.end();
 });
@@ -77,8 +82,6 @@ test('\n\n***** Network End-to-end flow: invoke transaction to move money using 
 	let org1EventHub;
 
 	try {
-		await inMemoryIdentitySetup();
-		await tlsSetup();
 
 		const contract = await createContract(t, gateway, {
 			wallet: inMemoryWallet,
@@ -132,9 +135,6 @@ test('\n\n***** Network End-to-end flow: invoke multiple transactions to move mo
 	let org1EventHub;
 
 	try {
-		await inMemoryIdentitySetup();
-		await tlsSetup();
-
 
 		const contract = await createContract(t, gateway, {
 			wallet: inMemoryWallet,
@@ -211,8 +211,6 @@ test('\n\n***** Network End-to-end flow: invoke transaction to move money using 
 	let org1EventHub;
 
 	try {
-		await inMemoryIdentitySetup();
-		await tlsSetup();
 
 		const contract = await createContract(t, gateway, {
 			wallet: inMemoryWallet,
@@ -266,8 +264,6 @@ test('\n\n***** Network End-to-end flow: invoke transaction to move money using 
 	const gateway = new Gateway();
 	let org1EventHub;
 	try {
-		await inMemoryIdentitySetup();
-		await tlsSetup();
 
 		const contract = await createContract(t, gateway, {
 			wallet: inMemoryWallet,
@@ -323,8 +319,6 @@ test('\n\n***** Network End-to-end flow: invoke transaction to move money using 
 	let org2EventHub;
 
 	try {
-		await inMemoryIdentitySetup();
-		await tlsSetup();
 
 		const contract = await createContract(t, gateway, {
 			wallet: inMemoryWallet,
@@ -387,8 +381,6 @@ test('\n\n***** Network End-to-end flow: invoke transaction to move money using 
 	let org2EventHub;
 
 	try {
-		await inMemoryIdentitySetup();
-		await tlsSetup();
 
 		const contract = await createContract(t, gateway, {
 			wallet: inMemoryWallet,
@@ -451,8 +443,6 @@ test('\n\n***** Network End-to-end flow: invoke transaction to move money using 
 	let org2EventHub;
 
 	try {
-		await inMemoryIdentitySetup();
-		await tlsSetup();
 
 		const contract = await createContract(t, gateway, {
 			wallet: inMemoryWallet,
@@ -521,8 +511,6 @@ test('\n\n***** Network End-to-end flow: invoke transaction to move money using 
 	let org2EventHub;
 
 	try {
-		await inMemoryIdentitySetup();
-		await tlsSetup();
 
 		const contract = await createContract(t, gateway, {
 			wallet: inMemoryWallet,
@@ -589,8 +577,6 @@ test('\n\n***** Network End-to-end flow: invoke transaction to move money using 
 	const gateway = new Gateway();
 
 	try {
-		await inMemoryIdentitySetup();
-		await tlsSetup();
 
 		const contract = await createContract(t, gateway, {
 			wallet: inMemoryWallet,
@@ -625,8 +611,6 @@ test('\n\n***** Network End-to-end flow: invoke transaction with transient data 
 	const gateway = new Gateway();
 
 	try {
-		await inMemoryIdentitySetup();
-		await tlsSetup();
 
 		const contract = await createContract(t, gateway, {
 			wallet: inMemoryWallet,
@@ -679,8 +663,6 @@ test('\n\n***** Network End-to-end flow: invoke transaction with empty string re
 	const gateway = new Gateway();
 
 	try {
-		await inMemoryIdentitySetup();
-		await tlsSetup();
 
 		const contract = await createContract(t, gateway, {
 			wallet: inMemoryWallet,
@@ -710,19 +692,17 @@ test('\n\n***** Network End-to-end flow: invoke transaction with empty string re
 test('\n\n***** Network End-to-end flow: handle transaction error *****\n\n', async (t) => {
 	const gateway = new Gateway();
 
-	await inMemoryIdentitySetup();
-	await tlsSetup();
-
-	const contract = await createContract(t, gateway, {
-		wallet: inMemoryWallet,
-		identity: 'User1@org1.example.com',
-		clientTlsIdentity: 'tlsId',
-		discovery: {
-			enabled: false
-		}
-	});
-
 	try {
+
+		const contract = await createContract(t, gateway, {
+			wallet: inMemoryWallet,
+			identity: 'User1@org1.example.com',
+			clientTlsIdentity: 'tlsId',
+			discovery: {
+				enabled: false
+			}
+		});
+
 		const response = await contract.submitTransaction('throwError', 'a', 'b', '100');
 		t.fail('Transaction "throwError" should have thrown an error.  Got response: ' + response.toString());
 	} catch (expectedErr) {
@@ -887,8 +867,6 @@ test('\n\n***** Network End-to-end flow: invoke transaction to move money using 
 	const gateway = new Gateway();
 
 	try {
-		await inMemoryIdentitySetup();
-		await tlsSetup();
 
 		const contract = await createContract(t, gateway, {
 			wallet: inMemoryWallet,
