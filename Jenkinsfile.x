@@ -79,7 +79,7 @@ if (env.GERRIT_EVENT_TYPE == "change-merged") {
            if (env.GERRIT_EVENT_TYPE == 'change-merged') {
               if (currentBuild.result == 'FAILURE') { // Other values: SUCCESS, UNSTABLE
                // Sends notification to Rocket.Chat
-               rocketSend channel: 'jenkins-robot', message: "Build Notification - STATUS: ${currentBuild.result} - BRANCH: ${env.GERRIT_BRANCH} - PROJECT: ${env.PROJECT} - (<${env.BUILD_URL}|Open>)"
+               rocketSend channel: "Build Notification - STATUS: ${currentBuild.result} - BRANCH: ${env.GERRIT_BRANCH} - PROJECT: ${env.PROJECT} - BUILD_URL:  (<${env.BUILD_URL}|Open>)"
               }
            }
        }
