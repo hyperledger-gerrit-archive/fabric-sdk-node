@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -e
 #
 # Copyright IBM Corp All Rights Reserved
 #
@@ -25,7 +25,7 @@ Parse_Arguments() {
                             sdk_E2e_Tests
                             ;;
                       --publish_NpmModules)
-                            --publish_NpmModules
+                            publish_NpmModules
                             ;;
                       --publish_ApiDocs)
                             publish_ApiDocs
@@ -103,7 +103,7 @@ sdk_E2e_Tests() {
         # Install nvm to install multi node versions
         wget -qO- https://raw.githubusercontent.com/creationix/nvm/v0.33.2/install.sh | bash
         # shellcheck source=/dev/null
-        export NVM_DIR="$HOME/.nvm"
+       export NVM_DIR="$HOME/.nvm"
         # shellcheck source=/dev/null
         [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"  # This loads nvm
 
