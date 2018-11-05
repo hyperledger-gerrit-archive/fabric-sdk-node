@@ -179,7 +179,7 @@ gulp.task('test-tape', shell.task(
 
 // Definition of Cucumber (scenario) test suite
 gulp.task('run-test-cucumber', shell.task(
-	'npm run test:cucumber'
+	'export HFC_LOGGING=""; npm run test:cucumber'
 ));
 
 // Main test method to run all test suites
