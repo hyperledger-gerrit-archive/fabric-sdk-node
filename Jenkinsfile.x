@@ -92,7 +92,7 @@ if (env.GERRIT_EVENT_TYPE == "change-merged") {
 if (env.GERRIT_EVENT_TYPE == "change-merged") {
     apiDocs()
 } else {
-     echo -e ""\033[32m" ------> Don't publish API Docs from verify job" "\033[0m"
+     echo -e "\033[32m ------> Dont publish API Docs from verify job" "\033[0m"
    }
 
     } finally { // Code for coverage report
