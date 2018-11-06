@@ -18,7 +18,7 @@ npmPublish() {
       print ver}')
 
       echo "===> UNSTABLE VERSION --> $UNSTABLE_VER"
-      UNSTABLE_INCREMENT=$(npm dist-tags ls "$1" | awk '/$CURRENT_TAG/{
+      UNSTABLE_INCREMENT=$(npm dist-tags ls "$1" | awk "/$CURRENT_TAG"":"/'{
       ver=$NF
       rel=$NF
       sub(/.*\./,"",rel)
