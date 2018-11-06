@@ -155,6 +155,10 @@ class ChannelEventHub {
 		// set of clients registered for block events
 		this._block_registrant_count = 0;
 		this._blockRegistrations = {};
+
+		this.connectCallback = null;
+		this.errorCallback = null;
+
 		// registered transactional events
 		this._transactionRegistrations = {};
 		// grpc event client interface
@@ -279,8 +283,13 @@ class ChannelEventHub {
 	 * @param {ConnectOptions | boolean} options - Optional. If of type boolean
 	 *        then it will be assumed to how to connect to receive full (true)
 	 *        or filtered (false) blocks.
+	 * @param {functon} connectCallback - Optional. This callback will report
+	 *        completion of the connection to the peer
+	 * @param {function} errorCallback -Optional. This callback will report 
+	 *        any errors encountered during connection to the peer. The connect
+	 *        will be shutdown when this callback is called.
 	 */
-	connect(options) {
+	connect(options, connectCallback, errorCallback) {
 		let signedEvent = null;
 		let full_block = null;
 
@@ -296,6 +305,13 @@ class ChannelEventHub {
 		if (signedEvent) {
 			signedEvent = this._validateSignedEvent(signedEvent);
 		}
+		if (connectCallback) {
+			this.connectCallback = connectCallback;
+		}
+		if (errorCallback) {
+			this.errorCallback = errorCallback;
+		}
+		
 		logger.debug('connect - start peerAddr:%s', this.getPeerAddr());
 		if (!this._clientContext._userContext && !this._clientContext._adminSigningIdentity && !signedEvent) {
 			throw new Error('Error connect the ChannelEventhub to peer, either the clientContext has not been properly initialized, missing userContext or admin identity or missing signedEvent');
