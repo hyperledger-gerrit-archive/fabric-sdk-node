@@ -80,24 +80,27 @@ node ('hyp-x') { // trigger build on x86_64 node
       }
 
 // Publish npm modules from merged job
-if (env.GERRIT_EVENT_TYPE == 'change-merged') {
+sh 'echo "GERRIT_EVENT_TYPE:" env.GERRIT_EVENT_TYPE'
+if (env.GERRIT_EVENT_TYPE == "change-merged") {
+sh 'echo "GERRIT_EVENT_TYPE:" env.GERRIT_EVENT_TYPE'
     publishNpm()
 }  else {
      echo "------> Don't publish npm modules from verify job"
    }
 
 // Publish API Docs from merged job only
-if (env.GERRIT_EVENT_TYPE == 'change-merged') {
+sh 'echo "GERRIT_EVENT_TYPE:" env.GERRIT_EVENT_TYPE'
+if (env.GERRIT_EVENT_TYPE == "change-merged") {
+sh 'echo "GERRIT_EVENT_TYPE:" env.GERRIT_EVENT_TYPE'
     apiDocs()
 } else {
      echo "------> Don't publish API Docs from verify job"
    }
 
     } finally { // Code for coverage report
-           junit '**/cobertura-coverage.xml'
            step([$class: 'CoberturaPublisher', autoUpdateHealth: false, autoUpdateStability: false, coberturaReportFile: '**/cobertura-coverage.xml', failUnhealthy: false, failUnstable: false, failNoReports: false, maxNumberOfBuilds: 0, onlyStable: false, sourceEncoding: 'ASCII', zoomCoverageChart: false])
            archiveArtifacts allowEmptyArchive: true, artifacts: '**/*.log'
-           if (env.GERRIT_EVENT_TYPE == 'change-merged') {
+           if (env.GERRIT_EVENT_TYPE == "change-merged") {
               if (currentBuild.result == 'FAILURE') { // Other values: SUCCESS, UNSTABLE
                rocketSend channel: "Build Notification - STATUS: ${currentBuild.result} - BRANCH: ${env.GERRIT_BRANCH} - PROJECT: ${env.PROJECT} - BUILD_URL:  (<${env.BUILD_URL}|Open>)"
               }
