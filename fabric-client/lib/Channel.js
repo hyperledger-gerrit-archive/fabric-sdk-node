@@ -925,9 +925,15 @@ const Channel = class {
 	 * @returns {ChannelEventHub} The ChannelEventHub instance
 	 */
 	newChannelEventHub(peer) {
-		// Will always return one or throw
-		const peers = this._getTargets(peer, Constants.NetworkConfig.EVENT_SOURCE_ROLE, true);
-		const channel_event_hub = new ChannelEventHub(this, peers[0]);
+		let channel_event_hub = null;
+		if (peer) {
+			channel_event_hub = new ChannelEventHub(this, peer);
+		} else {
+			// try to find one
+			const peers = this._getTargets(peer, Constants.NetworkConfig.EVENT_SOURCE_ROLE, true);
+			channel_event_hub = new ChannelEventHub(this, peers[0]);
+		}
+
 		return channel_event_hub;
 	}
 
