@@ -78,6 +78,12 @@
     "x509": "^0.3.2"
   },
   "nyc": {
+	"check-coverage": true,
+	"per-file": true,
+	"statements": 78,
+	"branches": 71,
+	"functions": 87,
+    "lines": 78,
     "include": [
       "fabric-ca-client/lib/FabricCAClientImpl.js",
       "fabric-ca-client/lib/helper.js",
