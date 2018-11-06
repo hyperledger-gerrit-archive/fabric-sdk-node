@@ -15,30 +15,30 @@ const tape = require('gulp-tape');
 const runSequence = require('run-sequence');
 const tapColorize = require('tap-colorize');
 
-const fs = require('fs-extra');
+// const fs = require('fs-extra');
 const path = require('path');
 const os = require('os');
-const util = require('util');
+// const util = require('util');
 const shell = require('gulp-shell');
-const testConstants = require('../../test/unit/constants.js');
+// const testConstants = require('../../test/unit/constants.js');
 
 // Debug level of Docker containers used in scenario tests
 process.env.DOCKER_DEBUG = 'INFO';
 
 // by default for running the tests print debug to a file
-const debugPath = path.join(testConstants.tempdir, 'test-log/debug.log');
-process.env.HFC_LOGGING = util.format('{"debug":"%s"}', escapeWindowsPath(debugPath));
+// const debugPath = path.join(testConstants.tempdir, 'test-log/debug.log');
+// process.env.HFC_LOGGING = util.format('{"debug":"%s"}', escapeWindowsPath(debugPath));
 
-function escapeWindowsPath(p) {
-	if (path.sep === '/') {
-		return p;
-	}
-	return p.replace(/\\/g, '\\\\');
-}
+// function escapeWindowsPath(p) {
+// 	if (path.sep === '/') {
+// 		return p;
+// 	}
+// 	return p.replace(/\\/g, '\\\\');
+// }
 
-console.log('\n####################################################');
-console.log(util.format('# debug log: %s', debugPath));
-console.log('####################################################\n');
+// console.log('\n####################################################');
+// console.log(util.format('# debug log: %s', debugPath));
+// console.log('####################################################\n');
 
 const arch = process.arch;
 const release = require(path.join(__dirname, '../../package.json')).testFabricVersion;
@@ -87,8 +87,8 @@ gulp.task('pre-test', () => {
 gulp.task('clean-up', () => {
 	// some tests create temporary files or directories
 	// they are all created in the same temp folder
-	fs.removeSync(testConstants.tempdir);
-	return fs.ensureFileSync(debugPath);
+	// fs.removeSync(testConstants.tempdir);
+	// return fs.ensureFileSync(debugPath);
 });
 
 gulp.task('docker-clean', shell.task([
