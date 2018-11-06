@@ -61,14 +61,16 @@ node ('hyp-x') { // trigger build on x86_64 node
       }
 
 // Publish npm modules from merge job
-if (env.GERRIT_EVENT_TYPE == "change-merged") {
+if (env.GERRIT_EVENT_TYPE == 'change-merged') {
+    sh 'echo "------> GERRIT_EVENT_TYPE:" $GERRIT_EVENT_TYPE'
     publishNpm()
 }  else {
      echo "------> Don't publish npm modules from verify job"
    }
 
 // Publish API Docs from merged job only
-if (env.GERRIT_EVENT_TYPE == "change-merged") {
+if (env.GERRIT_EVENT_TYPE == 'change-merged') {
+    sh 'echo "------> GERRIT_EVENT_TYPE:" $GERRIT_EVENT_TYPE'
     apiDocs()
 } else {
      echo "------> Don't publish API Docs from verify job"
@@ -95,6 +97,7 @@ def publishNpm() {
         wrap([$class: 'AnsiColorBuildWrapper', 'colorMapName': 'xterm']) {
            try {
                  dir("${ROOTDIR}/$PROJECT_DIR/fabric-sdk-node/scripts/Jenkins_Scripts") {
+                 sh 'echo "-------> Publish npm Modules"'
                  sh './CI_Script.sh --publish_NpmModules'
                  }
                }
