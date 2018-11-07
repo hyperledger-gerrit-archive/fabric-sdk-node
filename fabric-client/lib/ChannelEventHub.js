@@ -189,6 +189,11 @@ class ChannelEventHub {
 			throw new Error('Missing required argument: peer');
 		}
 		this._peer = peer;
+
+		// user may wish to keep the callback around to report problems back after connect
+		// users should really use the callback on the registration to report errors on
+		// network to each of the registered listeners so the default will be false
+		this._keep_event_error_callback = utils.getConfigSetting('keep-event-error-callback', false);
 	}
 
 	/**
@@ -285,7 +290,7 @@ class ChannelEventHub {
 	 *        or filtered (false) blocks.
 	 * @param {functon} connectCallback - Optional. This callback will report
 	 *        completion of the connection to the peer
-	 * @param {function} errorCallback -Optional. This callback will report 
+	 * @param {function} errorCallback -Optional. This callback will report
 	 *        any errors encountered during connection to the peer. The connect
 	 *        will be shutdown when this callback is called.
 	 */
@@ -311,7 +316,7 @@ class ChannelEventHub {
 		if (errorCallback) {
 			this.errorCallback = errorCallback;
 		}
-		
+
 		logger.debug('connect - start peerAddr:%s', this.getPeerAddr());
 		if (!this._clientContext._userContext && !this._clientContext._adminSigningIdentity && !signedEvent) {
 			throw new Error('Error connect the ChannelEventhub to peer, either the clientContext has not been properly initialized, missing userContext or admin identity or missing signedEvent');
@@ -412,6 +417,15 @@ class ChannelEventHub {
 				} else {
 					logger.debug('on.data - first block received , this ChannelEventHub now registered');
 					self._connected = true;
+					if(this.connectCallback) {
+						this.connectCallback(this); // return this instance, user will be able check with isconnected()
+						if (!this._keep_event_error_callback) {
+							// remove the callback so that it does not get called when we shutdown
+							// user may not wish to keep it active and be notified of any errors outside of
+							// the callbacks that are registered with the listeners
+							this.errorCallback = null;
+						}
+					}
 				}
 				try {
 					let block = null;
@@ -538,6 +552,11 @@ class ChannelEventHub {
 		logger.debug('_disconnect - start -- called due to:: %s, peer:%s', err.message, this.getPeerAddr());
 		this._connected = false;
 		this._connect_running = false;
+		if (this.errorCallback) {
+			this.errorCallback(err);
+			this.errorCallback = null;
+		}
+		this.connectCallback = null;
 		this._closeAllCallbacks(err);
 		this._shutdown();
 		this._setReplayDefaults();
