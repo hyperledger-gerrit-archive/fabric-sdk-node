@@ -96,7 +96,7 @@ class Gateway {
 			},
 			discovery: {
 				enabled: true,
-				asLocalhost: false
+				asLocalhost: true
 			}
 		};
 	}
@@ -230,7 +230,11 @@ class Gateway {
 		}
 
 		logger.debug('getNetwork: create network object and initialize');
-		const channel = this.client.getChannel(networkName);
+		let channel = this.client.getChannel(networkName, false);
+		if (channel === null) {
+			// not found in the in-memory cache or the CCP
+			channel = this.client.newChannel(networkName);
+		}
 		const newNetwork = new Network(this, channel);
 		await newNetwork._initialize(this.options.discovery);
 		this.networks.set(networkName, newNetwork);
