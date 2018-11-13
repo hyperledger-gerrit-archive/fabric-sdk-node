@@ -27,14 +27,14 @@ test('getCollectionsConfig from peer', async (t) => {
 
 		t.equal(results[0].type, 'static_collection_config');
 		t.equal(results[0].name, 'detailCol');
-		t.equal(results[0].required_peer_count, 1);
-		t.equal(results[0].maximum_peer_count, 1);
+		t.equal(results[0].required_peer_count, 2);
+		t.equal(results[0].maximum_peer_count, 2);
 		t.equal(results[0].block_to_live, 100);
 		t.deepEqual(results[0].policy.identities, [{msp_identifier: 'Org1MSP', role: 'MEMBER'}, {msp_identifier: 'Org2MSP', role: 'MEMBER'}]);
 
 		t.equal(results[1].type, 'static_collection_config');
 		t.equal(results[1].name, 'sensitiveCol');
-		t.equal(results[1].required_peer_count, 0);
+		t.equal(results[1].required_peer_count, 1);
 		t.equal(results[1].maximum_peer_count, 1);
 		t.equal(results[1].block_to_live, 100);
 		t.deepEqual(results[1].policy.identities, [{msp_identifier: 'Org1MSP', role: 'MEMBER'}]);
