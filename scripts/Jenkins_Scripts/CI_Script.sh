@@ -104,6 +104,7 @@ env_Info() {
 # run sdk e2e tests
 sdk_E2e_Tests() {
 	echo
+        echo "GERRIT_EVENT_COMMENT_TEXT:" $GERRIT_EVENT_COMMENT_TEXT
         echo -e "\033[32m -----------> Execute NODE SDK E2E Tests" "\033[0m"
         cd ${WORKSPACE}/gopath/src/github.com/hyperledger/fabric-sdk-node || exit
         # Install nvm to install multi node versions
