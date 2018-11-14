@@ -5,10 +5,22 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
+export CONTAINER_LIST=(ca orderer peer0.org1 peer0.org2)
+
 # error check
 err_Check() {
-echo -e "\033[31m $1" "\033[0m"
-exit 1
+
+  echo -e "\033[31m $1" "\033[0m"
+  docker images | grep hyperledger && docker ps -a
+  # Write ca, orderer, peer logs
+  for CONTAINER in ${CONTAINER_LIST[*]}; do
+      docker logs $CONTAINER.example.com >& $CONTAINER.log
+  done
+  # Write couchdb container logs into couchdb.log file
+  docker logs couchdb >& couchdb.log
+  # Copy debug log
+  cp /tmp/hfc/test-log/*.log $WORKSPACE
+  exit 1
 }
 
 Parse_Arguments() {
@@ -103,17 +115,16 @@ env_Info() {
 
 # run sdk e2e tests
 sdk_E2e_Tests() {
-	echo
-        echo -e "\033[32m -----------> Execute NODE SDK E2E Tests" "\033[0m"
-        cd ${WORKSPACE}/gopath/src/github.com/hyperledger/fabric-sdk-node || exit
+
+    echo "-------> ARCH:" $ARCH
+    if [[ $ARCH == "s390x" || $ARCH == "ppc64le" ]]; then
         # Install nvm to install multi node versions
         wget -qO- https://raw.githubusercontent.com/creationix/nvm/v0.33.11/install.sh | bash
         # shellcheck source=/dev/null
         export NVM_DIR="$HOME/.nvm"
         # shellcheck source=/dev/null
         [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"  # This loads nvm
-
-        echo -e "\033[32m -----------> Install NodeJS" "\033[0m"
+        echo "------> Install NodeJS"
         # This also depends on the fabric-baseimage. Make sure you modify there as well.
         echo "------> Use $NODE_VER"
         nvm install $NODE_VER || true
@@ -123,23 +134,31 @@ sdk_E2e_Tests() {
         echo -e "\033[32m node version ------> $(node -v)" "\033[0m"
 
         npm install || err_Check "ERROR!!! npm install failed"
-        npm config set prefix ~/npm && npm install -g gulp && npm install -g istanbul
-        ~/npm/bin/gulp || err_Check "ERROR!!! gulp failed"
-        ~/npm/bin/gulp ca || err_Check "ERROR!!! gulp ca failed"
-        rm -rf node_modules/fabric-ca-client && npm install || err_Check "ERROR!!! npm install failed"
+        npm config set prefix ~/npm
+        npm install -g gulp && npm install -g istanbul
+        gulp || err_Check "ERROR!!! npm install failed"
+        gulp ca || err_Check "ERROR!!! npm install failed"
 
         echo -e "\033[32m ------> Run Node SDK Unit, FV, and scenario tests" "\033[0m"
         echo "============"
-        ~/npm/bin/gulp test
-        if [ $? == 0 ]; then
-           # Copy Debug log to $WORKSPACE
-           cp /tmp/hfc/test-log/*.log $WORKSPACE
-        else
-           # Copy Debug log to $WORKSPACE
-           cp /tmp/hfc/test-log/*.log $WORKSPACE
-           exit 1
-        fi
+        gulp test
+
+    else
+
+        echo -e "\033[32m npm version ------> $(npm -v)" "\033[0m"
+        echo -e "\033[32m node version ------> $(node -v)" "\033[0m"
+
+        # Install gulp & istanbul
+        npm install -g gulp && npm install -g istanbul
+        npm install || err_Check "ERROR!!! npm install failed"
+        gulp ca || err_Check "ERROR!!! npm install failed"
+
+        echo -e "\033[32m ------> Run Node SDK Unit, FV, and scenario tests" "\033[0m"
+        echo "============"
+        gulp test
+    fi
 }
+
 # Publish npm modules after successful merge on amd64
 publish_NpmModules() {
         echo
