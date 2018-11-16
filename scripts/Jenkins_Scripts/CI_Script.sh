@@ -5,10 +5,31 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
+
+export CONTAINER_LIST=(orderer peer0.org1 peer0.org2)
+
 # error check
 err_Check() {
-echo "ERROR !!!! --------> $1 <---------"
+
+echo -e "\033[31m $1" "\033[0m"
+docker images | grep hyperledger && docker ps -a
+
+# Write orderer, peer logs
+for CONTAINER in ${CONTAINER_LIST[*]}; do
+   docker logs $CONTAINER.example.com >& $CONTAINER.log
+done
+
+# Write ca logs into ca_peerOrg1.log
+docker log ca_peerOrg1 >& ca_peerOrg1.log
+# Write ca logs into ca_peerOrg2.log
+docker log ca_peerOrg2 >& ca_peerOrg2.log
+# Write couchdb container logs into couchdb.log file
+docker logs couchdb >& couchdb.log
+
+# Copy debug log
+cp /tmp/hfc/test-log/*.log $WORKSPACE
 exit 1
+
 }
 
 Parse_Arguments() {
@@ -23,11 +44,11 @@ Parse_Arguments() {
                       --sdk_E2e_Tests)
                             sdk_E2e_Tests
                             ;;
-                      --publish_Unstable)
-                            --publish_Unstable
+                      --publish_NpmModules)
+                            --publish_NpmModules
                             ;;
-                      --publish_Api_Docs)
-                            publish_Api_Docs
+                      --publish_ApiDocs)
+                            publish_ApiDocs
                             ;;
               esac
               shift
@@ -43,7 +64,6 @@ function clearContainers () {
                 echo "---- No containers available for deletion ----"
         else
                 docker rm -f $CONTAINER_IDS || true
-                docker ps -a
         fi
 }
 
@@ -61,7 +81,6 @@ function removeUnwantedImages() {
                 echo "---- No images available for deletion ----"
         else
                 docker rmi -f $DOCKER_IMAGE_IDS || true
-                docker images
         fi
 }
 
@@ -96,56 +115,65 @@ env_Info() {
 	docker ps -a
 }
 
-# run sdk e2e tests
-sdk_E2e_Tests() {
-	echo
-	echo "-----------> Execute NODE SDK E2E Tests"
-        cd ${WORKSPACE}/gopath/src/github.com/hyperledger/fabric-sdk-node || exit
-        # Install nvm to install multi node versions
+# Install NPM
+install_Npm() {
+
+echo "-------> ARCH:" $ARCH
+if [[ $ARCH == "s390x" || $ARCH == "ppc64le" ]]; then
+       # Install nvm to install multi node versions
         wget -qO- https://raw.githubusercontent.com/creationix/nvm/v0.33.11/install.sh | bash
         # shellcheck source=/dev/null
         export NVM_DIR="$HOME/.nvm"
         # shellcheck source=/dev/null
         [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"  # This loads nvm
-
         echo "------> Install NodeJS"
-        # This also depends on the fabric-baseimage. Make sure you modify there as well.
+        # Install NODE_VER
+        echo "------> Use $NODE_VER"
         nvm install $NODE_VER || true
         nvm use --delete-prefix v$NODE_VER --silent
-
-        echo "npm version ------> $(npm -v)"
-        echo "node version ------> $(node -v)"
-
         npm install || err_Check "ERROR!!! npm install failed"
         npm config set prefix ~/npm && npm install -g gulp && npm install -g istanbul
-        ~/npm/bin/gulp || err_Check "ERROR!!! gulp failed"
-        ~/npm/bin/gulp 	ca || err_Check "ERROR!!! gulp ca failed"
-        rm -rf node_modules/fabric-ca-client && npm install || err_Check "ERROR!!! npm install failed"
 
-        echo "------> Run node headless & e2e tests"
-        echo "============"
-        ~/npm/bin/gulp test
-        echo "============"
-        if [ $? == 0 ]; then
-           # Copy Debug log to $WORKSPACE
-           cp /tmp/hfc/test-log/*.log $WORKSPACE
-        else
-           # Copy Debug log to $WORKSPACE
-           cp /tmp/hfc/test-log/*.log $WORKSPACE
-           exit 1
-        fi
+        echo -e "\033[32m npm version ------> $(npm -v)" "\033[0m"
+        echo -e "\033[32m node version ------> $(node -v)" "\033[0m"
+
+else
+        echo -e "\033[32m npm version ------> $(npm -v)" "\033[0m"
+        echo -e "\033[32m node version ------> $(node -v)" "\033[0m"
+
+        npm install || err_Check "ERROR!!! npm install failed"
+        npm install -g gulp && npm install -g istanbul
+fi
 }
-# Publish unstable npm modules after successful merge on amd64
-publish_Unstable() {
+
+# run sdk e2e tests
+sdk_E2e_Tests() {
+
+        cd ${WORKSPACE}/gopath/src/github.com/hyperledger/fabric-chaincode-node
+
+        # Install NPM before start the tests
+        install_Npm
+
+        gulp || err_Check "ERROR!!! gulp failed"
+        gulp ca || err_Check "ERROR!!! gulp ca failed"
+
+        echo "------> Run node headless & Integration tests"
+        echo "============"
+        gulp test
+        echo "============"
+}
+
+# Publish npm modules after successful merge on amd64
+publish_NpmModules() {
 	echo
-	echo "-----------> Publish unstable npm modules from amd64"
+        echo -e "\033[32m -----------> Publish npm modules from amd64" "\033[0m"
 	./Publish_NPM_Modules.sh
 }
 
 # Publish NODE_SDK API docs after successful merge on amd64
-publish_Api_Docs() {
+publish_ApiDocs() {
 	echo
-	echo "-----------> Publish NODE_SDK API docs after successful merge on amd64"
+        echo -e "\033[32m -----------> Publish NODE_SDK API docs after successful merge on amd64" "\033[0m"
 	./Publish_API_Docs.sh
 }
 Parse_Arguments $@
