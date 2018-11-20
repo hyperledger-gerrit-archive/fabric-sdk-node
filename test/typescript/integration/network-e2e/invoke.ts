@@ -96,7 +96,9 @@ test('\n\n***** Network End-to-end flow: import identity into wallet and configu
 
 test('\n\n***** Network End-to-end flow: invoke transaction to move money using in memory wallet and default event strategy with discovery *****\n\n', async (t: any) => {
 	const gateway = new Gateway();
-	let org1EventHub: ChannelEventHub;
+	// Obtain an event hub that that will be used by the underlying implementation
+	const org1EventHub = await getFirstEventHubForOrg(gateway, 'Org1MSP');
+	const org2EventHub = await getFirstEventHubForOrg(gateway, 'Org2MSP');
 
 	try {
 		const contract = await createContract(t, gateway, {
@@ -107,10 +109,6 @@ test('\n\n***** Network End-to-end flow: invoke transaction to move money using 
 
 		const transaction = contract.createTransaction('move');
 		const transactionId = transaction.getTransactionID().getTransactionID();
-
-		// Obtain an event hub that that will be used by the underlying implementation
-		org1EventHub = await getFirstEventHubForOrg(gateway, 'Org1MSP');
-		const org2EventHub = await getFirstEventHubForOrg(gateway, 'Org2MSP');
 
 		let eventFired = 0;
 		org1EventHub.registerTxEvent('all', (txId, code) => {
@@ -145,7 +143,9 @@ test('\n\n***** Network End-to-end flow: invoke transaction to move money using 
 
 test('\n\n***** Network End-to-end flow: invoke multiple transactions to move money using in memory wallet and default event strategy *****\n\n', async (t: any) => {
 	const gateway = new Gateway();
-	let org1EventHub: ChannelEventHub;
+	// Obtain an event hub that that will be used by the underlying implementation
+	const org1EventHub = await getFirstEventHubForOrg(gateway, 'Org1MSP');
+	const org2EventHub = await getFirstEventHubForOrg(gateway, 'Org2MSP');
 
 	try {
 		const contract = await createContract(t, gateway, {
@@ -159,10 +159,6 @@ test('\n\n***** Network End-to-end flow: invoke multiple transactions to move mo
 
 		const transactions = new Array(3).fill('move').map((name) => contract.createTransaction(name));
 		const transactionIds = transactions.map((tx) => tx.getTransactionID().getTransactionID());
-
-		// Obtain an event hub that that will be used by the underlying implementation
-		org1EventHub = await getFirstEventHubForOrg(gateway, 'Org1MSP');
-		const org2EventHub = await getFirstEventHubForOrg(gateway, 'Org2MSP');
 
 		let eventFired = 0;
 		org1EventHub.registerTxEvent('all', (txId, code) => {
@@ -219,7 +215,9 @@ test('\n\n***** Network End-to-end flow: invoke multiple transactions to move mo
 
 test('\n\n***** Network End-to-end flow: invoke transaction to move money using in memory wallet and MSPID_SCOPE_ALLFORTX event strategy *****\n\n', async (t: any) => {
 	const gateway = new Gateway();
-	let org1EventHub: ChannelEventHub;
+	// Obtain an event hub that that will be used by the underlying implementation
+	const org1EventHub = await getFirstEventHubForOrg(gateway, 'Org1MSP');
+	const org2EventHub = await getFirstEventHubForOrg(gateway, 'Org2MSP');
 
 	try {
 		const contract = await createContract(t, gateway, {
@@ -236,10 +234,6 @@ test('\n\n***** Network End-to-end flow: invoke transaction to move money using 
 
 		const transaction = contract.createTransaction('move');
 		const transactionId = transaction.getTransactionID().getTransactionID();
-
-		// Obtain an event hub that that will be used by the underlying implementation
-		org1EventHub = await getFirstEventHubForOrg(gateway, 'Org1MSP');
-		const org2EventHub = await getFirstEventHubForOrg(gateway, 'Org2MSP');
 
 		let eventFired = 0;
 
@@ -273,7 +267,9 @@ test('\n\n***** Network End-to-end flow: invoke transaction to move money using 
 
 test('\n\n***** Network End-to-end flow: invoke transaction to move money using in memory wallet and MSPID_SCOPE_ANYFORTX event strategy *****\n\n', async (t: any) => {
 	const gateway = new Gateway();
-	let org1EventHub: ChannelEventHub;
+	// Obtain an event hub that that will be used by the underlying implementation
+	const org1EventHub = await getFirstEventHubForOrg(gateway, 'Org1MSP');
+	const org2EventHub = await getFirstEventHubForOrg(gateway, 'Org2MSP');
 
 	try {
 		const contract = await createContract(t, gateway, {
@@ -290,10 +286,6 @@ test('\n\n***** Network End-to-end flow: invoke transaction to move money using 
 
 		const transaction = contract.createTransaction('move');
 		const transactionId = transaction.getTransactionID().getTransactionID();
-
-		// Obtain an event hub that that will be used by the underlying implementation
-		org1EventHub = await getFirstEventHubForOrg(gateway, 'Org1MSP');
-		const org2EventHub = await getFirstEventHubForOrg(gateway, 'Org2MSP');
 
 		let eventFired = 0;
 
@@ -327,8 +319,9 @@ test('\n\n***** Network End-to-end flow: invoke transaction to move money using 
 
 test('\n\n***** Network End-to-end flow: invoke transaction to move money using in memory wallet and NETWORK_SCOPE_ALLFORTX event strategy *****\n\n', async (t: any) => {
 	const gateway = new Gateway();
-	let org1EventHub: ChannelEventHub;
-	let org2EventHub: ChannelEventHub;
+	// Obtain an event hub that that will be used by the underlying implementation
+	const org1EventHub = await getFirstEventHubForOrg(gateway, 'Org1MSP');
+	const org2EventHub = await getFirstEventHubForOrg(gateway, 'Org2MSP');
 
 	try {
 		const contract = await createContract(t, gateway, {
@@ -345,10 +338,6 @@ test('\n\n***** Network End-to-end flow: invoke transaction to move money using 
 
 		const transaction = contract.createTransaction('move');
 		const transactionId = transaction.getTransactionID().getTransactionID();
-
-		// Obtain the event hubs that that will be used by the underlying implementation
-		org1EventHub = await getFirstEventHubForOrg(gateway, 'Org1MSP');
-		org2EventHub = await getFirstEventHubForOrg(gateway, 'Org2MSP');
 
 		let org1EventFired = 0;
 		let org2EventFired = 0;
@@ -392,8 +381,9 @@ test('\n\n***** Network End-to-end flow: invoke transaction to move money using 
 
 test('\n\n***** Network End-to-end flow: invoke transaction to move money using in memory wallet and NETWORK_SCOPE_ALLFORTX event strategy with discovery *****\n\n', async (t: any) => {
 	const gateway = new Gateway();
-	let org1EventHub: ChannelEventHub;
-	let org2EventHub: ChannelEventHub;
+	// Obtain an event hub that that will be used by the underlying implementation
+	const org1EventHub = await getFirstEventHubForOrg(gateway, 'Org1MSP');
+	const org2EventHub = await getFirstEventHubForOrg(gateway, 'Org2MSP');
 
 	try {
 		const contract = await createContract(t, gateway, {
@@ -407,10 +397,6 @@ test('\n\n***** Network End-to-end flow: invoke transaction to move money using 
 
 		const transaction = contract.createTransaction('move');
 		const transactionId = transaction.getTransactionID().getTransactionID();
-
-		// Obtain the event hubs that that will be used by the underlying implementation
-		org1EventHub = await getFirstEventHubForOrg(gateway, 'Org1MSP');
-		org2EventHub = await getFirstEventHubForOrg(gateway, 'Org2MSP');
 
 		let org1EventFired = 0;
 		let org2EventFired = 0;
@@ -454,8 +440,9 @@ test('\n\n***** Network End-to-end flow: invoke transaction to move money using 
 
 test('\n\n***** Network End-to-end flow: invoke transaction to move money using in memory wallet and NETWORK_SCOPE_ANYFORTX event strategy *****\n\n', async (t: any) => {
 	const gateway = new Gateway();
-	let org1EventHub: ChannelEventHub;
-	let org2EventHub: ChannelEventHub;
+	// Obtain an event hub that that will be used by the underlying implementation
+	const org1EventHub = await getFirstEventHubForOrg(gateway, 'Org1MSP');
+	const org2EventHub = await getFirstEventHubForOrg(gateway, 'Org2MSP');
 
 	try {
 		const contract = await createContract(t, gateway, {
@@ -472,10 +459,6 @@ test('\n\n***** Network End-to-end flow: invoke transaction to move money using 
 
 		const transaction = contract.createTransaction('move');
 		const transactionId = transaction.getTransactionID().getTransactionID();
-
-		// Obtain the event hubs that that will be used by the underlying implementation
-		org1EventHub = await getFirstEventHubForOrg(gateway, 'Org1MSP');
-		org2EventHub = await getFirstEventHubForOrg(gateway, 'Org2MSP');
 
 		let org1EventFired = 0;
 		let org2EventFired = 0;
@@ -522,8 +505,9 @@ test('\n\n***** Network End-to-end flow: invoke transaction to move money using 
 
 test('\n\n***** Network End-to-end flow: invoke transaction to move money using in memory wallet and NETWORK_SCOPE_ANYFORTX event strategy with discovery *****\n\n', async (t: any) => {
 	const gateway = new Gateway();
-	let org1EventHub: ChannelEventHub;
-	let org2EventHub: ChannelEventHub;
+	// Obtain an event hub that that will be used by the underlying implementation
+	const org1EventHub = await getFirstEventHubForOrg(gateway, 'Org1MSP');
+	const org2EventHub = await getFirstEventHubForOrg(gateway, 'Org2MSP');
 
 	try {
 		const contract = await createContract(t, gateway, {
@@ -537,10 +521,6 @@ test('\n\n***** Network End-to-end flow: invoke transaction to move money using 
 
 		const transaction = contract.createTransaction('move');
 		const transactionId = transaction.getTransactionID().getTransactionID();
-
-		// Obtain the event hubs that that will be used by the underlying implementation
-		org1EventHub = await getFirstEventHubForOrg(gateway, 'Org1MSP');
-		org2EventHub = await getFirstEventHubForOrg(gateway, 'Org2MSP');
 
 		let org1EventFired = 0;
 		let org2EventFired = 0;
@@ -637,7 +617,7 @@ test('\n\n***** Network End-to-end flow: invoke transaction with transient data 
 		};
 		const response = await transaction.setTransient(transientMap).submit();
 		t.pass('Got response: ' + response.toString('utf8'));
-		const result: object = JSON.parse(response.toString('utf8'));
+		const result = JSON.parse(response.toString('utf8'));
 
 		let success = true;
 
