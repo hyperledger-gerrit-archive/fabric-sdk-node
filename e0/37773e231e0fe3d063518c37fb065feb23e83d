@@ -1,0 +1,8 @@
+Verified+1: Hyperledger Jobbuilder <jobbuilder@jenkins.hyperledger.org>
+Code-Review+1: Zhao Chaoyi <zhaochy_2015@hotmail.com>
+Code-Review+2: Andrew Coleman <andrew_coleman@uk.ibm.com>
+Submitted-by: Andrew Coleman <andrew_coleman@uk.ibm.com>
+Submitted-at: Tue, 20 Nov 2018 10:39:18 +0000
+Reviewed-on: https://gerrit.hyperledger.org/r/27618
+Project: fabric-sdk-node
+Branch: refs/heads/release-1.3
