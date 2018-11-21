@@ -101,6 +101,9 @@ test('\n\n***** Network End-to-end flow: invoke transaction to move money using 
 	try {
 		const contract = await createContract(t, gateway, {
 			clientTlsIdentity: 'tlsId',
+			discovery: {
+				asLocalhost: true, // This is the default but ensure TS definitions include it
+			},
 			identity: 'User1@org1.example.com',
 			wallet: inMemoryWallet,
 		});
