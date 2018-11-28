@@ -3114,7 +3114,7 @@ const Channel = class {
 	}
 	/**
 	 * @typedef {Object} ChaincodeQueryRequest
-	 * @property {Peer[]} targets - Optional. The peers that will receive this
+	 * @property {Peer[]} [targets] - Optional. The peers that will receive this
 	 *           request, when not provided the list of peers added to this channel
 	 *           object will be used.
 	 * @property {string} chaincodeId - Required. The id of the chaincode to process
@@ -3125,12 +3125,13 @@ const Channel = class {
 	 *           encryption can be passed to the chaincode using this technique. Data
 	 *           that is to be kept in a private data store (a collection) should be
 	 *           passed to the chaincode in the transientMap.
-	 * @property {string} fcn - Optional. The function name to be returned when
+	 * @property {string} [fcn=invoke] - Optional. The function name to be returned when
 	 *           calling <code>stub.GetFunctionAndParameters()</code>
 	 *           in the target chaincode. Default is 'invoke'
 	 * @property {string[]} args - An array of string arguments specific to the
 	 *           chaincode's 'Invoke' method
 	 * @property {integer} request_timeout - The timeout value to use for this request
+	 * @property {TransactionID} [txId] Transaction ID to use for the query.
 	 */
 
 	/**
@@ -3142,19 +3143,20 @@ const Channel = class {
 	 * results in the byte array format and the caller will have to be able to decode
 	 * these results.
 	 *
+	 * If the request contains a <code>txId</code> property, that transaction ID will be used, and its administrative
+	 * privileges will apply. In this case the <code>useAdmin</code> parameter to this function will be ignored.
+	 *
 	 * @param {ChaincodeQueryRequest} request
 	 * @param {boolean} useAdmin - Optional. Indicates that the admin credentials should be used in making
-	 *                  this call
+	 *                  this call. Ignored if the <code>request</code> contains a <code>txId</code> property.
 	 * @returns {Promise} A Promise for an array of byte array results returned from the chaincode
 	 *                    on all Endorsing Peers
 	 * @example
 	 * <caption>Get the list of query results returned by the chaincode</caption>
-	 * channel.queryByChaincode(request)
-	 * .then((response_payloads) => {
-	 *		for(let i = 0; i < response_payloads.length; i++) {
-	 *			console.log(util.format('Query result from peer [%s]: %s', i, response_payloads[i].toString('utf8')));
-	 *		}
-	 *	});
+	 * const responsePayloads = await channel.queryByChaincode(request);
+	 * for (let i = 0; i < responsePayloads.length; i++) {
+	 *     console.log(util.format('Query result from peer [%s]: %s', i, responsePayloads[i].toString('utf8')));
+	 * }
 	 */
 	async queryByChaincode(request, useAdmin) {
 		logger.debug('queryByChaincode - start');
@@ -3162,9 +3164,13 @@ const Channel = class {
 			throw new Error('Missing request object for this queryByChaincode call.');
 		}
 
+		if (request.txId) {
+			useAdmin = request.txId.isAdmin();
+		}
+
 		const targets = this._getTargets(request.targets, Constants.NetworkConfig.CHAINCODE_QUERY_ROLE);
 		const signer = this._clientContext._getSigningIdentity(useAdmin);
-		const txId = new TransactionID(signer, useAdmin);
+		const txId = request.txId || new TransactionID(signer, useAdmin);
 
 		// make a new request object so we can add in the txId and not change the user's
 		const query_request = {
@@ -3173,37 +3179,39 @@ const Channel = class {
 			fcn: request.fcn,
 			args: request.args,
 			transientMap: request.transientMap,
-			txId: txId,
+			txId,
 			signer: signer
 		};
 
-		let results = await Channel.sendTransactionProposal(query_request, this._name, this._clientContext, request.request_timeout);
-		const responses = results[0];
+		const proposalResults = await Channel.sendTransactionProposal(query_request, this._name, this._clientContext, request.request_timeout);
+		const responses = proposalResults[0];
 		logger.debug('queryByChaincode - results received');
-		if (responses && Array.isArray(responses)) {
-			results = [];
-			for (let i = 0; i < responses.length; i++) {
-				const response = responses[i];
-				if (response instanceof Error) {
-					results.push(response);
-				} else if (response.response && response.response.payload) {
-					if (response.response.status === 200) {
-						results.push(response.response.payload);
-					} else {
-						if (response.response.message) {
-							results.push(new Error(response.response.message));
-						} else {
-							results.push(new Error(response));
-						}
-					}
-				} else {
-					logger.error('queryByChaincode - unknown or missing results in query ::' + results);
-					results.push(new Error(response));
-				}
-			}
-			return results;
+
+		if (!responses || !Array.isArray(responses)) {
+			throw new Error('Payload results are missing from the chaincode query');
 		}
-		throw new Error('Payload results are missing from the chaincode query');
+
+		const results = [];
+		responses.forEach((response) => {
+			if (response instanceof Error) {
+				results.push(response);
+			} else if (response.response && response.response.payload) {
+				if (response.response.status === 200) {
+					results.push(response.response.payload);
+				} else {
+					if (response.response.message) {
+						results.push(new Error(response.response.message));
+					} else {
+						results.push(new Error(response));
+					}
+				}
+			} else {
+				logger.error('queryByChaincode - unknown or missing results in query ::' + results);
+				results.push(new Error(response));
+			}
+		});
+
+		return results;
 	}
 
 	/**
