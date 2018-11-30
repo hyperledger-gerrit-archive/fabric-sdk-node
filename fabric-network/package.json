@@ -22,6 +22,8 @@
   },
   "types": "./types/index.d.ts",
   "dependencies": {
+	"fabric-client": "unstable",
+	"fabric-ca-client": "unstable",
     "nano": "^6.4.4",
     "rimraf": "^2.6.2",
     "uuid": "^3.2.1"
