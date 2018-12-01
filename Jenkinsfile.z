@@ -8,6 +8,7 @@ node('hyp-z') {
     try {
 
      def ROOTDIR = pwd() // workspace dir (/w/workspace/<job_name>
+     def JOB_NAME = env.JOB_NAME
      env.NODE_VER = "8.11.3"
      // Fetch the BASE_VERSION from fabric master branch to pull images from nexus
      env.VERSION = sh(returnStdout: true, script: 'curl -O https://raw.githubusercontent.com/hyperledger/fabric/master/Makefile && cat Makefile | grep "BASE_VERSION =" | cut -d "=" -f2').trim()
@@ -18,6 +19,7 @@ node('hyp-z') {
      env.PROJECT_DIR = "gopath/src/github.com/hyperledger"
      env.GOPATH = "$WORKSPACE/gopath"
      env.PATH = "$GOPATH/bin:/usr/local/bin:/usr/bin:/usr/local/sbin:/usr/sbin:~/npm/bin:/home/jenkins/.nvm/versions/node/v${NODE_VER}/bin:$PATH"
+     def REFSPEC = sh(returnStdout: true, script: 'echo ${JOB_NAME} | grep "verify"').trim()
      def failure_stage = "none"
 // delete working directory
      deleteDir()
@@ -27,18 +29,22 @@ node('hyp-z') {
               sh '''
                  [ -e gopath/src/github.com/hyperledger/fabric-sdk-node ] || mkdir -p $PROJECT_DIR
                  cd $PROJECT_DIR
-                 # Clone sdk-node repository
-                 git clone git://cloud.hyperledger.org/mirror/fabric-sdk-node && cd fabric-sdk-node
-                 # Checkout to Branch and Apply patchset on latest commit
-                 git checkout $GERRIT_BRANCH && git fetch origin "$GERRIT_REFSPEC" && git checkout FETCH_HEAD
-                 # Print last two commit details
+                 env
+              '''
+                  if (REFSPEC != null)  {
+                     println "$GERRIT_REFSPEC"
+                     println "$GERRIT_BRANCH"
+                     checkout([$class: 'GitSCM', branches: [[name: "$GERRIT_PATCHSET_REVISION"]], doGenerateSubmoduleConfigurations: false, extensions: [], submoduleCfg: [], userRemoteConfigs: [[credentialsId: ‘hyperledger-jobbuilder’, name: "", refspec: "$GERRIT_REFSPEC", url: 'git://cloud.hyperledger.org/mirror/fabric-ca.git']]])
+                  }
+                     // Clone fabric-ca on merge
+                     git url: 'git://cloud.hyperledger.org/mirror/fabric-ca.git', credentialsId: ‘hyperledger-jobbuilder’
+              }
+		sh '''
                  echo "***********"
                  git log -n2 --pretty=oneline --abbrev-commit
                  echo "***********"
-                 git checkout "$GERRIT_BRANCH" && git fetch origin "$GERRIT_REFSPEC" && git checkout FETCH_HEAD
-              '''
-              }
-          }
+                '''	
+            }
           catch (err) {
                  failure_stage = "Fetch patchset"
                  currentBuild.result = 'FAILURE'
