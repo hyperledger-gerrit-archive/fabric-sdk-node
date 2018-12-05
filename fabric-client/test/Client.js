@@ -101,6 +101,7 @@ describe('Client', () => {
 		let hasClientStub;
 		let _setAdminFromConfigStub;
 		let _setMspidFromConfigStub;
+		let _addConnectionOptionsFromConfigStub;
 
 		let client;
 		beforeEach(() => {
@@ -110,8 +111,10 @@ describe('Client', () => {
 			hasClientStub = sandbox.stub();
 			_setAdminFromConfigStub = sandbox.stub();
 			_setMspidFromConfigStub = sandbox.stub();
+			_addConnectionOptionsFromConfigStub = sandbox.stub();
 			revert.push(Client.__set__('Client.prototype._setAdminFromConfig', _setAdminFromConfigStub));
 			revert.push(Client.__set__('Client.prototype._setMspidFromConfig', _setMspidFromConfigStub));
+			revert.push(Client.__set__('Client.prototype._addConnectionOptionsFromConfig', _addConnectionOptionsFromConfigStub));
 			mock_network_config = {mergeSettings: mergeSettingsStub, hasClient: hasClientStub};
 
 			client = new Client();
@@ -337,7 +340,7 @@ describe('Client', () => {
 			channel.should.equal('channel');
 		});
 
-		it('should get a channel wihtout its name and return it', () => {
+		it('should get a channel without its name and return it', () => {
 			nextStub.returns({value: 'channel'});
 			const channel = client.getChannel(null, false);
 			sinon.assert.called(valuesStub);
@@ -345,7 +348,7 @@ describe('Client', () => {
 			channel.should.equal('channel');
 		});
 
-		it('should check the _network_config if no channel is returned and returned the discovered channel', () => {
+		it('should check the _network_config if no channel is returned and return the discovered channel', () => {
 			client._channels.size = 0;
 			const getChannelStub = sandbox.stub().returns('channel');
 			client._network_config = {_network_config: {channels: {'channel1': {}}}, getChannel: getChannelStub};
@@ -397,7 +400,7 @@ describe('Client', () => {
 			const peerStub = sandbox.stub();
 			revert.push(Client.__set__('Peer', peerStub));
 			const client = new Client();
-			client._checkTLScert_n_key = (value) => value;
+			client.buildConnectionOptions = (value) => value;
 			const peer = client.newPeer('url', 'opts');
 			sinon.assert.calledWith(peerStub, 'url', 'opts');
 			peer.should.deep.equal(new peerStub());
@@ -474,7 +477,7 @@ describe('Client', () => {
 			const ordererStub = sandbox.stub();
 			revert.push(Client.__set__('Orderer', ordererStub));
 			const client = new Client();
-			client._checkTLScert_n_key = (value) => value;
+			client.buildConnectionOptions = (value) => value;
 			const peer = client.newOrderer('url', 'opts');
 			sinon.assert.calledWith(ordererStub, 'url', 'opts');
 			peer.should.deep.equal(new ordererStub());
@@ -566,7 +569,7 @@ describe('Client', () => {
 		it('should throw an error if _network_config is not given', () => {
 			(() => {
 				client.getCertificateAuthority('name');
-			}).should.throw('No network configuration has been loaded');
+			}).should.throw('No common connection profile has been loaded');
 		});
 
 		it('should throw an error if _cryptoSuite is not given', () => {
@@ -581,7 +584,7 @@ describe('Client', () => {
 			client._cryptoSuite = {};
 			(() => {
 				client.getCertificateAuthority('name');
-			}).should.throw('Network configuration is missing this client\'s organization and certificate authority');
+			}).should.throw('Common connection profile is missing this client\'s organization and certificate authority');
 		});
 
 		it('should throw an error if the client config is not found', () => {
@@ -589,7 +592,7 @@ describe('Client', () => {
 			client._cryptoSuite = {};
 			(() => {
 				client.getCertificateAuthority();
-			}).should.throw('Network configuration is missing this client\'s organization and certificate authority');
+			}).should.throw('Common connection profile is missing this client\'s organization and certificate authority');
 			sinon.assert.called(getClientConfigStub);
 		});
 
@@ -599,7 +602,7 @@ describe('Client', () => {
 			getClientConfigStub.returns({organization: 'organization'});
 			(() => {
 				client.getCertificateAuthority();
-			}).should.throw('Network configuration is missing this client\'s organization and certificate authority');
+			}).should.throw('Common connection profile is missing this client\'s organization and certificate authority');
 			sinon.assert.called(getClientConfigStub);
 			sinon.assert.calledWith(getOrganizationStub, 'organization');
 		});
@@ -612,7 +615,7 @@ describe('Client', () => {
 			getCertificateAuthoritiesStub.returns([]);
 			(() => {
 				client.getCertificateAuthority();
-			}).should.throw('Network configuration is missing this client\'s organization and certificate authority');
+			}).should.throw('Common connection profile is missing this client\'s organization and certificate authority');
 			sinon.assert.called(getClientConfigStub);
 			sinon.assert.calledWith(getOrganizationStub, 'organization');
 			sinon.assert.called(getCertificateAuthoritiesStub);
@@ -1775,7 +1778,7 @@ describe('Client', () => {
 				await client.initCredentialStores();
 				should.fail();
 			} catch (err) {
-				err.message.should.equal('No network configuration settings found');
+				err.message.should.equal('No common connection profile settings found');
 			}
 		});
 
@@ -1991,7 +1994,7 @@ describe('Client', () => {
 		it('should throw an error if no network config is present', () => {
 			(() => {
 				client._setAdminFromConfig();
-			}).should.throw('No network configuration has been loaded');
+			}).should.throw('No common connection profile has been loaded');
 		});
 
 		it('should not call anything if client config is null', () => {
@@ -2046,7 +2049,7 @@ describe('Client', () => {
 		it('should throw if network config is not found', () => {
 			(() => {
 				client._setMspidFromConfig();
-			}).should.throw('No network configuration has been loaded');
+			}).should.throw('No common connection profile has been loaded');
 		});
 
 		it('should call nothing if getClientConfig returns nothing', () => {
@@ -2077,6 +2080,38 @@ describe('Client', () => {
 			sinon.assert.calledWith(getOrganizationStub, {}, true);
 			sinon.assert.called(getMspidStub);
 			client._mspid.should.equal(1);
+		});
+	});
+
+	describe('#_addConnectionOptionsFromConfig', () => {
+		let getClientConfigStub;
+
+		let client;
+		beforeEach(() => {
+			getClientConfigStub = sandbox.stub();
+
+			client = new Client();
+		});
+
+		it('should throw if network config is not found', () => {
+			(() => {
+				client._addConnectionOptionsFromConfig();
+			}).should.throw('No common connection profile has been loaded');
+		});
+
+		it('should call nothing if getClientConfig returns nothing', () => {
+			client._network_config = {getClientConfig: getClientConfigStub};
+			client._addConnectionOptionsFromConfig();
+			sinon.assert.called(getClientConfigStub);
+			should.exist(client._connection_options);
+		});
+
+		it('should set _connection_options', () => {
+			getClientConfigStub.returns({connection: {options: {'some': 1}}});
+			client._network_config = {getClientConfig: getClientConfigStub};
+			client._addConnectionOptionsFromConfig();
+			sinon.assert.called(getClientConfigStub);
+			client._connection_options.some.should.equal(1);
 		});
 	});
 
@@ -2114,20 +2149,20 @@ describe('Client', () => {
 
 		it('should throw if _network_config not set', async () => {
 			return await client._setUserFromConfig({username: 'test'})
-				.should.be.rejectedWith('Client requires a network configuration loaded, stores attached, and crypto suite.');
+				.should.be.rejectedWith('Client requires a common connection profile loaded, stores attached, and crypto suite.');
 		});
 
 		it('should throw if _stateStore not set', async () => {
 			client._network_config = {};
 			return await client._setUserFromConfig({username: 'test'})
-				.should.be.rejectedWith('Client requires a network configuration loaded, stores attached, and crypto suite.');
+				.should.be.rejectedWith('Client requires a common connection profile loaded, stores attached, and crypto suite.');
 		});
 
 		it('should throw if _cryptoSuite not set', async () => {
 			client._network_config = {};
 			client._stateStore = {};
 			return await client._setUserFromConfig({username: 'test'})
-				.should.be.rejectedWith('Client requires a network configuration loaded, stores attached, and crypto suite.');
+				.should.be.rejectedWith('Client requires a common connection profile loaded, stores attached, and crypto suite.');
 		});
 
 		it('should return the user', async () => {
@@ -2159,7 +2194,7 @@ describe('Client', () => {
 			client._stateStore = {};
 			client._cryptoSuite = {};
 			await client._setUserFromConfig({username: 'test', password: 'password'})
-				.should.be.eventually.rejectedWith('Network configuration is missing this client\'s organization and mspid');
+				.should.be.eventually.rejectedWith('Common connection profile is missing this client\'s organization and mspid');
 			sinon.assert.calledWith(getUserContextStub, 'test', true);
 			sinon.assert.called(isEnrolledStub);
 			sinon.assert.called(getClientConfigStub);
@@ -2172,7 +2207,7 @@ describe('Client', () => {
 			client._stateStore = {};
 			client._cryptoSuite = {};
 			await client._setUserFromConfig({username: 'test', password: 'password'})
-				.should.be.eventually.rejectedWith('Network configuration is missing this client\'s organization and mspid');
+				.should.be.eventually.rejectedWith('Common connection profile is missing this client\'s organization and mspid');
 			sinon.assert.calledWith(getUserContextStub, 'test', true);
 			sinon.assert.called(isEnrolledStub);
 			sinon.assert.called(getClientConfigStub);
@@ -2343,7 +2378,7 @@ describe('Client', () => {
 			const newUser = {username: 'test'};
 			const user = await client.setUserContext(newUser, true);
 			sinon.assert.calledWith(FakeLogger.debug, 'setUserContext - user: [object Object], skipPersistence: true');
-			sinon.assert.calledWith(FakeLogger.debug, 'setUserContext - will try to use network configuration to set the user');
+			sinon.assert.calledWith(FakeLogger.debug, 'setUserContext - will try to use common connection profile to set the user');
 			sinon.assert.calledWith(_setUserFromConfigStub, newUser);
 			user.should.equal('user');
 		});
@@ -2769,7 +2804,7 @@ describe('Client', () => {
 			getOrdererStub.returns('orderer1');
 			(() => {
 				client.getTargetOrderer(null, null, 'channel1');
-			}).should.throw('Channel name channel1 was not found in the network configuration');
+			}).should.throw('Channel name channel1 was not found in the common connection profile');
 			sinon.assert.calledWith(FakeLogger.debug, '%s - start', 'getTargetOrderer');
 			sinon.assert.called(getChannelStub);
 		});
@@ -2780,7 +2815,7 @@ describe('Client', () => {
 			getOrdererStub.returns('orderer1');
 			(() => {
 				client.getTargetOrderer(null, null, 'channel1');
-			}).should.throw('"orderer" request parameter is missing and there are no orderers defined on this channel in the network configuration');
+			}).should.throw('"orderer" request parameter is missing and there are no orderers defined on this channel in the common connection profile');
 			sinon.assert.calledWith(FakeLogger.debug, '%s - start', 'getTargetOrderer');
 			sinon.assert.called(getChannelStub);
 			sinon.assert.called(getOrderersStub);
@@ -2851,21 +2886,37 @@ describe('Client', () => {
 		});
 	});
 
-	describe('#_checkTLScert_n_key', () => {
-		it('should return opts', () => {
+	describe('#buildConnectionOptions', () => {
+		it('should contain option from original option', () => {
 			const opts = {'clientCert': 'thing'};
 			const client = new Client();
-			const newOpts = client._checkTLScert_n_key(opts);
-			newOpts.should.deep.equal(opts);
+			client.setTlsClientCertAndKey('cert', 'key');
+			const newOpts = client.buildConnectionOptions(opts);
+			newOpts.clientCert.should.equal('thing');
 		});
 
-		it('should call addTlsClientCertAndKey and return opts', () => {
-			const opts = {};
+		it('should contain cert from tls', () => {
+			const opts = {'some': 'thing'};
 			const client = new Client();
-			const addTlsClientCertAndKeyStub = sandbox.stub();
-			client.addTlsClientCertAndKey = addTlsClientCertAndKeyStub;
-			const newOpts = client._checkTLScert_n_key(opts);
-			sinon.assert.calledWith(addTlsClientCertAndKeyStub, opts);
+			client.setTlsClientCertAndKey('cert', 'key');
+			const newOpts = client.buildConnectionOptions(opts);
+			newOpts.some.should.equal('thing');
+			newOpts.clientCert.should.equal('cert');
+		});
+
+		it('should not override original option', () => {
+			const opts = {'safe': 'thing'};
+			const client = new Client();
+			client.addConnectionOptions({'safe': 'other', 'hope': 'found'});
+			const newOpts = client.buildConnectionOptions(opts);
+			newOpts.safe.should.equal('thing');
+			newOpts.hope.should.equal('found');
+		});
+
+		it('should call buildConnectionOptions and return opts', () => {
+			const client = new Client();
+			const opts = client.getConfigSetting('connection-options');
+			const newOpts = client.buildConnectionOptions(opts);
 			newOpts.should.deep.equal(opts);
 		});
 	});
@@ -3019,7 +3070,7 @@ describe('Client', () => {
 			requireStub.returns(MockNetworkConfig);
 			(() => {
 				_getNetworkConfig({version: '1.0'});
-			}).should.throw(/network configuration has an unknown "version"/);
+			}).should.throw(/common connection profile has an unknown "version"/);
 			sinon.assert.calledWith(getConfigSettingStub, 'network-config-schema');
 		});
 
