@@ -27,6 +27,7 @@ class EventHubFactory {
 		}
 		logger.debug('constructor:', channel.getName());
 		this.channel = channel;
+		this.eventHubs = new Map();
 	}
 
 	/**
@@ -35,7 +36,22 @@ class EventHubFactory {
      * @returns {ChannelEventHub[]} Event hubs, which may or may not be connected.
      */
 	getEventHubs(peers) {
-		return peers.map((peer) => this.channel.getChannelEventHub(peer.getName()));
+		return peers.map((peer) => this.getEventHub(peer));
+	}
+
+	getEventHub(peer) {
+		const peerName = peer.getName();
+		let eventHub = this.eventHubs.get(peerName);
+		if (!eventHub) {
+			eventHub = this.channel.newChannelEventHub(peer);
+			this.eventHubs.set(peerName, eventHub);
+		}
+		return eventHub;
+	}
+
+	dispose() {
+		this.eventHubs.forEach((eventHub) => eventHub.close());
+		this.eventHubs.clear();
 	}
 }
 
