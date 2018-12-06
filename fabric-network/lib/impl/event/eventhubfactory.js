@@ -26,7 +26,8 @@ class EventHubFactory {
 			throw new Error(message);
 		}
 		logger.debug('constructor:', channel.getName());
-		this.channel = channel;
+		this._channel = channel;
+		this._savedEventHubs = new Map();
 	}
 
 	/**
@@ -35,7 +36,44 @@ class EventHubFactory {
      * @returns {ChannelEventHub[]} Event hubs, which may or may not be connected.
      */
 	getEventHubs(peers) {
-		return peers.map((peer) => this.channel.getChannelEventHub(peer.getName()));
+		return peers.map((peer) => this.getEventHub(peer));
+	}
+
+	getEventHub(peer) {
+		const peerName = peer.getName();
+		let eventHub = this._getSavedEventHub(peerName);
+		if (!eventHub) {
+			eventHub = this._channel.newChannelEventHub(peer);
+			this._setSavedEventHub(peerName, eventHub);
+		}
+		return eventHub;
+	}
+
+	_getSavedEventHub(peerName) {
+		const saved = this._savedEventHubs.get(peerName);
+		return saved ? saved.eventHub : undefined;
+	}
+
+	_setSavedEventHub(peerName, eventHub) {
+		const saved = {
+			close: eventHub.close,
+			disconnect: eventHub.disconnect,
+			eventHub
+		};
+		eventHub.close = eventHub.disconnect = () => {
+			// No-op to prevent client code from disconnecting a shared event hub
+		};
+		this._savedEventHubs.set(peerName, saved);
+	}
+
+	dispose() {
+		this._savedEventHubs.forEach((saved) => {
+			const eventHub = saved.eventHub;
+			eventHub.close = saved.close;
+			eventHub.disconnect = saved.disconnect;
+			eventHub.disconnect();
+		});
+		this._savedEventHubs.clear();
 	}
 }
 
