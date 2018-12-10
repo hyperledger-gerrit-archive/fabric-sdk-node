@@ -172,7 +172,6 @@ class Peer extends Remote {
 					logger.error('%s - timed out after:%s', method, rto);
 					return reject(new Error('REQUEST_TIMEOUT'));
 				}, rto);
-
 				self._discoveryClient.discover(request, (err, response) => {
 					clearTimeout(send_timeout);
 					if (err) {
