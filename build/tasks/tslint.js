@@ -19,7 +19,7 @@ gulp.task('tslint', () => {
 		'!fabric-ca-client/coverage/**',
 		'!fabric-ca-client/node_modules/**',
 	]).pipe(tslint({
-		formatter: 'prose'
+		formatter: 'prose',
 	})).pipe(tslint.report({
 		summarizeFailureOutput: true
 	}));

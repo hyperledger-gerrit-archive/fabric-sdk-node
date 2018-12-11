@@ -5,110 +5,94 @@
 */
 
 import {
-	Contract,
-	DefaultEventHandlerOptions,
-	DefaultEventHandlerStrategies,
-	FileSystemWallet,
-	Gateway,
-	GatewayOptions,
-	Identity,
-	IdentityInfo,
-	InMemoryWallet,
-	Network,
-	Transaction,
-	TransientMap,
-	Wallet,
-	X509WalletMixin,
+    Contract,
+    DefaultEventHandlerOptions,
+    DefaultEventHandlerStrategies,
+    FileSystemWallet,
+    Gateway,
+    GatewayOptions,
+    Identity,
+    IdentityInfo,
+    InMemoryWallet,
+    Network,
+    Transaction,
+    TransientMap,
+    Wallet,
+    X509WalletMixin,
 } from 'fabric-network';
 
 import Client = require('fabric-client');
 
 import {
-	Channel,
-	TransactionId,
-	User,
+    Channel,
+    TransactionId,
+    User,
 } from 'fabric-client';
 
 (async () => {
 
-	const cert: string = 'acertificate';
-	const key: string = 'akey';
-	const inMemoryWallet: Wallet = new InMemoryWallet();
-	const fileSystemWallet: FileSystemWallet = new FileSystemWallet('path');
+    const cert: string = 'acertificate';
+    const key: string = 'akey';
+    const inMemoryWallet: Wallet = new InMemoryWallet();
+    const fileSystemWallet: FileSystemWallet = new FileSystemWallet('path');
 
-	const id1: Identity = X509WalletMixin.createIdentity('Org1MSP', cert, key);
-	// const id2: X509Identity = X509WalletMixin.createIdentity('Org1MSP', cert, key);
-	const importDone: Promise<void> = inMemoryWallet.import('User1@org1.example.com', id1);
-	await importDone;
-	await fileSystemWallet.import('User1@org1.example.com', id1);
-	const exists: boolean = await inMemoryWallet.exists('User1@org1.example.com');
+    const id1: Identity = X509WalletMixin.createIdentity('Org1MSP', cert, key);
+    const importDone: Promise<void> = inMemoryWallet.import('User1@org1.example.com', id1);
+    await importDone;
+    await fileSystemWallet.import('User1@org1.example.com', id1);
 
-	const id3: Identity = await fileSystemWallet.export('anod');
-	// const id4: X509Identity = await inMemoryWallet.export('anod'); can't do this
-	// const id4: X509Identity = id3 as X509Identity;
+    const gateway: Gateway = new Gateway();
 
-	const idList: IdentityInfo[] = await inMemoryWallet.list();
+    const evtOpts1: DefaultEventHandlerOptions = {
+        commitTimeout: 100,
+        strategy: DefaultEventHandlerStrategies.MSPID_SCOPE_ALLFORTX,
+    };
 
-	const gateway: Gateway = new Gateway();
+    const initOpt1: GatewayOptions = {
+        clientTlsIdentity: 'tlsId',
+        eventHandlerOptions: evtOpts1,
+        identity: 'User1@org1.example.com',
+        wallet: inMemoryWallet,
+    };
 
-	const evtOpts: DefaultEventHandlerOptions = {};
+    await gateway.connect('accp', initOpt1);
 
-	const evtOpts1: DefaultEventHandlerOptions = {
-		commitTimeout: 100,
-		strategy: DefaultEventHandlerStrategies.MSPID_SCOPE_ALLFORTX,
-	};
+    const gateway2: Gateway = new Gateway();
+    const client: Client = new Client();
+    const opt2: GatewayOptions = {
+        identity: 'anod',
+        wallet: fileSystemWallet,
+    };
 
-	const initOpt: GatewayOptions = {
-		clientTlsIdentity: 'tlsId',
-		identity: 'User1@org1.example.com',
-		wallet: inMemoryWallet,
-	};
+    await gateway2.connect(client, opt2);
 
-	const initOpt1: GatewayOptions = {
-		clientTlsIdentity: 'tlsId',
-		eventHandlerOptions: evtOpts1,
-		identity: 'User1@org1.example.com',
-		wallet: inMemoryWallet,
-	};
+    const network: Network = await gateway.getNetwork('a channel');
+    const contract: Contract = await network.getContract('chaincode');
 
-	await gateway.connect('accp', initOpt1);
+    await contract.submitTransaction('move', 'a', 'b', '100');
+    contract.evaluateTransaction('move', 'a', 'b', '100');
 
-	const gateway2: Gateway = new Gateway();
-	const client: Client = new Client();
-	const opt2: GatewayOptions = {
-		identity: 'anod',
-		wallet: fileSystemWallet,
-	};
+    const transientData: TransientMap = {
+        key1: Buffer.from('value1'),
+        key2: Buffer.from('value2'),
+    };
+    await contract.createTransaction('move').setTransient(transientData).submit('a', 'b', '100');
+    await contract.createTransaction('move').setTransient(transientData).evaluate('a', 'b', '100');
 
-	await gateway2.connect(client, opt2);
+    const transaction: Transaction = contract.createTransaction('move');
+    const txId: TransactionId = transaction.getTransactionID();
+    txId.getTransactionID();
 
-	const network: Network = await gateway.getNetwork('a channel');
-	const contract: Contract = await network.getContract('chaincode');
+    gateway.getClient();
+    gateway.getCurrentIdentity();
+    gateway.getOptions();
 
-	let response: Buffer = await contract.submitTransaction('move', 'a', 'b', '100');
-	response = await contract.evaluateTransaction('move', 'a', 'b', '100');
+    network.getChannel();
 
-	const transientData: TransientMap = {
-		key1: Buffer.from('value1'),
-		key2: Buffer.from('value2'),
-	};
-	response = await contract.createTransaction('move').setTransient(transientData).submit('a', 'b', '100');
-	response = await contract.createTransaction('move').setTransient(transientData).evaluate('a', 'b', '100');
-
-	const transaction: Transaction = contract.createTransaction('move');
-	const txId: TransactionId = transaction.getTransactionID();
-	txId.getTransactionID();
-
-	const aClient: Client = gateway.getClient();
-	const user: User = gateway.getCurrentIdentity();
-	const opt3: GatewayOptions = gateway.getOptions();
-
-	const internalChannel: Channel = network.getChannel();
-
-	const deleteDone: Promise<void> = inMemoryWallet.delete('User1@org1.example.com');
-	await deleteDone;
-	await fileSystemWallet.delete('User1@org1.example.com');
-	gateway.disconnect();
-	gateway2.disconnect();
+    const deleteDone: Promise<void> = inMemoryWallet.delete('User1@org1.example.com');
+    await deleteDone;
+    await fileSystemWallet.delete('User1@org1.example.com');
+    gateway.disconnect();
+    gateway2.disconnect();
 
 })();

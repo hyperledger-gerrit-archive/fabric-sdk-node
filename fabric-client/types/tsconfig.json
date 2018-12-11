@@ -10,8 +10,9 @@
     "suppressImplicitAnyIndexErrors": true,
     "moduleResolution": "node",
     "module": "commonjs",
-    "target": "es6",
-    "outDir": "dist",
+    "target": "es2017",
+	"outDir": "dist",
+	"rootDir": "./",
     "baseUrl": ".",
     "paths": {
       "*": [
