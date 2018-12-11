@@ -134,7 +134,7 @@ test('use the connection profile file', (t: any) => {
 			client.setTlsClientCertAndKey(cert, key);
 
 			const signature: ConfigSignature = client.signChannelConfig(config);
-			const stringSignature: string = signature.toBuffer().toString('hex');
+			// const stringSignature: string = signature.toBuffer().toString('hex');
 			t.pass('Successfully signed config update by org2');
 			// collect signature from org2 admin
 			signatures.push(signature);
@@ -474,7 +474,7 @@ test('use the connection profile file', (t: any) => {
 
 			return Promise.all(promises);
 		}).then((results) => {
-			const eventResults = results[0]; // Promise all will return the results in order of the of Array
+			// const eventResults = results[0]; // Promise all will return the results in order of the of Array
 			const sendTransactionResults = results[1] as Client.BroadcastResponse;
 			if (sendTransactionResults instanceof Error) {
 				t.fail('Failed to order the transaction: ' + sendTransactionResults);
@@ -486,7 +486,7 @@ test('use the connection profile file', (t: any) => {
 				throw new Error('Failed to order the transaction to invoke the chaincode. Error code: ' + sendTransactionResults.status);
 			}
 
-			return new Promise((resolve, reject) => {
+			return new Promise((resolve) => {
 				// get a new ChannelEventHub when registering a listener
 				// with startBlock or endBlock when doing a replay
 				// The ChannelEventHub must not have been connected or have other
