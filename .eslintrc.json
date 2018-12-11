@@ -37,7 +37,7 @@
                 "ignoreRegExpLiterals": true
             }
         ],
-		"no-console": ["warn"],
+		"no-console": ["error"],
 		"no-mixed-spaces-and-tabs": ["error"],
         "no-shadow": ["error"],
         "no-throw-literal": ["error"],

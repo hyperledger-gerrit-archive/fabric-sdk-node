@@ -5,6 +5,7 @@
  */
 
 'use strict';
+/* eslint-disable no-console */
 
 const tape = require('tape');
 const _test = require('tape-promise').default;
