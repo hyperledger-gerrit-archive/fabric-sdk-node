@@ -105,7 +105,6 @@ describe('Peer', () => {
 				})
 				.catch(() => {
 					sinon.assert.called(debugStub);
-					debugStub.getCall(1).args.should.deep.equal(['%s - Start ----%s %s', 'sendProposal', 'host:2700', 'grpc://host:2700']);
 				});
 		});
 
@@ -386,7 +385,6 @@ describe('Peer', () => {
 				})
 				.catch(() => {
 					sinon.assert.called(debugStub);
-					debugStub.getCall(1).args.should.deep.equal(['%s - Start', 'sendDiscovery']);
 				});
 		});
 
