@@ -179,10 +179,8 @@ describe('Remote', () => {
 			}};
 		});
 
-		it('should throw if client is not given', () => {
-			(() => {
-				remote.waitForReady();
-			}).should.throw(Error, /Missing required gRPC client/);
+		it('should throw if client is not given', async () => {
+			await remote.waitForReady().should.be.rejectedWith(/Missing required gRPC client/);
 		});
 
 		it('should return a rejected promise after calling client.waitForReady logging the error', () => {

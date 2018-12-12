@@ -1,16 +1,9 @@
 /*
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+ Copyright 2018 MediConCen All Rights Reserved.
+
+ SPDX-License-Identifier: Apache-2.0
+
+*/
 
 
 'use strict';
@@ -27,10 +20,10 @@ const MAX_SEND_V10 = 'grpc-max-send-message-length';
 const MAX_RECEIVE_V10 = 'grpc-max-receive-message-length';
 
 // the logger available during construction of instances
-const super_logger = utils.getLogger('Remote.js');
+const super_logger = utils.getLogger('Remote.js');// TODO why another logger?
 
 /**
- * The Remote class represents a the base class for all remote nodes, Peer, Orderer , and MemberServicespeer.
+ * The Remote class represents a the base class for all remote nodes, such as Peer, Orderer.
  *
  * @class
  */
@@ -39,8 +32,8 @@ class Remote {
 	/**
 	 * Constructs an object with the endpoint configuration settings.
 	 *
-	 * @param {string} url The orderer URL with format of 'grpc(s)://host:port'.
-	 * @param {Object} opts An Object that may contain options to pass to grpcs calls
+	 * @param {string} url The gRpc URL with format of 'grpc(s)://host:port'.
+	 * @param {Object} [opts] An Object that may contain options to pass to gRpcs calls
 	 * <br>- pem {string} The certificate file, in PEM format,
 	 *    to use with the gRPC protocol (that is, with TransportCredentials).
 	 *    Required when using the grpcs protocol.
@@ -59,8 +52,7 @@ class Remote {
 	 */
 	constructor(url, opts = {}) {
 		this._options = {};
-		for (const key in opts) {
-			const value = opts[key];
+		for (const [key, value] of opts) {
 			if (value && typeof value !== 'string' && !Number.isInteger(value)) {
 				throw new Error(`invalid grpc option value:${key}-> ${value} expected string|integer`);
 			}
@@ -140,8 +132,12 @@ class Remote {
 		super_logger.debug(' ** Remote instance url: %s, name: %s, options loaded are:: %j', this._url, this._name, this._options);
 	}
 
-	waitForReady(client) {
-		const self = this;
+	/**
+	 * basic gRPC health check method
+	 * @param client gRPC client
+	 * @return {Promise} return undefined if alive, otherwise Promise.reject
+	 */
+	async waitForReady(client) {
 		if (!client) {
 			throw new Error('Missing required gRPC client');
 		}
@@ -151,7 +147,7 @@ class Remote {
 			client.waitForReady(timeout, (err) => {
 				if (err) {
 					if (err.message) {
-						err.message = err.message + ' URL:' + self.getUrl();
+						err.message = err.message + ' URL:' + this.getUrl();
 					}
 					err.connectFailed = true;
 					logger.error(err);
@@ -223,9 +219,7 @@ class Remote {
 	 * return a printable representation of this object
 	 */
 	toString() {
-		return ' Remote : {' +
-			'url:' + this._url +
-			'}';
+		return ` Remote : {url:${this._url}}`;
 	}
 
 	/**
