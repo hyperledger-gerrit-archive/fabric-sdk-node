@@ -245,18 +245,16 @@ class ChannelEventHub {
 
 	/**
 	 * @typedef {Object} ConnectOptions
-	 * @property {boolean} full_block - Optional. To indicate that the connection
-	 *        with the peer will be sending full blocks or filtered blocks to this
+	 * @property {boolean} [full_block=false] Optional. To indicate that the connection
+	 *        with the peer will be sending full blocks(when true) or filtered blocks(when false) to this
 	 *        ChannelEventHub.
-	 *        The default will be to establish a connection using filtered blocks.
+	 *        When using 'full blocks' the user will be required to have access to establish the connection to
+	 *        receive full blocks.
 	 *        Filtered blocks have the required information to provided transaction
 	 *        status and chaincode events (no payload).
-	 *        When using the non filtered blocks (full blocks) the user
-	 *        will be required to have access to establish the connection to
-	 *        receive full blocks.
 	 *        Registering a block listener on a filtered block connection may not
 	 *        provide sufficient information.
-	 * @property {Number | string} startBlock - Optional. This will have the connection
+	 * @property {Number | string} [startBlock] - Optional. This will have the connection
 	 *        setup to start sending blocks back to the event hub at the block
 	 *        with this number. If connecting with a
 	 *        a startBlock then event listeners may not be registered with a
@@ -268,7 +266,7 @@ class ChannelEventHub {
 	 *        If the event hub should start with the latest block on the ledger,
 	 *        use the string 'latest' or do use a startBlock.
 	 *        Default is to start with the latest block on the ledger.
-	 * @property {Number | string} endBlock - Optional. This will have the connection
+	 * @property {Number | string} [endBlock] - Optional. This will have the connection
 	 *        setup to end sending blocks back to the event hub at the block
 	 *        with this number. If connecting with a
 	 *        a endBlock then event listeners may not be registered with a
@@ -278,11 +276,11 @@ class ChannelEventHub {
 	 *        If the event hub should end with the current block on the
 	 *        ledger use the string 'newest'.
 	 *        Default is to not stop sending.
-	 * @property {SignedEvent} signedEvent - Optional. The signed event to be sent
+	 * @property {SignedEvent} [signedEvent] - Optional. The signed event to be sent
 	 *        to the peer. This option is useful when the fabric-client application
 	 *        does not have the user's privateKey and can not sign requests to the
 	 *        fabric network.
-	 * @property {Peer | string} target - Optional. The peer that provides the
+	 * @property {Peer | string} [target] - Optional. The peer that provides the
 	 *        fabric event service. When using a string, the {@link Channel}
 	 *        must have a peer assigned with that name. This peer will replace
 	 *        the current peer endpoint of this channel event hub.
@@ -304,10 +302,10 @@ class ChannelEventHub {
 	 * [registerChaincodeEvent]{@link ChannelEventHub#registerChaincodeEvent}
 	 * methods, after calling connect().
 	 *
-	 * @param {ConnectOptions | boolean} options - Optional. If of type boolean
+	 * @param {ConnectOptions | boolean} [options] - Optional. If of type boolean
 	 *        then it will be assumed to how to connect to receive full (true)
 	 *        or filtered (false) blocks.
-	 * @param {function} connectCallback - Optional. This callback will report
+	 * @param {function} [connectCallback] - Optional. This callback will report
 	 *        completion of the connection to the peer or  will report
 	 *        any errors encountered during connection to the peer. When there
 	 *        is an error, this ChannelEventHub will be shutdown (disconnected).
@@ -317,7 +315,7 @@ class ChannelEventHub {
 		const method = 'connect';
 		logger.debug('%s - start', method);
 		let signedEvent = null;
-		let full_block = null;
+		let full_block = false;
 		const connect_request = {};
 
 		// the following supports the users using the boolean parameter to control
@@ -327,7 +325,7 @@ class ChannelEventHub {
 		}
 		if (typeof options === 'object' && options !== null) {
 			signedEvent = options.signedEvent || null;
-			full_block = options.full_block || null;
+			full_block = options.full_block || false;
 
 			if (typeof options.force === 'boolean') {
 				connect_request.force = options.force;
