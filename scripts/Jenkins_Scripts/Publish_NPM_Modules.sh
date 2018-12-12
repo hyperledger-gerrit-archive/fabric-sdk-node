@@ -54,6 +54,14 @@ npmPublish() {
  else
       # Publish node modules on latest tag
       echo -e "\033[32m ========> PUBLISH $RELEASE_VERSION" "\033[0m"
+
+      if [ "$1" = "fabric-network" ]; then
+          sed -i 's/\(.*\"fabric-client\"\: \"\)\(.*\)/\1'$CURRENT_TAG\"\,'/' package.json
+          sed -i 's/\(.*\"fabric-ca-client\"\: \"\)\(.*\)/\1'$CURRENT_TAG\"\,'/' package.json
+      fi
+
+      npm unpublish fabric-network@1.4.0-rc1
+
       npm publish --tag $CURRENT_TAG
       if [ $? != 0 ]; then
            echo -e "\033[31m FAILED TO PUBLISH $CURRENT_TAG of $1 npm module" "\033[0m"
@@ -83,7 +91,7 @@ cd $WORKSPACE/gopath/src/github.com/hyperledger/fabric-sdk-node
 npm config set //registry.npmjs.org/:_authToken=$NPM_TOKEN
 
 # Add or delete modules from here..
-for modules in fabric-network fabric-common fabric-ca-client fabric-client; do
+for modules in fabric-network; do
      if [ -d "$modules" ]; then
            echo -e "\033[32m Publishing $modules" "\033[0m"
            cd $modules
