@@ -173,7 +173,7 @@ function instantiateChaincode(userOrg, chaincode_path, version, language, upgrad
 }
 module.exports.instantiateChaincode = instantiateChaincode;
 
-function instantiateChaincodeWithId(userOrg, chaincode_id, chaincode_path, version, language, upgrade, badTransient, t, channel_name) {
+async function instantiateChaincodeWithId(userOrg, chaincode_id, chaincode_path, version, language, upgrade, badTransient, t, channel_name) {
 	init();
 
 	if (!channel_name) {
