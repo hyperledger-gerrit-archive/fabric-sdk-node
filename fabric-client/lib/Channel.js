@@ -2313,7 +2313,7 @@ const Channel = class {
 
 	/**
 	 * @typedef {Object} CollectionQueryOptions
-	 * @property {string} [chaincodeId] Required. Name of the chaincode
+	 * @property {string} chaincodeId Required. Name of the chaincode
 	 * @property {string|Peer} [target] Optional. The peer that will receive this
 	 *           request, when not provided the first peer in this channel
 	 *           object will be used.
