@@ -1,16 +1,9 @@
 /*
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+ Copyright 2018 MediConCen All Rights Reserved.
+
+ SPDX-License-Identifier: Apache-2.0
+
+*/
 
 'use strict';
 
@@ -97,7 +90,7 @@ class Peer extends Remote {
 	 *
 	 * @param {Proposal} proposal - A protobuf encoded byte array of type
 	 *        [Proposal]{@link https://github.com/hyperledger/fabric/blob/release-1.2/protos/peer/proposal.proto}
-	 * @param {Number} timeout - A number indicating milliseconds to wait on the
+	 * @param {Number} [timeout] A number indicating milliseconds to wait on the
 	 *        response before rejecting the promise with a timeout error. This
 	 *        overrides the default timeout of the Peer instance and the global
 	 *        timeout in the config settings.
@@ -106,8 +99,7 @@ class Peer extends Remote {
 	async sendProposal(proposal, timeout) {
 		const method = 'sendProposal';
 		logger.debug('%s - Start ----%s %s', method, this.getName(), this.getUrl());
-		const self = this;
-		let rto = self._request_timeout;
+		let rto = this._request_timeout;
 
 		if (typeof timeout === 'number') {
 			rto = timeout;
@@ -127,10 +119,10 @@ class Peer extends Remote {
 				return reject(new Error('REQUEST_TIMEOUT'));
 			}, rto);
 
-			self._endorserClient.processProposal(proposal, (err, proposalResponse) => {
+			this._endorserClient.processProposal(proposal, (err, proposalResponse) => {
 				clearTimeout(send_timeout);
 				if (err) {
-					logger.debug('%s - Received proposal response from: %s status: %s', method, self._url, err);
+					logger.debug('%s - Received proposal response from: %s status: %s', method, this._url, err);
 					if (err instanceof Error) {
 						reject(err);
 					} else {
@@ -138,25 +130,25 @@ class Peer extends Remote {
 					}
 				} else {
 					if (proposalResponse) {
-						logger.debug('%s - Received proposal response from peer "%s": status - %s', method, self._url, (proposalResponse.response &&  proposalResponse.response.status) ? proposalResponse.response.status : 'undefined');
+						logger.debug('%s - Received proposal response from peer "%s": status - %s', method, this._url, (proposalResponse.response && proposalResponse.response.status) ? proposalResponse.response.status : 'undefined');
 						// 400 is the error threshold level, anything below that the endorser will endorse it.
 						if (proposalResponse.response && proposalResponse.response.status < 400) {
-							proposalResponse.peer = self.getCharacteristics();
+							proposalResponse.peer = this.getCharacteristics();
 							resolve(proposalResponse);
 						} else if (proposalResponse.response && proposalResponse.response.message) {
 							const error = Object.assign(new Error(proposalResponse.response.message), proposalResponse.response);
-							error.peer = self.getCharacteristics();
+							error.peer = this.getCharacteristics();
 							error.isProposalResponse = true;
 							reject(error);
 						} else {
-							const return_error = new Error(util.format('GRPC client failed to get a proper response from the peer "%s".', self._url));
-							return_error.peer = self.getCharacteristics();
+							const return_error = new Error(`GRPC client failed to get a proper response from the peer "${this._url}".`);
+							return_error.peer = this.getCharacteristics();
 							logger.error('%s - rejecting with:%s', method, return_error);
 							reject(return_error);
 						}
 					} else {
-						const return_error = new Error(util.format('GRPC client got a null or undefined response from the peer "%s".', self._url));
-						return_error.peer = self.getCharacteristics();
+						const return_error = new Error(`GRPC client got a null or undefined response from the peer "${this._url}".`);
+						return_error.peer = this.getCharacteristics();
 						logger.error('%s - rejecting with:%s', method, return_error);
 						reject(return_error);
 					}
@@ -168,7 +160,7 @@ class Peer extends Remote {
 	/**
 	 * Send a token command to a prover peer.
 	 *
-	 * @param {Command} tokenCommand - A protobuf message for the token operation
+	 * @param {Command} command - A protobuf message for the token operation
 	 * @param {Number} timeout - A number indicating milliseconds to wait on the
 	 *        response before rejecting the promise with a timeout error. This
 	 *        overrides the default timeout of the Peer instance and the global
@@ -178,8 +170,7 @@ class Peer extends Remote {
 	async sendTokenCommand(command, timeout) {
 		const method = 'sendTokenCommand';
 		logger.debug('%s - Start ----%s %s', method, this.getName(), this.getUrl());
-		const self = this;
-		let rto = self._request_timeout;
+		let rto = this._request_timeout;
 
 		if (!command) {
 			throw new Error('Missing command parameter to send to peer');
@@ -199,10 +190,10 @@ class Peer extends Remote {
 				return reject(new Error('REQUEST_TIMEOUT'));
 			}, rto);
 
-			self._proverClient.processCommand(command, (err, signedCommandResp) => {
+			this._proverClient.processCommand(command, (err, signedCommandResp) => {
 				clearTimeout(send_timeout);
 				if (err) {
-					logger.error('%s - Received error %s from peer %s', method, err, self._url);
+					logger.error('%s - Received error %s from peer %s', method, err, this._url);
 					if (err instanceof Error) {
 						reject(err);
 					} else {
@@ -210,11 +201,11 @@ class Peer extends Remote {
 					}
 				} else {
 					if (signedCommandResp) {
-						logger.debug('%s - Received signed command response %s from peer "%s"', method, signedCommandResp, self._url);
+						logger.debug('%s - Received signed command response %s from peer "%s"', method, signedCommandResp, this._url);
 						resolve(signedCommandResp);
 					} else {
-						const return_error = new Error(util.format('GRPC client got a null or undefined response from the peer "%s".', self._url));
-						return_error.peer = self.getCharacteristics();
+						const return_error = new Error(util.format('GRPC client got a null or undefined response from the peer "%s".', this._url));
+						return_error.peer = this.getCharacteristics();
 						logger.error('%s - rejecting with error response: %s', method, return_error);
 						reject(return_error);
 					}
@@ -234,53 +225,50 @@ class Peer extends Remote {
 	 *        timeout in the config settings.
 	 * @returns {Promise} A Promise for a {@link DiscoveryResponse}
 	 */
-	sendDiscovery(request, timeout) {
+	async sendDiscovery(request, timeout) {
 		const method = 'sendDiscovery';
 		logger.debug('%s - Start', method);
-		const self = this;
-		let rto = self._request_timeout;
+		let rto = this._request_timeout;
 
 		if (typeof timeout === 'number') {
 			rto = timeout;
 		}
 		if (!request) {
-			return Promise.reject(new Error('Missing request to send to peer discovery service'));
+			throw new Error('Missing request to send to peer discovery service');
 		}
 
 		this._createClients();
+		await this.waitForReady(this._discoveryClient);
+		return new Promise((resolve, reject) => {
+			const send_timeout = setTimeout(() => {
+				logger.error('%s - timed out after:%s', method, rto);
+				return reject(new Error('REQUEST_TIMEOUT'));
+			}, rto);
 
-		return this.waitForReady(this._discoveryClient).then(() => {
-			return new Promise((resolve, reject) => {
-				const send_timeout = setTimeout(() => {
-					logger.error('%s - timed out after:%s', method, rto);
-					return reject(new Error('REQUEST_TIMEOUT'));
-				}, rto);
-
-				self._discoveryClient.discover(request, (err, response) => {
-					clearTimeout(send_timeout);
-					if (err) {
-						logger.debug('%s - Received discovery response from: %s status: %s', method, self._url, err);
-						if (err instanceof Error) {
-							err.peer = self.getCharacteristics();
-							reject(err);
-						} else {
-							const return_error = new Error(err);
-							return_error.peer = self.getCharacteristics();
-							reject(return_error);
-						}
+			this._discoveryClient.discover(request, (err, response) => {
+				clearTimeout(send_timeout);
+				if (err) {
+					logger.debug('%s - Received discovery response from: %s status: %s', method, this._url, err);
+					if (err instanceof Error) {
+						err.peer = this.getCharacteristics();
+						reject(err);
 					} else {
-						if (response) {
-							logger.debug('%s - Received discovery response from peer "%s"', method, self._url);
-							response.peer = self.getCharacteristics();
-							resolve(response);
-						} else {
-							const return_error = new Error(util.format('GRPC client failed to get a proper response from the peer "%s".', self._url));
-							return_error.peer = self.getCharacteristics();
-							logger.error('%s - rejecting with:%s', method, return_error);
-							reject(return_error);
-						}
+						const return_error = new Error(err);
+						return_error.peer = this.getCharacteristics();
+						reject(return_error);
 					}
-				});
+				} else {
+					if (response) {
+						logger.debug('%s - Received discovery response from peer "%s"', method, this._url);
+						response.peer = this.getCharacteristics();
+						resolve(response);
+					} else {
+						const return_error = new Error(`GRPC client failed to get a proper response from the peer "${this._url}".`);
+						return_error.peer = this.getCharacteristics();
+						logger.error('%s - rejecting with:%s', method, return_error);
+						reject(return_error);
+					}
+				}
 			});
 		});
 	}
@@ -289,9 +277,24 @@ class Peer extends Remote {
 	 * return a printable representation of this object
 	 */
 	toString() {
-		return 'Peer:{' +
-			'url:' + this._url +
-		'}';
+		return `Peer:{url:${this._url}}`;
+	}
+
+	/**
+	 * basic health check (by discoveryClient)
+	 * @return {Promise<boolean>} false if connect trial failed
+	 */
+	async ping() {
+		try {
+			await this.waitForReady(this._discoveryClient);
+			return true;
+		} catch (err) {
+			if (err.message.includes('Failed to connect before the deadline')) {
+				return false;
+			} else {
+				throw err;
+			}
+		}
 	}
 
 }
