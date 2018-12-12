@@ -1,0 +1,8 @@
+Code-Review+1: Ramesh Babu <rameshbabu.thoomu@gmail.com>
+Verified+1: Hyperledger Jobbuilder <jobbuilder@jenkins.hyperledger.org>
+Code-Review+2: Andrew Coleman <andrew_coleman@uk.ibm.com>
+Submitted-by: Andrew Coleman <andrew_coleman@uk.ibm.com>
+Submitted-at: Wed, 12 Dec 2018 08:49:45 +0000
+Reviewed-on: https://gerrit.hyperledger.org/r/28094
+Project: fabric-sdk-node
+Branch: refs/heads/master
