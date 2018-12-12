@@ -98,19 +98,10 @@ describe('Orderer', () => {
 			await obj.sendBroadcast().should.be.rejectedWith(/Missing data - Nothing to broadcast/);
 		});
 
-		it('should log and reject on error during `waitForReady`', async () => {
-
-			const FakeLogger = {
-				debug : () => {},
-				error: () => {}
-			};
-
-			const errorStub = sinon.stub(FakeLogger, 'error');
-			revert.push(OrdererRewire.__set__('logger', FakeLogger));
+		it('should reject on error during `waitForReady`', async () => {
 			revert.push(OrdererRewire.__set__('Orderer.prototype.waitForReady', sinon.stub().rejects(new Error('waitForReady fail'))));
 			const obj = new OrdererRewire('grpc://host:2700');
 			await obj.sendBroadcast('broadcast').should.be.rejectedWith(/waitForReady fail/);
-			sinon.assert.calledWith(errorStub, 'Orderer %s has an error %s ');
 		});
 
 		it('should log and reject a Promise on timeout', async () => {
@@ -382,14 +373,8 @@ describe('Orderer', () => {
 			await obj.sendDeliver('deliver').should.be.rejectedWith(/waitForReady fail/);
 		});
 
-		it('should log and reject on error during `deliver`', async () => {
-			const FakeLogger = {
-				debug : () => {},
-				error: () => {}
-			};
+		it('should reject on error during `deliver`', async () => {
 
-			const errorStub = sinon.stub(FakeLogger, 'error');
-			revert.push(OrdererRewire.__set__('logger', FakeLogger));
 			revert.push(OrdererRewire.__set__('Orderer.prototype.waitForReady', sinon.stub().resolves()));
 			const obj = new OrdererRewire('grpc://host:2700');
 			obj._request_timeout = 0;
@@ -399,7 +384,6 @@ describe('Orderer', () => {
 			obj._ordererClient = deliverStub;
 
 			await obj.sendDeliver('deliver').should.be.rejectedWith(/FORCED_ERROR/);
-			sinon.assert.called(errorStub);
 		});
 
 		it('should reject a Promise on timeout', async () => {
@@ -620,13 +604,7 @@ describe('Orderer', () => {
 			sinon.assert.calledWith(errorStub, 'sendDeliver - on error code 14: %j');
 		});
 
-		it('should log and reject if string error is thrown', async() => {
-			const FakeLogger = {
-				debug : () => {},
-				error: () => {}
-			};
-			const errorStub = sinon.stub(FakeLogger, 'error');
-			revert.push(OrdererRewire.__set__('logger', FakeLogger));
+		it('should reject if string error is thrown', async() => {
 			revert.push(OrdererRewire.__set__('Orderer.prototype.waitForReady', sinon.stub().resolves()));
 			const obj = new OrdererRewire('grpc://host:2700');
 			obj._ordererClient.deliver = () => {
@@ -634,7 +612,6 @@ describe('Orderer', () => {
 			};
 
 			await obj.sendDeliver({Type: 'block', block: {data: {data: 'data'}, header: {number: 1, previous_hash: 'prev', data_hash: 'hash'}, metadata: {metadata: 'data'}}}).should.be.rejectedWith();
-			sinon.assert.called(errorStub);
 		});
 
 		it('should log on status updates', async () => {

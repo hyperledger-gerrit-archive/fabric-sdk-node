@@ -1,16 +1,9 @@
 /*
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+ Copyright 2018 MediConCen All Rights Reserved.
+
+ SPDX-License-Identifier: Apache-2.0
+
+*/
 
 
 'use strict';
@@ -140,8 +133,12 @@ class Remote {
 		super_logger.debug(' ** Remote instance url: %s, name: %s, options loaded are:: %j', this._url, this._name, this._options);
 	}
 
-	waitForReady(client) {
-		const self = this;
+	/**
+	 * basic gRPC health check method
+	 * @param client gRPC client
+	 * @return {Promise} return undefined if alive, otherwise Promise.reject
+	 */
+	async waitForReady(client) {
 		if (!client) {
 			throw new Error('Missing required gRPC client');
 		}
@@ -151,7 +148,7 @@ class Remote {
 			client.waitForReady(timeout, (err) => {
 				if (err) {
 					if (err.message) {
-						err.message = err.message + ' URL:' + self.getUrl();
+						err.message = err.message + ' URL:' + this.getUrl();
 					}
 					err.connectFailed = true;
 					logger.error(err);
