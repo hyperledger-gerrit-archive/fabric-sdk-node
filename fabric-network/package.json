@@ -24,9 +24,9 @@
   "dependencies": {
     "fabric-client": "file:../fabric-client",
     "fabric-ca-client": "file:../fabric-ca-client",
-    "nano": "^6.4.4",
+    "nano": "^7.1.1",
     "rimraf": "^2.6.2",
-    "uuid": "^3.2.1"
+    "uuid": "^3.3.2"
   },
   "devDependencies": {
     "mocha": "^5.2.0",
