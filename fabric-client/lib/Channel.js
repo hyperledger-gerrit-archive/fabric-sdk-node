@@ -1473,9 +1473,7 @@ const Channel = class {
 		}
 
 		const protocol = sdk_utils.getConfigSetting('discovery-protocol', 'grpcs');
-		const url = protocol + '://' + t_hostname + ':' + port;
-
-		return url;
+		return protocol + '://' + t_hostname + ':' + port;
 	}
 
 	_buildOptions(name, url, host, msp) {
@@ -1582,12 +1580,9 @@ const Channel = class {
 	 */
 	_buildDiscoveryInterest(name, collections) {
 		logger.debug('_buildDiscoveryInterest - name %s', name);
-		const interest = {};
-		interest.chaincodes = [];
-		const chaincodes = this._buildDiscoveryChaincodeCall(name, collections);
-		interest.chaincodes.push(chaincodes);
-
-		return interest;
+		return {
+			chaincodes: [this._buildDiscoveryChaincodeCall(name, collections)]
+		};
 	}
 
 	/* internal metnod
@@ -2343,36 +2338,32 @@ const Channel = class {
 			args: [options.chaincodeId],
 		};
 
-		try {
-			const [responses] = await Channel.sendTransactionProposal(request, this._name, this._clientContext, null);
-			if (responses && Array.isArray(responses)) {
-				if (responses.length > 1) {
-					throw new Error('Too many results returned');
-				}
-				const [response] = responses;
-				if (response instanceof Error) {
-					throw response;
-				}
-				if (!response.response) {
-					throw new Error('Didn\'t receive a valid peer response');
-				}
-				logger.debug('%s - response status :: %d', method, response.response.status);
-
-				if (response.response.status !== 200) {
-					logger.debug('%s - response:%j', method, response);
-					if (response.response.message) {
-						throw new Error(response.response.message);
-					}
-					throw new Error('Failed to retrieve collections config from peer');
-				}
-				const queryResponse = decodeCollectionsConfig(response.response.payload);
-				logger.debug('%s - get %s collections for chaincode %s from peer', method, queryResponse.length, options.chaincodeId);
-				return queryResponse;
+		const [responses] = await Channel.sendTransactionProposal(request, this._name, this._clientContext, null);
+		if (responses && Array.isArray(responses)) {
+			if (responses.length > 1) {
+				throw new Error('Too many results returned');
 			}
-			throw new Error('Failed to retrieve collections config from peer');
-		} catch (e) {
-			throw e;
+			const [response] = responses;
+			if (response instanceof Error) {
+				throw response;
+			}
+			if (!response.response) {
+				throw new Error('Didn\'t receive a valid peer response');
+			}
+			logger.debug('%s - response status :: %d', method, response.response.status);
+
+			if (response.response.status !== 200) {
+				logger.debug('%s - response:%j', method, response);
+				if (response.response.message) {
+					throw new Error(response.response.message);
+				}
+				throw new Error('Failed to retrieve collections config from peer');
+			}
+			const queryResponse = decodeCollectionsConfig(response.response.payload);
+			logger.debug('%s - get %s collections for chaincode %s from peer', method, queryResponse.length, options.chaincodeId);
+			return queryResponse;
 		}
+		throw new Error('Failed to retrieve collections config from peer');
 	}
 
 	/**
@@ -2594,7 +2585,7 @@ const Channel = class {
 	 *           discovery service if no targets are specified.
 	 * @property {string} chaincodeId - Required. The id of the chaincode to process
 	 *           the transaction proposal
-	 * @property {DiscoveryChaincodeIntereset} endorsement_hint - Optional. A
+	 * @property {DiscoveryChaincodeInterest} endorsement_hint - Optional. A
 	 *           of {@link DiscoveryChaincodeInterest} object that will be used by
 	 *           discovery service to calculate an appropriate endorsement plan.
 	 *           The parameter is only required when the endorsement will be preformed
@@ -3150,6 +3141,7 @@ const Channel = class {
 		const signer = clientContext._getSigningIdentity(use_admin_signer);
 		return client_utils.toEnvelope(client_utils.signProposal(signer, payload));
 	}
+
 	/**
 	 * @typedef {Object} ChaincodeQueryRequest
 	 * @property {Peer[]} targets - Optional. The peers that will receive this
@@ -3334,7 +3326,7 @@ const Channel = class {
 	 * This will validate that the endorsing peers all agree on the result
 	 * of the chaincode execution.
 	 *
-	 * @param {ProposalResponse[]} The proposal responses from all endorsing peers
+	 * @param {ProposalResponse[]} proposal_responses The proposal responses from all endorsing peers
 	 * @returns {boolean} True when all proposals compare equally, false otherwise.
 	 */
 	compareProposalResponseResults(proposal_responses) {
