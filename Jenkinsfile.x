@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 //
-timeout(40) {
+timeout(50) {
 node ('hyp-x') { // trigger build on x86_64 node
  timestamps {
     try {
