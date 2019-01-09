@@ -13,6 +13,7 @@ const util = require('util');
 const utils = require('../utils');
 const api = require('../api.js');
 const logger = utils.getLogger('DiscoveryEndorsementHandler');
+const Channel = require('fabric-client/lib/Channel.js');
 
 const BLOCK_HEIGHT = 'ledgerHeight';
 const RANDOM = 'random';
@@ -94,6 +95,13 @@ class DiscoveryEndorsementHandler extends api.EndorsementHandler {
 		}
 		if (params.timeout) {
 			timeout = params.timeout;
+		}
+
+		// should we use discovery
+		if (!params.use_discovery) {
+			logger.debug('%s - running without discovery', method);
+
+			return Channel.sendTransactionProposal(params.request, this._channel._name, this._channel._clientContext, timeout);
 		}
 
 		let endorsement_plan = null;
