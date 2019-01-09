@@ -225,25 +225,9 @@ const Channel = class {
 			}
 		}
 
-		// setup the endorsement handler
-		if (!endorsement_handler_path && this._use_discovery) {
-			endorsement_handler_path = sdk_utils.getConfigSetting('endorsement-handler');
-			logger.debug('%s - using config setting for endorsement handler ::%s', method, endorsement_handler_path);
-		}
-		if (endorsement_handler_path) {
-			this._endorsement_handler = require(endorsement_handler_path).create(this);
-			await this._endorsement_handler.initialize();
-		}
-
-		// setup the commit handler
-		if (!commit_handler_path) {
-			commit_handler_path = sdk_utils.getConfigSetting('commit-handler');
-			logger.debug('%s - using config setting for commit handler ::%s', method, commit_handler_path);
-		}
-		if (commit_handler_path) {
-			this._commit_handler = require(commit_handler_path).create(this);
-			await this._commit_handler.initialize();
-		}
+		// setup the handlers
+		this._endorsement_handler = await this._build_handler(endorsement_handler_path, 'endorsement-handler');
+		this._commit_handler = await this._build_handler(commit_handler_path, 'commit-handler');
 
 		let results = null;
 		try {
@@ -2874,7 +2858,7 @@ const Channel = class {
 	 * to the orderer for further processing. This is the 2nd phase of the transaction
 	 * lifecycle in the fabric. The orderer will globally order the transactions in the
 	 * context of this channel and deliver the resulting blocks to the committing peers for
-	 * validation against the chaincode's endorsement policy. When the committering peers
+	 * validation against the chaincode's endorsement policy. When the committing peers
 	 * successfully validate the transactions, it will mark the transaction as valid inside
 	 * the block. After all transactions in a block have been validated, and marked either as
 	 * valid or invalid (with a [reason code]{@link https://github.com/hyperledger/fabric/blob/v1.0.0/protos/peer/transaction.proto#L125}),
@@ -2883,7 +2867,6 @@ const Channel = class {
 	 * The caller of this method must use the proposal responses returned from the endorser along
 	 * with the original proposal that was sent to the endorser. Both of these objects are contained
 	 * in the {@link ProposalResponseObject} returned by calls to any of the following methods:
-	 * <li>[installChaincode()]{@link Client#installChaincode}
 	 * <li>[sendInstantiateProposal()]{@link Channel#sendInstantiateProposal}
 	 * <li>[sendUpgradeProposal()]{@link Channel#sendUpgradeProposal}
 	 * <li>[sendTransactionProposal()]{@link Channel#sendTransactionProposal}
@@ -2941,6 +2924,11 @@ const Channel = class {
 		}
 
 		const envelope = Channel.buildEnvelope(this._clientContext, chaincodeProposal, endorsements, proposalResponse, use_admin_signer);
+
+		// channel might not have been initialized, check the handler
+		if (!this._commit_handler) {
+			this._commit_handler = await this._build_handler(null, 'commit-handler');
+		}
 
 		if (this._commit_handler) {
 			const params = {
@@ -3546,6 +3534,22 @@ const Channel = class {
 		};
 
 		return JSON.stringify(state).toString();
+	}
+
+	async _build_handler(_handler_path, handler_name) {
+		const method = '_build_handler';
+		let handler_path = _handler_path;
+		let handler = null;
+		if (!handler_path) {
+			handler_path = sdk_utils.getConfigSetting(handler_name);
+			logger.debug('%s - using path %s for %s', method, handler_path, handler_name);
+		}
+		if (handler_path) {
+			handler = require(handler_path).create(this);
+			await handler.initialize();
+			logger.debug('%s - create instance of %s', method, handler_name);
+		}
+		return handler;
 	}
 
 };
