@@ -26,12 +26,11 @@ const Contract = require('../lib/contract');
 const EventStrategies = require('fabric-network/lib/impl/event/defaulteventhandlerstrategies');
 
 describe('Network', () => {
-	const mspId = 'MSP_ID';
-
 	let mockChannel, mockClient;
 	let mockPeer1, mockPeer2, mockPeer3;
 	let network;
 	let mockTransactionID, mockGateway;
+	let stubQueryHandler;
 
 	beforeEach(() => {
 		mockChannel = sinon.createStubInstance(InternalChannel);
@@ -57,12 +56,20 @@ describe('Network', () => {
 		mockPeer3.index = 3;
 		mockPeer3.getName.returns('Peer3');
 
+		stubQueryHandler = {};
+
 		mockGateway = sinon.createStubInstance(Gateway);
 		mockGateway.getOptions.returns({
 			useDiscovery: false,
 			eventHandlerOptions: {
 				commitTimeout: 300,
 				strategy: EventStrategies.MSPID_SCOPE_ALLFORTX
+			},
+			queryHandlerOptions: {
+				strategy: (theNetwork) => {
+					stubQueryHandler.network = theNetwork;
+					return stubQueryHandler;
+				}
 			}
 		});
 
@@ -160,45 +167,8 @@ describe('Network', () => {
 		it('should initialize the internal channels', async () => {
 			network.initialized = false;
 			sinon.stub(network, '_initializeInternalChannel').returns();
-			const mockPeerMap = new Map();
-			mockPeerMap.set(mspId, [mockPeer1]);
-			sinon.stub(network, '_mapPeersToMSPid').returns(mockPeerMap);
 			await network._initialize();
 			network.initialized.should.equal(true);
-		});
-	});
-
-	describe('#_mapPeersToMSPid', () => {
-		let peerArray;
-		let mockPeer4, mockPeer5;
-		beforeEach(() => {
-			mockPeer4 = sinon.createStubInstance(Peer);
-			mockPeer4.index = 4;
-			mockPeer5 = sinon.createStubInstance(Peer);
-			mockPeer5.index = 5;
-
-			mockPeer1.getMspid.returns('MSP01');
-			mockPeer2.getMspid.returns('MSP02');
-			mockPeer3.getMspid.returns('MSP03');
-			mockPeer4.getMspid.returns('MSP03'); // duplicate id
-			mockPeer5.getMspid.returns();
-			peerArray = [mockPeer1, mockPeer2, mockPeer3, mockPeer4, mockPeer5];
-			mockChannel.getPeers.returns(peerArray);
-		});
-
-		it('should initialize the peer map', async () => {
-			const peermap = network._mapPeersToMSPid();
-			peermap.size.should.equal(3);
-			peermap.get('MSP01').should.deep.equal([mockPeer1]);
-			peermap.get('MSP02').should.deep.equal([mockPeer2]);
-			peermap.get('MSP03').should.deep.equal([mockPeer3, mockPeer4]);
-		});
-
-		it('should throw error if no peers associated with MSPID', async () => {
-			mockChannel.getPeers.returns([]);
-			(() => {
-				network._mapPeersToMSPid();
-			}).should.throw(/no suitable peers associated with mspIds were found/);
 		});
 	});
 
@@ -257,15 +227,6 @@ describe('Network', () => {
 			network.initialized.should.equal(false);
 		});
 
-		it('should call dispose on the queryHandler if defined and work if no contracts have been got', () => {
-			const disposeStub = sinon.stub();
-			network.queryHandler = {
-				dispose: disposeStub
-			};
-			network._dispose();
-			sinon.assert.calledOnce(disposeStub);
-		});
-
 		it('calls close() on its channel', () => {
 			network._dispose();
 			sinon.assert.calledOnce(mockChannel.close);
@@ -282,6 +243,13 @@ describe('Network', () => {
 		it('Returns an EventHubFactory', () => {
 			const result = network.getEventHubFactory();
 			result.should.be.an.instanceOf(EventHubFactory);
+		});
+	});
+
+	describe('#getQueryHandler', () => {
+		it('Returns a query handler', () => {
+			const result = network.getQueryHandler();
+			result.network.should.equal(network);
 		});
 	});
 });
