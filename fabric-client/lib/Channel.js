@@ -643,6 +643,7 @@ const Channel = class {
 			}
 
 			logger.debug('%s - returning results', method);
+			console.log(this._discovery_results);
 			return this._discovery_results;
 		} else {
 			logger.debug('No discovery results to return');
