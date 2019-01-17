@@ -20,7 +20,7 @@ const rewire = require('rewire');
 const chaiAsPromised = require('chai-as-promised');
 chai.use(chaiAsPromised);
 const expect = chai.expect;
-chai.should();
+const should = chai.should();
 const Long = require('long');
 
 const Channel = require('fabric-client/lib/Channel');
@@ -2370,6 +2370,62 @@ describe('Channel', () => {
 	});
 
 	describe('#_sendChaincodeProposal', () => {});
+
+	describe('#defineChaincodeForOrg', () => {
+		it('should require a request object parameter', async () => {
+			try {
+				await channel.defineChaincodeForOrg();
+				should.fail();
+			} catch (err) {
+				err.message.should.equal('Missing required request parameter');
+			}
+		});
+		it('should require a request.chaincode object parameter', async () => {
+			try {
+				await channel.defineChaincodeForOrg({});
+				should.fail();
+			} catch (err) {
+				err.message.should.equal('Missing required request parameter "chaincode"');
+			}
+		});
+		it('should require a request.chaincode._hash object parameter', async () => {
+			try {
+				const chaincode = client.newChaincode('mychaincode', 'v1');
+				await channel.defineChaincodeForOrg({chaincode: chaincode});
+				should.fail();
+			} catch (err) {
+				err.message.should.equal('Chaincode definition must include the chaincode hash value');
+			}
+		});
+	});
+
+	describe('#defineChaincode', () => {
+		it('should require a request object parameter', async () => {
+			try {
+				await channel.defineChaincode();
+				should.fail();
+			} catch (err) {
+				err.message.should.equal('Missing required request parameter');
+			}
+		});
+		it('should require a request.chaincode object parameter', async () => {
+			try {
+				await channel.defineChaincode({});
+				should.fail();
+			} catch (err) {
+				err.message.should.equal('Missing required request parameter "chaincode"');
+			}
+		});
+		it('should require a request.chaincode._hash object parameter', async () => {
+			try {
+				const chaincode = client.newChaincode('mychaincode', 'v1');
+				await channel.defineChaincode({chaincode: chaincode});
+				should.fail();
+			} catch (err) {
+				err.message.should.equal('Chaincode definition must include the chaincode hash value');
+			}
+		});
+	});
 
 	describe('#sendTransactionProposal', () => {});
 
