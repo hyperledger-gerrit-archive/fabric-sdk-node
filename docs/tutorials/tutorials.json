@@ -34,5 +34,8 @@
 	},
 	"grpc-settings": {
 		"title": "fabric-client: How to set gRPC settings"
+	},
+	"chaincode-lifecycle": {
+		"title": "fabric-client: How to install and start your chaincode"
 	}
 }
