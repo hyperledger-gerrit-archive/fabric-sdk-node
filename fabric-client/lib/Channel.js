@@ -155,7 +155,7 @@ const Channel = class {
 	 *           When used with `targets` parameter, the peer referenced here will be
 	 *           added to the `targets` array.
 	 *           Default is to use the first ChannelPeer assigned to this channel.
-	 * @property {Array.<(Peer | ChannelPeer)>} targets - Optional. The target peers to be used
+	 * @property {Array.<(string | Peer | ChannelPeer)>} targets - Optional. The target peers to be used
 	 *           to make the initialization requests for configuration information.
 	 * 	         When used with `target` parameter, the peer referenced there will be
 	 *           added to the `targets` array.
@@ -2332,7 +2332,17 @@ const Channel = class {
 	 *  data expires. For instance if the value is set to 10, a key last modified by block
 	 *  number 100 will be purged at block number 111. A zero value is treated same as MaxUint64,
 	 *  where the data will not be purged.
-	 * @property {Policy} policy - The
+	 * @property {boolean} member_read_only - The member only read access denotes
+	 *  whether only collection member clients can read the private data (if set
+	 *  to true), or even non members can read the data (if set to false, for
+	 *  example if you want to implement more granular access logic in the
+	 *  chaincode)
+	 * @property {boolean} member_write_only - The member only write access denotes
+	 *  whether only collection member clients can write the private data (if set
+	 *  to true), or even non members can write the data (if set to false, for
+	 *  example if you want to implement more granular access logic in the
+	 *  chaincode)
+	 * @property {Policy} policy - The "member_orgs_policy" policy
 	 */
 
 	/**
