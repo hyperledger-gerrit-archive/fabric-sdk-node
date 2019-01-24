@@ -124,9 +124,9 @@ pull_Docker_Images() {
                  if [ $IMAGES == "javaenv" ]; then
                        if [ $ARCH == "s390x" ]; then
                              # Do not pull javaenv if OS_VER == s390x
-                             echo "\033[32m -----------> skipping pull of javaenv image on s390x" "\033[0m"
+                             echo "\033[32m -----------> Javaenv image not available on s390x" "\033[0m"
                        else
-                             # Pull javaenv at same level as node SDK
+                             # Pull amd64 javaenv at same level as node SDK
                              echo "\033[32m -----------> pull $ORG_NAME-$IMAGES:${IMAGE_TAG} image" "\033[0m"
                              echo
                              docker pull $NEXUS_URL/$ORG_NAME-$IMAGES:${IMAGE_TAG} > /dev/null 2>&1

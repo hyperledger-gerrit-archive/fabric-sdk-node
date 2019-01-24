@@ -11,10 +11,8 @@ node('hyp-z') {
      env.NODE_VER = "8.14.0"
      // Fetch the BASE_VERSION from fabric master branch to pull images from nexus
      env.VERSION = sh(returnStdout: true, script: 'curl -O https://raw.githubusercontent.com/hyperledger/fabric/master/Makefile && cat Makefile | grep "BASE_VERSION =" | cut -d "=" -f2').trim()
-     env.VERSION = "$VERSION" // BASE_VERSION from fabric Makefile
      env.ARCH = "s390x" // `uname -m`
-     env.IMAGE_TAG = "${ARCH}-${VERSION}-stable" // fabric latest stable version from nexus3
-     env.PROJECT_VERSION = "${VERSION}-stable"
+     env.IMAGE_TAG = "${ARCH}-latest" // fabric latest stable version from nexus3
      env.PROJECT_DIR = "gopath/src/github.com/hyperledger"
      env.GOPATH = "$WORKSPACE/gopath"
      env.PATH = "$GOPATH/bin:/usr/local/bin:/usr/bin:/usr/local/sbin:/usr/sbin:~/npm/bin:/home/jenkins/.nvm/versions/node/v${NODE_VER}/bin:$PATH"
