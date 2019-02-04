@@ -126,7 +126,7 @@ gulp.task('compile', shell.task([
 //  - Cannot use gulp-istabul because it throws "unexpected identifier" for async/await functions
 
 // Main test to run all tests
-gulp.task('test', shell.task('npx nyc gulp run-test'));
+gulp.task('test', shell.task('npx nyc --check-coverage --statements 70 --lines 70 --functions 80 --branches 70 gulp run-test'));
 
 // Test to run all unit tests
 gulp.task('test-headless', shell.task('npx nyc gulp run-test-headless'));
