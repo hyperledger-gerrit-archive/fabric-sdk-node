@@ -126,7 +126,7 @@ gulp.task('compile', shell.task([
 //  - Cannot use gulp-istabul because it throws "unexpected identifier" for async/await functions
 
 // Main test to run all tests
-gulp.task('test', shell.task('npx nyc gulp run-test'));
+gulp.task('test', shell.task('npx nyc --check-coverage --statements 70 --lines 70 --functions 80 --branches 70 gulp run-test'));
 
 // Test to run all unit tests
 gulp.task('test-headless', shell.task('npx nyc gulp run-test-headless'));
@@ -175,7 +175,14 @@ gulp.task('run-test-cucumber', shell.task(
 // Main test method to run all test suites
 // - lint, unit first, then FV, then scenario
 gulp.task('run-test', (done) => {
-	const tasks = ['clean-up', 'docker-clean', 'pre-test', 'ca', 'compile', 'lint', 'run-test-mocha', 'run-tape-unit', 'run-tape-e2e', 'run-logger-unit', 'docker-clean', 'run-test-cucumber'];
+	const tasks = ['clean-up', 'docker-clean', 'pre-test', 'ca', 'compile', 'lint', 'run-test-mocha', 'run-tape-unit', 'run-tape-e2e', 'run-logger-unit'];
+	runSequence(...tasks, done);
+});
+
+// Main test method to run all test suites
+// - lint, unit first, then FV, then scenario
+gulp.task('run-just-cucumber', (done) => {
+	const tasks = ['clean-up', 'docker-clean', 'run-test-cucumber'];
 	runSequence(...tasks, done);
 });
 
