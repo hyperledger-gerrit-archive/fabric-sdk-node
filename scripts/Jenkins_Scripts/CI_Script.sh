@@ -163,10 +163,9 @@ echo "-------> ARCH:" $ARCH
 if [[ $ARCH == "s390x" || $ARCH == "ppc64le" ]]; then
         # Source nvmrc.sh
         source /etc/profile.d/nvmrc.sh
-        echo "------> Install NodeJS"
         # Install NODE_VER
         echo "------> Use $NODE_VER"
-        nvm install $NODE_VER
+        nvm install $NODE_VER || true
         nvm use --delete-prefix v$NODE_VER --silent
         npm install || err_Check "ERROR!!! npm install failed"
         npm config set prefix ~/npm && npm install -g gulp && npm install -g istanbul
