@@ -163,6 +163,8 @@ echo "-------> ARCH:" $ARCH
 if [[ $ARCH == "s390x" || $ARCH == "ppc64le" ]]; then
         # Source nvmrc.sh
         source /etc/profile.d/nvmrc.sh
+        # Delete any existing prefix
+        npm config delete prefix
         echo "------> Install NodeJS"
         # Install NODE_VER
         echo "------> Use $NODE_VER"
