@@ -50,45 +50,6 @@ test('\n\n** MSP Tests **\n\n', async (t) => {
 	const configs = [];
 	const mspm = new MSPM();
 
-	t.throws(
-		() => {
-			mspm.loadMSPs({});
-		},
-		/"mspConfigs" argument must be an array/,
-		'Check MSPManager.loadMSPs() arguments: must be an array'
-	);
-
-	t.throws(
-		() => {
-			mspm.loadMSPs([{
-				getType: () => 'bad value'
-			}]);
-		},
-		/MSP Configuration object type not supported/,
-		'Check MSPManager.loadMSPs() arguments: each config must have getType() returning a number representing types'
-	);
-
-	t.throws(
-		() => {
-			mspm.loadMSPs([{
-				getType: () => 0
-			}]);
-		},
-		/MSP Configuration object missing the payload in the "Config" property/,
-		'Check MSPManager.loadMSPs() arguments: each config must have getConfig() returning a valid FabricMSPConfig'
-	);
-
-	t.throws(
-		() => {
-			mspm.loadMSPs([{
-				getType: () => 0,
-				getConfig: () => null
-			}]);
-		},
-		/MSP Configuration object missing the payload in the "Config" property/,
-		'Check MSPManager.loadMSPs() arguments: each config must have getConfig() returning a valid FabricMSPConfig'
-	);
-
 	let config = loadMSPConfig('peerOrg0', 'org0');
 	t.pass('Successfully loaded msp config for org0');
 
