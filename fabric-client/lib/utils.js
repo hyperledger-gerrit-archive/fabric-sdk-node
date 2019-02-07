@@ -29,17 +29,20 @@ const sjcl = require('sjcl');
 // The following methods are for loading the proper implementation of an extensible APIs.
 //
 
-// returns a new instance of the CryptoSuite API implementation
-//
-// @param {Object} setting This optional parameter is an object with the following optional properties:
-// 	- software {boolean}: Whether to load a software-based implementation (true) or HSM implementation (false)
-//		default is true (for software based implementation), specific implementation module is specified
-//		in the setting 'crypto-suite-software'
-//  - keysize {number}: The key size to use for the crypto suite instance. default is value of the setting 'crypto-keysize'
-//  - algorithm {string}: Digital signature algorithm, currently supporting ECDSA only with value "EC"
-//  - hash {string}: 'SHA2' or 'SHA3'
-//
-//
+/**
+ * Returns a new instance of the CryptoSuite API implementation. Supports the following:
+ * - newCryptoSuite({software: true, keysize: 256, algorithm: EC})
+ * - newCryptoSuite({software: false, lib: '/usr/local/bin/pkcs11.so', slot: 0, pin: '1234'})
+ * - newCryptoSuite({keysize: 384})
+ * - newCryptoSuite()
+ * @param {Object} setting This optional parameter is an object with the following optional properties:
+ * 	- software {boolean}: Whether to load a software-based implementation (true) or HSM implementation (false)
+ *		default is true (for software based implementation), specific implementation module is specified
+ *		in the setting 'crypto-suite-software'
+ *  - keysize {number}: The key size to use for the crypto suite instance. default is value of the setting 'crypto-keysize'
+ *  - algorithm {string}: Digital signature algorithm, currently supporting ECDSA only with value "EC"
+ *  - hash {string}: 'SHA2' or 'SHA3'
+ */
 module.exports.newCryptoSuite = (setting) => {
 	let csImpl, keysize, algorithm, hashAlgo, opts = null;
 
@@ -51,12 +54,6 @@ module.exports.newCryptoSuite = (setting) => {
 	}
 
 	csImpl = useHSM ? exports.getConfigSetting('crypto-suite-hsm') : exports.getConfigSetting('crypto-suite-software');
-
-	// this function supports the following:
-	// - newCryptoSuite({software: true, keysize: 256, algorithm: EC})
-	// - newCryptoSuite({software: false, lib: '/usr/local/bin/pkcs11.so', slot: 0, pin: '1234'})
-	// - newCryptoSuite({keysize: 384})
-	// - newCryptoSuite()
 
 	// step 1: what's the cryptosuite impl to use, key size and algo
 	if (setting && setting.keysize && typeof setting === 'object' && typeof setting.keysize === 'number') {
