@@ -303,6 +303,7 @@ test('use the connection profile file', (t: any) => {
 			const txId: TransactionId = client.newTransactionID(true);
 			instansiateTxId = txId;
 			const request: ChaincodeInstantiateUpgradeRequest = {
+				fcn: 'init',
 				args: ['a', '100', 'b', '200'],
 				chaincodeId: 'examplets',
 				chaincodeVersion: 'v1',
