@@ -184,7 +184,7 @@ gulp.task('run-test-cucumber', shell.task(
 gulp.task('test-fv-scenario', shell.task('npx nyc --check-coverage --lines 92 --functions 90 --branches 70 gulp run-test-fv-sceanrio'));
 
 gulp.task('run-test-fv-sceanrio', (done) => {
-	const tasks = ['run-tape-e2e', 'run-logger-unit', 'docker-clean', 'run-test-cucumber'];
+	const tasks = ['run-tape-e2e', 'docker-clean', 'run-test-cucumber'];
 	runSequence(...tasks, done);
 });
 
@@ -197,7 +197,7 @@ gulp.task('run-test', (done) => {
 
 // Run all non-integration tests
 gulp.task('run-test-headless', (done) => {
-	const tasks = ['clean-up', 'pre-test', 'ca', 'lint', 'test-mocha', 'run-tape-unit', 'run-logger-unit'];
+	const tasks = ['clean-up', 'pre-test', 'ca', 'lint', 'test-mocha', 'run-tape-unit'];
 	runSequence(...tasks, done);
 });
 
@@ -211,23 +211,8 @@ gulp.task('run-tape-unit',
 			'test/unit/**/*.js',
 			'!test/unit/constants.js',
 			'!test/unit/util.js',
-			'!test/unit/logger.js',
+			// '!test/unit/logger.js',
 		]))
-			.pipe(tape({
-				reporter: tapColorize()
-			}));
-	});
-
-// Run logger in isolation
-gulp.task('run-logger-unit',
-	() => {
-		// this is needed to avoid a problem in tape-promise with adding
-		// too many listeners to the "unhandledRejection" event
-		process.setMaxListeners(0);
-
-		return gulp.src([
-			'test/unit/logger.js'
-		])
 			.pipe(tape({
 				reporter: tapColorize()
 			}));
