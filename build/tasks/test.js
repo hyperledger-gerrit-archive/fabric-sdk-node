@@ -183,7 +183,7 @@ gulp.task('test-tape', shell.task('npx nyc gulp run-tape-unit'));
 
 // Definition of Cucumber (scenario) test suite
 gulp.task('run-test-cucumber', shell.task(
-	'export HFC_LOGGING=""; npm run test:cucumber'
+	'export HFC_LOGGING=\'' + process.env.HFC_LOGGING + '\'; npm run test:cucumber'
 ));
 
 // Run e2e and scenario tests with code coverage
