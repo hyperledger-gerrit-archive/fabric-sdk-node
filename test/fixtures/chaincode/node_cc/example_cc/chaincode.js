@@ -96,11 +96,15 @@ const Chaincode = class {
 			if (fcn === 'echo') {
 				return this.echo(stub, args);
 			}
+
+			if (fcn === 'init') {
+				return shim.error('Chaincode has not been initialized correctly'); 
+			}
 		} catch (error) {
 			return shim.error(error.toString());
 		}
 
-		logger.Errorf(`Unknown action, check the first argument, must be one of 'delete', 'query', or 'move'. But got: ${fcn}`);
+		logger.error(`Unknown action, check the first argument, must be one of 'delete', 'query', or 'move'. But got: ${fcn}`);
 		return shim.error(`Unknown action, check the first argument, must be one of 'delete', 'query', or 'move'. But got: ${fcn}`);
 	}
 
