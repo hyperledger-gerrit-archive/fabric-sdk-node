@@ -554,7 +554,7 @@ payload -- {}
 	 */
 	static decodeTransaction(processed_transaction_bytes) {
 		if (!(processed_transaction_bytes instanceof Buffer)) {
-			throw new Error('Proccesed transaction data is not a byte buffer');
+			throw new Error('Processed transaction data is not a byte buffer');
 		}
 		const processed_transaction = {};
 		const proto_processed_transaction = fabprotos.protos.ProcessedTransaction.decode(processed_transaction_bytes);

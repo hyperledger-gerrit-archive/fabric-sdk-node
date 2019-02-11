@@ -16,13 +16,14 @@
 const {format} = require('util');
 
 const utils = require('./utils.js');
+const client_utils = require('./client-utils.js');
 const logger = utils.getLogger('Chaincode.js');
+const Packager = require('./Packager.js');
 const Policy = require('./Policy.js');
 const CollectionConfig = require('./SideDB.js');
-const fabprotos = require('fabric-protos').protos;
-
-
-
+const TransactionID = require('./TransactionID');
+const fabric_protos = require('fabric-protos').protos;
+const lifecycle_protos = require('fabric-protos').lifecycle;
 
 /**
  * @classdesc
@@ -203,10 +204,13 @@ const Chaincode = class {
 		if (!client) {
 			throw new Error('Missing client parameter');
 		}
+		this._client = client;
 		this._name = name;
 		this._version = version;
-		this._client = client;
-
+		this._type = null;
+		this._chaincode_path = null;
+		this._metadata_path = null;
+		this._golang_path = null;
 		this._sequence = null;
 		this._package = null;
 		this._hash = null;
@@ -284,6 +288,79 @@ const Chaincode = class {
 	}
 
 	/**
+	 * Sets the chaincode type
+	 * @param {string} type The type of this chaincode. Must be "golang",
+	 *        "node", "java" or "car".
+	 */
+	setType(type) {
+		this._type = Chaincode.checkType(type);
+
+		return this;
+	}
+
+	/**
+	 * Gets the chaincode type
+	 */
+	getType() {
+
+		return this._type;
+	}
+
+	/**
+	 * Sets the chaincode path
+	 * @param {string} path The path of this chaincode.
+	 */
+	setChaincodePath(path) {
+		this._chaincode_path = path;
+
+		return this;
+	}
+
+	/**
+	 * Gets the chaincode path
+	 */
+	getChaincodePath() {
+
+		return this._chaincode_path;
+	}
+
+	/**
+	 * Sets the metadata path
+	 * @param {string} path The path of this metadata.
+	 */
+	setMetadataPath(path) {
+		this._metadata_path = path;
+
+		return this;
+	}
+
+	/**
+	 * Gets the chaincode path
+	 */
+	getMetadataPath() {
+
+		return this._metadata_path;
+	}
+
+	/**
+	 * Sets the goLang path
+	 * @param {string} path The golang path.
+	 */
+	setGoLangPath(path) {
+		this._golang_path = path;
+
+		return this;
+	}
+
+	/**
+	 * Gets the goLang path
+	 */
+	getGoLangPath() {
+
+		return this._golang_path;
+	}
+
+	/**
 	 * @typedef {Object} ChaincodeInstallRequest
 	 * @property {string} chaincodeType - Required. Type of chaincode. One of
 	 *        'golang', 'car', 'node' or 'java'.
@@ -294,17 +371,22 @@ const Chaincode = class {
 	 * @property {string} metadataPath - Optional. The path to the top-level
 	 *        directory containing metadata descriptors.
 	 * @property {string} goPath - Optional. The path to be used with the golang
-	 *        chaincode.
+	 *        chaincode. Will default to the environment "GOPATH" value. Will be
+	 *        used to locate actual Chaincode 'goLang' files by building a
+	 *        fully qualified path = < goPath > / 'src' / < chaincodePath >
 	 */
 
 	/**
-	 *  Package the files at the locations provided.
-	 *  This method will both return the package and set the
-	 *  package on this instance.
+	 * Package the files at the locations provided.
+	 * This method will both return the package and set the package on this instance.
+	 * This method will set the type, and paths (if provided in the request).
+	 * The this._hash will be set by the install method or manually by the application.
+	 * The this._hash must be set before using this object on the {@link Channel#approveChaincodeForOrg}.
 	 *
 	 * @async
-	 * @param {ChaincodePackageRequest} request - Required. The parameters to build the
-	 *        chaincode package.
+	 * @param {ChaincodePackageRequest} request - Optional. The parameters to build the
+	 *        chaincode package. Parameters will be required when the parameter has not
+	 *        been set on this instance.
 	 */
 
 
@@ -312,22 +394,46 @@ const Chaincode = class {
 		const method = 'package';
 		logger.debug('%s - start', method);
 
+		// just in case reset these
 		this._package = null;
 		this._hash = null;
 
-		if (!request) {
-			throw new Error('ChaincodeInstallRequest object parameter is required');
+		if (request) {
+			if (request.chaincodeType) {
+				this._type = request.chaincodeType;
+			}
+			if (request.chaincodePath) {
+				this._chaincode_path = request.chaincodePath;
+			}
+			if (request.metadataPath) {
+				this._metadata_path = request.metadataPath;
+			}
+			if (request.goPath) {
+				this._golang_path = request.goPath;
+			}
 		}
 
-		if (!request.chaincodeType) {
+		if (!this._type) {
 			throw new Error('Chaincode package "chaincodeType" parameter is required');
 		}
+		this._type = Chaincode.checkType(this._type);
 
-		const _type = Chaincode.translateCCType(request.chaincodeType);
-		if (!_type) {
-			throw new Error(format('Chaincode package "chaincodeType" parameter is not a known type %s', request.chaincodeType));
+		if (!this._chaincode_path) {
+			throw new Error('Chaincode package "chaincodePath" parameter is required');
 		}
 
+		// need a goPath when chaincode is golang
+		if (this._type === 'golang') {
+			if (!this._golang_path) {
+				this._golang_path = process.env.GOPATH;
+			}
+			if (!this._golang_path) {
+				throw new Error('Missing the GOPATH environment setting and the "goPath" parameter.');
+			}
+			logger.debug('%s - have golang chaincode using goPath %s', method, this._golang_path);
+		}
+
+		this._package = await Packager.package(this._chaincode_path, this._type, false, this._metadata_path, this._golang_path);
 
 		return this._package;
 	}
@@ -354,7 +460,6 @@ const Chaincode = class {
 	 *  package was installed
 	 */
 	getHash() {
-
 		return this._hash;
 	}
 
@@ -402,18 +507,19 @@ const Chaincode = class {
 
 	/**
 	 * @typedef {Object} ChaincodeInstallRequest
-	 * @property {Buffer} target Required. The peer to use for this request
+	 * @property {Peer} target Required. The peer to use for this request
 	 * @property {number} request_timeout Optional. The amount of time for the
 	 *        to respond. The default will be the system configuration
 	 *        value of 'request-timeout'.
+	 * @property {TransactionID} tx_d Optional. The transaction ID object to
+	 *        use with the install request. If not included it will be generated.
 	 */
 
 	/**
 	 * Install the package on the specified peers.
 	 * This method will send the package to the peers provided.
 	 * Each peer will return a hash value of the installed
-	 * package. When this method is called again and within this call, the hash value
-	 * returnd from the peer must be equal to the pervious install.
+	 * package.
 	 *
 	 * @async
 	 * @param {ChaincodeInstallRequest} request - The request object with the
@@ -428,36 +534,82 @@ const Chaincode = class {
 			throw new Error('Install operation requires a ChaincodeInstallRequest object parameter');
 		}
 
+		if (!request.target) {
+			throw new Error('Chaincode install "target" parameter is required');
+		}
+
+		// check the internal settings that need to be set on this object before
+		// it will be able to do an install
 		if (!this._package) {
 			throw new Error('Install operation requires a chaincode package be assigned to this chaincode');
 		}
 
-		const peers = request.targets; // TODO validate the targets
-
-		// loop on each peer in the target list
-		for (const peer of peers) {
-			const hash = 'somehash'; // TODO put the install call here to the peer
-			logger.debug('%s - working with peer %s', method, peer);
-
-			// TODO install process here
-
-			if (this._hash) {
-				if (hash === this._hash) {
-					logger.debug('%s - hash values are the same :: %s', method, hash);
-				} else {
-					const msg = utils.format('The install for chaincode: %s version: ' +
-					'%s did not return the same hash value of %s, value was %s',
-					this._name, this._version, this._hash, hash);
-					logger.error(msg);
-					throw new Error(msg);
-				}
-			} else {
-				logger.debug('%s - first install of package returned hash of %s', method, hash);
-				this._hash = hash;
-			}
+		if (!this._type) {
+			throw new Error('Install operation requires a chaincode type be assigned to this chaincode');
 		}
 
-		return this._hash;
+		// chaincode path only required when the chaincode type is golang
+		if (this._type === 'golang' && !this._chaincode_path) {
+			throw new Error('Install operation requires a chaincode path be assigned to this chaincode');
+		}
+
+		let signer;
+		let tx_id = request.txId;
+		if (!tx_id) {
+			logger.debug('%s - need to build a transaction ID', method);
+			signer = this._client._getSigningIdentity(true); // try to use the admin if available
+			tx_id = new TransactionID(signer, true);
+		} else {
+			signer = this._client._getSigningIdentity(tx_id.isAdmin()); // use the identity that built the transaction id
+		}
+
+		const final_package = await this._build_v2_package();
+		// build install request
+		try {
+			logger.debug('%s - build the install chaincode request', method);
+			const install_chaincode_arg = new lifecycle_protos.InstallChaincodeArgs();
+			install_chaincode_arg.setName(this._name);
+			install_chaincode_arg.setVersion(this._version);
+			install_chaincode_arg.setChaincodeInstallPackage(final_package);
+			const install_request = {
+				chaincodeId: '_lifecycle',
+				fcn: 'InstallChaincode',
+				args: [install_chaincode_arg.toBuffer()],
+				txId: tx_id
+			};
+
+			logger.debug('%s - build the signed proposal', method);
+			const proposal = client_utils.buildSignedProposal(install_request, '', this._client);
+
+			logger.debug('%s - about to sendPeersProposal', method);
+			// request_timeout may not exist, it will be set to the configuration setting
+			const responses = await client_utils.sendPeersProposal([request.target], proposal.signed, request.request_timeout);
+
+			// loop on each peer in the target list
+			for (const response of responses) {
+				logger.debug('%s - looking at response from peer %s', method, request.target);
+				if (response instanceof Error) {
+					logger.error('Problem with the chaincode install ::' + response);
+					throw response;
+				} else if (response.response && response.response.status) {
+					if (response.response.status === 200) {
+						logger.debug('%s - peer response %j', method, response);
+						const hash = this._getHashFromResponse(response.response);
+						this._hash = hash;
+					} else {
+						throw new Error(format('Chaincode install failed with status:%s ::%s', response.status, response.message));
+					}
+				} else {
+					throw new Error('Chaincode install has failed');
+				}
+			}
+
+			return this._hash;
+		} catch (error) {
+			logger.error('Problem building the lifecycle install request :: %s', error);
+			logger.error(' problem at ::' + error.stack);
+			throw error;
+		}
 	}
 
 	/**
@@ -535,12 +687,12 @@ const Chaincode = class {
 
 		if (config instanceof Object) {
 			logger.debug('%s - have a config object %j', method, config);
+			this._colletion_config_proto = CollectionConfig.buildCollectionConfigPackage(config);
+			logger.debug('%s - have a valid config object', method);
 			this._collection_config_json = config;
 		} else {
 			throw new Error('A JSON config parameter is required');
 		}
-
-		this._colletion_config_proto = CollectionConfig.buildCollectionConfigPackage(config);
 
 		return this;
 	}
@@ -557,20 +709,40 @@ const Chaincode = class {
 		'}';
 	}
 
-	static translateCCType(type) {
+	static checkType(type) {
 		const chaincodeType = type.toLowerCase();
 
 		const map = {
-			golang: fabprotos.ChaincodeSpec.Type.GOLANG,
-			car: fabprotos.ChaincodeSpec.Type.CAR,
-			java: fabprotos.ChaincodeSpec.Type.JAVA,
-			node: fabprotos.ChaincodeSpec.Type.NODE
+			golang: fabric_protos.ChaincodeSpec.Type.GOLANG,
+			car: fabric_protos.ChaincodeSpec.Type.CAR,
+			java: fabric_protos.ChaincodeSpec.Type.JAVA,
+			node: fabric_protos.ChaincodeSpec.Type.NODE
 		};
 		const value = map[chaincodeType];
-
-		return value;
+		if (value) {
+			return chaincodeType;
+		} else {
+			throw new Error(format('Chaincode type is not a known type %s', type));
+		}
 	}
 
+	/*
+	 * Internal method to build the final package to send to the chaincode lifecycle
+	 */
+	async _build_v2_package() {
+		return await Packager.finalPackage(this._name, this._version, this._type, this._package, this._chaincode_path);
+	}
+
+	/*
+	 * Internal method to get the hash value returned by the install from the
+	 * payload of the invoke response
+	 */
+	_getHashFromResponse(response) {
+		const installChaincodeResult = lifecycle_protos.InstallChaincodeResult.decode(response.payload);
+		const hash = installChaincodeResult.getHash();
+
+		return hash.toBuffer();
+	}
 };
 
 module.exports = Chaincode;

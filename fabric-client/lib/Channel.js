@@ -2668,23 +2668,28 @@ const Channel = class {
 	}
 
 	/**
-	 * This method will build and send an "allow chaincode for organization for channel"
+	 * This method will build and send an
+	 * "approve chaincode definition for organization for channel"
 	 * transaction to the fabric lifecycle system chaincode.
 	 * see {@link Chaincode}
 	 *
 	 * @async
+	 * @param {peer[] | string[]} targets - Required. The peers that will
+	 *        approve this chaincode definition for this organinization.
+	 *        Only one peer is required, peers will be used in order until
+	 *        one has responded.
 	 * @param {ChaincodeDefineRequest} request - Required.
 	 * @param {Number} timeout - Optional. Timeout specific for this request.
 	 *
 	 * @return {Object} Return object will contain the proposalResponses and the proposal
 	 */
-	async allowChaincodeForOrg(request, timeout) {
+	async approveChaincodeForOrg(request, timeout) {
 		const method = 'allowChaincodeForOrg';
 		logger.debug('%s - start', method);
 
 		this._verifyChaincodeRequest(request);
 
-		// TODO - build send the define for org transaction to the lifecycle chaincode.
+		// TODO - build & send the define for org transaction to the lifecycle chaincode.
 
 		const proposal = {};
 
@@ -2694,18 +2699,23 @@ const Channel = class {
 	}
 
 	/**
-	 * This method will build and send a "commit chaincode for channel"
+	 * This method will build and send a
+	 * "commit chaincode definition for channel"
 	 * transaction to the fabric lifecycle system chaincode.
 	 * see {@link Chaincode}
 	 *
 	 * @async
+	 * @param {peer[] | string[]} targets - Required. The peers that will
+	 *        endorse the commit chaincode definition for this channel. There
+	 *        must be enough peers to satisfy the channel's chaincode lifecycle
+	 *        policy.
 	 * @param {ChaincodeDefineRequest} request - Required.
 	 * @param {Number} timeout - Optional. Timeout specific for this request.
 	 *
 	 * @return {Object} Return object will contain the proposalResponses and the proposal
 	 */
-	async CommitChaincode(request, timeout) {
-		const method = 'CommitChaincode';
+	async commitChaincode(request, timeout) {
+		const method = 'commitChaincode';
 		logger.debug('%s - start', method);
 
 		this._verifyChaincodeRequest(request);
@@ -2840,7 +2850,7 @@ const Channel = class {
 		// always use the handler if available (may not be just for discovery)
 		if (this._endorsement_handler) {
 			logger.debug('%s - running with endorsement handler', method);
-			const proposal = Channel._buildSignedProposal(request, this._name, this._clientContext);
+			const proposal = client_utils.buildSignedProposal(request, this._name, this._clientContext);
 
 			let endorsement_hint = request.endorsement_hint;
 			if (!endorsement_hint && request.chaincodeId) {
@@ -2891,61 +2901,10 @@ const Channel = class {
 			throw new Error(errorMsg);
 		}
 
-		const proposal = Channel._buildSignedProposal(request, channelId, client_context);
+		const proposal = client_utils.buildSignedProposal(request, channelId, client_context);
 
 		const responses = await client_utils.sendPeersProposal(request.targets, proposal.signed, timeout);
 		return [responses, proposal.source];
-	}
-
-	static _buildSignedProposal(request, channelId, client_context) {
-		const method = '_buildSignedProposal';
-		logger.debug('%s - start', method);
-
-		const args = [];
-		args.push(Buffer.from(request.fcn ? request.fcn : 'invoke', 'utf8'));
-		logger.debug('%s - adding function arg:%s', method, request.fcn ? request.fcn : 'invoke');
-
-		for (let i = 0; i < request.args.length; i++) {
-			logger.debug('%s - adding arg', method);
-			args.push(Buffer.from(request.args[i], 'utf8'));
-		}
-		// special case to support the bytes argument of the query by hash
-		if (request.argbytes) {
-			logger.debug('%s - adding the argument :: argbytes', method);
-			args.push(request.argbytes);
-		} else {
-			logger.debug('%s - not adding the argument :: argbytes', method);
-		}
-
-		logger.debug('%s - chaincode ID:%s', method, request.chaincodeId);
-		const invokeSpec = {
-			type: fabprotos.protos.ChaincodeSpec.Type.GOLANG,
-			chaincode_id: {name: request.chaincodeId},
-			input: {args: args}
-		};
-
-		let signer = null;
-		if (request.signer) {
-			signer = request.signer;
-		} else {
-			signer = client_context._getSigningIdentity(request.txId.isAdmin());
-		}
-
-		const channelHeader = client_utils.buildChannelHeader(
-			fabprotos.common.HeaderType.ENDORSER_TRANSACTION,
-			channelId,
-			request.txId.getTransactionID(),
-			null,
-			request.chaincodeId,
-			client_utils.buildCurrentTimestamp(),
-			client_context.getClientCertHash()
-		);
-
-		const header = client_utils.buildHeader(signer, channelHeader, request.txId.getNonce());
-		const proposal = client_utils.buildProposal(invokeSpec, header, request.transientMap);
-		const signed_proposal = client_utils.signProposal(signer, proposal);
-
-		return {signed: signed_proposal, source: proposal};
 	}
 
 	/**
