@@ -2848,10 +2848,10 @@ describe('Channel', () => {
 
 	});
 
-	describe('#allowChaincodeForOrg', () => {
+	describe('#approveChaincodeForOrg', () => {
 		it('should require a request object parameter', async () => {
 			try {
-				await channel.allowChaincodeForOrg();
+				await channel.approveChaincodeForOrg();
 				should.fail();
 			} catch (err) {
 				err.message.should.equal('Missing required request parameter');
@@ -2859,7 +2859,7 @@ describe('Channel', () => {
 		});
 		it('should require a request.chaincode object parameter', async () => {
 			try {
-				await channel.allowChaincodeForOrg({});
+				await channel.approveChaincodeForOrg({});
 				should.fail();
 			} catch (err) {
 				err.message.should.equal('Missing required request parameter "chaincode"');
@@ -2868,7 +2868,7 @@ describe('Channel', () => {
 		it('should require a request.chaincode._hash object parameter', async () => {
 			try {
 				const chaincode = client.newChaincode('mychaincode', 'v1');
-				await channel.allowChaincodeForOrg({chaincode: chaincode});
+				await channel.approveChaincodeForOrg({chaincode: chaincode});
 				should.fail();
 			} catch (err) {
 				err.message.should.equal('Chaincode definition must include the chaincode hash value');
@@ -2876,10 +2876,10 @@ describe('Channel', () => {
 		});
 	});
 
-	describe('#CommitChaincode', () => {
+	describe('#commitChaincode', () => {
 		it('should require a request object parameter', async () => {
 			try {
-				await channel.CommitChaincode();
+				await channel.commitChaincode();
 				should.fail();
 			} catch (err) {
 				err.message.should.equal('Missing required request parameter');
@@ -2887,7 +2887,7 @@ describe('Channel', () => {
 		});
 		it('should require a request.chaincode object parameter', async () => {
 			try {
-				await channel.CommitChaincode({});
+				await channel.commitChaincode({});
 				should.fail();
 			} catch (err) {
 				err.message.should.equal('Missing required request parameter "chaincode"');
@@ -2896,7 +2896,7 @@ describe('Channel', () => {
 		it('should require a request.chaincode._hash object parameter', async () => {
 			try {
 				const chaincode = client.newChaincode('mychaincode', 'v1');
-				await channel.CommitChaincode({chaincode: chaincode});
+				await channel.commitChaincode({chaincode: chaincode});
 				should.fail();
 			} catch (err) {
 				err.message.should.equal('Chaincode definition must include the chaincode hash value');

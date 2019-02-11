@@ -15,8 +15,6 @@
 'use strict';
 
 const rewire = require('rewire');
-const PackagerRewire = rewire('../lib/Packager');
-
 const chai = require('chai');
 const chaiAsPromised = require('chai-as-promised');
 chai.use(chaiAsPromised);
@@ -24,6 +22,7 @@ const should = chai.should();
 const sinon = require('sinon');
 
 describe('Packager', () => {
+	const PackagerRewire = rewire('../lib/Packager');
 
 	describe('#package', () => {
 
@@ -208,5 +207,55 @@ describe('Packager', () => {
 			obj.should.deep.equal({response: 'go_build'});
 		});
 
+	});
+
+	describe('#package', () => {
+
+		const sandbox = sinon.createSandbox();
+		const packaged_bytes = Buffer.from('abc');
+
+		afterEach(() => {
+			sandbox.restore();
+		});
+
+		it('should reject if missing chaincodeName parameter', async () => {
+			await PackagerRewire.finalPackage().should.be.rejectedWith(/Missing chaincodeName parameter/);
+		});
+
+		it('should reject if missing chaincodeVersion parameter', async () => {
+			await PackagerRewire.finalPackage('name').should.be.rejectedWith(/Missing chaincodeVersion parameter/);
+		});
+
+		it('should reject if missing chaincodeType parameter', async () => {
+			await PackagerRewire.finalPackage('name', 'v1').should.be.rejectedWith(/Missing chaincodeType parameter/);
+		});
+
+		it('should reject if missing packageBytes parameter', async () => {
+			await PackagerRewire.finalPackage('name', 'v1', 'node').should.be.rejectedWith(/Missing packageBytes parameter/);
+		});
+
+		it('should reject if missing goPath parameter', async () => {
+			await PackagerRewire.finalPackage('name', 'v1', 'golang', 'something').should.be.rejectedWith(/Missing chaincodePath parameter/);
+		});
+
+		it('should be able to create content when chaincode type is golang', async () => {
+			const content = await PackagerRewire.finalPackage('name', 'v1', 'golang', packaged_bytes, '/path');
+			content.length.should.be.equal(142);
+		});
+
+		it('should be able to create content when chaincode type is node', async () => {
+			const content = await PackagerRewire.finalPackage('name', 'v1', 'node', packaged_bytes);
+			content.length.should.be.equal(128);
+		});
+
+		it('should be able to create content when chaincode type is java', async () => {
+			const content = await PackagerRewire.finalPackage('name', 'v1', 'java', packaged_bytes);
+			content.length.should.be.equal(128);
+		});
+
+		it('should be able to create content when chaincode type is car', async () => {
+			const content = await PackagerRewire.finalPackage('name', 'v1', 'car', packaged_bytes);
+			content.length.should.be.equal(126);
+		});
 	});
 });

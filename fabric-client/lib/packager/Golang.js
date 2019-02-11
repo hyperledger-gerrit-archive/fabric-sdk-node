@@ -26,19 +26,23 @@ class GolangPackager extends BasePackager {
 
 	/**
 	 * Package chaincode source and metadata for deployment.
-	 * @param {string} chaincodePath The Go package name.  The GOPATH environment variable must be set
-	 * and the package must be located under GOPATH/src.
-	 * @param {string} [metadataPath] The path to the top-level directory containing metadata descriptors.
+	 * @param {string} chaincodePath The Go package name. The package must be located under GOPATH/src.
+	 * @param {string} metadataPath The path to the top-level directory containing metadata descriptors.
+	 * @param {string} goPath Optional. The GOPATH setting used when building the chaincode. This will
+	 *        default to the environment setting "GOPATH".
 	 * @returns {Promise.<TResult>}
 	 */
-	package (chaincodePath, metadataPath) {
+	package (chaincodePath, metadataPath, goPath) {
 		logger.debug('packaging GOLANG from %s', chaincodePath);
 
 		// Determine the user's $GOPATH
-		const goPath = process.env.GOPATH;
+		let _goPath = process.env.GOPATH;
+		if (goPath) {
+			_goPath = goPath;
+		}
 
 		// Compose the path to the chaincode project directory
-		const projDir = path.join(goPath, 'src', chaincodePath);
+		const projDir = path.join(_goPath, 'src', chaincodePath);
 
 		// We generate the tar in two phases: First grab a list of descriptors,
 		// and then pack them into an archive.  While the two phases aren't
@@ -47,7 +51,7 @@ class GolangPackager extends BasePackager {
 
 		const buffer = new sbuf.WritableStreamBuffer();
 
-		return this.findSource(goPath, projDir).then((srcDescriptors) => {
+		return this.findSource(_goPath, projDir).then((srcDescriptors) => {
 			if (metadataPath) {
 				return super.findMetadataDescriptors(metadataPath)
 					.then((metaDescriptors) => {
