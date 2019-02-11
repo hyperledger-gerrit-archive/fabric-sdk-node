@@ -1,4 +1,8 @@
-This tutorial illustrates how to handle the lifecycle of your chaincode. The installation, updating, and the starting of chaincode has had been changed with Hyperledger Fabric 2.0 and fabric-client 2.0.
+This tutorial illustrates how to handle the lifecycle of your chaincode.
+The installation, updating, and the starting of chaincode has been
+changed with Hyperledger Fabric 2.0 and fabric-client 2.0.
+
+***** this doc is not done *****
 
 For more information on:
 * getting started with Hyperledger Fabric see
@@ -15,31 +19,31 @@ Javascript `promise` and `async await`.
 
 ### Overview
 This discussion will focus on the steps that are required by an application
-program that will be managing the install, updating and starting of chaincodes
+program to managing the install, update and starting of chaincodes
 on your Hyperledger Fabric network. The existing api's for managing the lifecycle
-of your pre 2.0 chaincodes will still be available in fabric-client, however it
+of your pre 2.0 chaincodes will still be available in fabric-client and those
 will not be discussed here.
 
 The steps to manage chaincode:
 * `setup` - create the necessary application objects
 * `package` - package the chaincode source artifacts
 * `install` - push to the network
-* `define for organization` - each organization will define a specific chaincode definition
-* `define for the channel` - the channel members will agree to run a specific chaincode definition
-* `initialize` - start the chaincode container and initialize the chaincode
+* `approve for organization` - each organization will approve a specific chaincode definition
+* `commit for the channel` - the channel members will agree (commit) to run a specific chaincode definition
+* `initialize` - (Optional) start the chaincode container and initialize the chaincode
 
 #### New Class
 A new class {@link Chaincode} has been added to the fabric-client to encapsulate
 a chaincode definition.
 A {@link Chaincode} instance will be created by a client instance's
-{@link Client#newChaincode newChaincode()} method.
+{@link Client#newChaincode newChaincode(name,version)} method.
 Then using the new instance, you will be able to build up a chaincode definition
 with the following methods.
-* {@link Chaincode#setEndorsementPolicy setEndorsementPolicy} - Provide the endorsement policy for this chaincode.
-* {@link Chaincode#setCollectionConfig setCollectionConfig} - Provide the collection configuration for this chaincode.
-* {@link Chaincode#setSequence setSequence} - Provide the modification number for this chaincode.
+* {@link Chaincode#setEndorsementPolicyDefinition setEndorsementPolicyDefinition} - Provide the endorsement policy for this chaincode.
+* {@link Chaincode#setCollectionConfigPackageDefinition setCollectionConfigPackageDefinition} - Provide the collection configuration for this chaincode.
+* {@link Chaincode#setSequence setSequence} - Provide the modification number for this chaincode definition.
 * {@link Chaincode#setPackage setPackage} - Provide the package when not packaging this chaincode locally.
-* {@link Chaincode#setHash setHash} - Provide the package hash when not doing an install locally of this chaincode.
+* {@link Chaincode#setPackage setPackageId} - Provide the package ID when not installing this chaincode package locally.
 
 The chaincode instance will allow for the packaging and installing of chaincode
 to a peer within your organization with the following methods.
@@ -47,20 +51,22 @@ to a peer within your organization with the following methods.
 * {@link Chaincode#install install} Install the package on the specified peers.
 
 Once the chaincode definition has all the necessary attributes, it may be used
-by a channel instance to be defined both for an organization and channel wide.
+by a channel instance to be approved both for an organization and
+then committed for use on the channel.
 
 #### New methods on Channel
-The {@link Channel} class has been enhanced to include new methods to define
-a chaincode for an organization and for the channel wide use.
+The {@link Channel} class has been enhanced to include new methods to approve
+a chaincode for an organization and to commit it for channel wide use.
 
-* {@link Channel#defineChaincodeForOrg defineChaincodeForOrg} - Define
+* {@link Channel#approveChaincodeForOrg approveChaincodeForOrg} - approve
 the chaincode for an organization.
-* {@link Channel#defineChaincode defineChaincode} - Define
+* {@link Channel#commitChaincode commitChaincode} - commit
 the chaincode for a channel.
 
 #### New method on Client
-The {@link Client} class has been enhanced to include new method to create
-a {@link Chaincode} instance.
+The {@link Client} class has been enhanced to include a new method to create
+a {@link Chaincode} instance. This is the object to use for managing a
+chaincode.
 
 * {@link Client#newChaincode newChaincode} - Create a {@link Chaincode} instance.
 
@@ -68,11 +74,11 @@ a {@link Chaincode} instance.
 ### Step 1: Setup
 In this step we will be building
 the application objects needed to perform the operational steps that follow.
-An fabric-client operational environment is required before any of the
+A fabric-client operational environment is required before any of the
 following steps may be performed. A client instance is needed
 that has a user store, crypto suite, and a user assigned. The target peers,
 orderer, and channel instance objects will also be required prior to doing
-the any of the following steps.
+any of the following steps.
 
 The following sample code assumes that all of the normal fabric-client
 setup has been completed and only shows the new chaincode lifecycle
@@ -80,9 +86,9 @@ related calls.
 
 ```
 // get the chaincode instance associated with the client
-const mychaincode = client.newChaincode('mychaincode', 'version1');
+const mychaincode = client.newChaincode('mychaincode', 'v1');
 
-// The endorsement policy - required.
+// The endorsement policy
 const policy_def = {
    identities: [
       {role: {name: 'member', mspId: 'org1'}},
@@ -92,7 +98,7 @@ const policy_def = {
        '1-of': [{'signed-by': 0}, {'signed-by': 1}]
    }
 };
-mychaincode.setEndorsementPolicy(policy_def);
+mychaincode.setEndorsementPolicyDefinition(policy_def);
 
 // The collection configuration - optional.
 const config_def = [{
@@ -110,14 +116,14 @@ const config_def = [{
    maxPeerCount: 1,
    blockToLive: 100
 }];
-mychaincode.setCollectionConfig(config_def));
+mychaincode.setCollectionConfigPackageDefinition(config_def));
 
-// set the sequence (modification) number - required.
-mychaincode.setSequence(1); //set to one for a new chaincode
+// set the sequence (modification) number - default is 1
+mychaincode.setSequence(1); // must increment for each definition change
 ```
 
 ### Step 2: Package
-This step will only be required by a single organization. The organization will
+One organization will
 take the source artifacts, chaincode source code and metadata files, and have
 the fabric-client package them. This package may then be sent to other
 organizations or administrators of your fabric network to be installed on
@@ -138,7 +144,8 @@ const package = await mychaincode.package(package_request);
 ```
 
 The following example is for the organization that has not done the
-packaging, but will do the install.
+packaging, but will do the install. It uses the package that was
+produced above.
 
 ```
 // use an existing package
@@ -146,16 +153,19 @@ mychaincode.setPackage(package);
 ```
 
 ### Step 3: Install
-This step will be required by all organizations that will be running the chaincode
+This step will be only required by organizations that will be running the chaincode
 (executing transactions). The install will take the packaged source code artifacts
 and send it to a peer or peers in your organization. Installing chaincode requires
-admin authority for the organization. The peer will return a hash value, a unique
-identifer for this chaincode package. The hash value will be needed later when
-the chaincode is defined. The chaincode object will also store the value for
-the next step.
+admin authority for the organization. The peer will return a package ID value,
+an unique identifer for this chaincode package. The package ID value will be needed
+later when the chaincode is approved and committed. Organizations that will only
+be approving or committing the chaincode will not require a package ID.
+The chaincode instance object
+that performs the install will also store the package ID
+internally for the next step.
 
-The following sample assumes that the chaincode object being used has
-been setup and packaged or an error would be thrown.
+The following sample assumes that the chaincode instance object (`mychaincode`) has
+been setup and packaged.
 
 ```
 // install chaincode package on peers
@@ -163,59 +173,48 @@ been setup and packaged or an error would be thrown.
    targets: [peer1, peer2],
    request_timeout: 20000 // give the peers some extra time
  }
-const hash = await mychaincode.install(install_request);
+const package_id = await mychaincode.install(install_request);
 
-// hash value is stored
-const same_hash = mychaincode.getHash();
+// package ID value is stored in the chaincode instance
+const package_id = mychaincode.getPackageId();
 ```
 
 For organizations that will not be running the chaincode and are
-still required to approve the chaincode the following example
-shows how they would by pass the install and just assign the
-hash value to the chaincode instance. The hash value must be
-the value that was returned by the peer when the chaincode was installed.
+required to approve the chaincode will not require an package ID.
 
-```
-// set hash value instead of doing an install
-mychaincode.setHash(hash);
-```
-
-### Step 4: Define for your organization
-This step wlll define a chaincode for your organization.
-The defining action will be required by enough organizations
+### Step 4: Approve for your organization
+This step will approve a chaincode for your organization.
+This will be required by enough organizations
 to satisfy the channel's chaincode lifecycle system policy.
 By default this will be a majority of the
 organizations on the channel. Each of these organizations will endorse and
-commit a transaction that defines a chaincode and it's operational settings.
+commit a transaction that approves a chaincode and it's definition settings.
 This may be thought of not only as a definition of the chaincode but a vote
 to authorize the running of the chaincode with these settings.
-These are separate organizational chaincode definitions
-transactions submitted by each organizations and each committed to the
-ledger. This definition is for a specific organization, specific settings,
+This definition is for a specific organization, specific settings,
 and only on this channel.
 The organizational chaincode definition transaction may be submitted at any
 time, but must be submitted prior to being able to execute the chaincode
-on a peer within the organization. This is how a new organization may start
-running an existing chaincode other organization are currently running.
-The transactions must include the exact same chaincode definition.
-The definition does not include the package, it includes the hash value
-that uniquely identifies the chaincode source artifacts.
-An organization will be able to submit the organizational chaincode definition
-transaction without having installed the package, but has received the hash
-value from an organization that did install the package.
+on a peer within the organization. A new organization may start
+running an existing chaincode running on other organization
+by approving the existing running chaincode definition for their organization.
+The approve transactions must contain the same chaincode definition except for
+the package ID value, this will be unique for each organization.
+An organization will be able to submit the organizational chaincode approval
+transactions without having installed the package.
 
-The following sample assumes that the chaincode object being used has
-been setup and installed or an error will be thrown.
+The following sample assumes that the chaincode object being used (`mychaincode`)
+has been setup and installed.
 ```
-// send a define chaincode for organization transaction
+// send a approve chaincode for organization transaction
 const tx_id = client.newTransactionID();
 const request = {
    target: peer1,
-   chaincode: mychaincode,
+   chaincode: mychaincode, // The chaincode instance fully populated
    txId: tx_id
 }
 // send to the peer to be endorsed
-const {proposalResponses, proposal} = await mychannel.defineChaincodeForOrg(request);
+const {proposalResponses, proposal} = await mychannel.approveChaincodeForOrg(request);
 const orderer_request = {
    proposalResponses: proposalResponses,
    proposal, proposal
@@ -224,30 +223,32 @@ const orderer_request = {
 const results = await mychannel.sendTransaction(orderer_request);
 ```
 
-### Step 5: Define for the channel
-This step will define a chaincode for your channel. The defining action will
+### Step 5: Commit for the channel
+This step will commit a chaincode for user on your channel.
+The committing action will
 not change the chaincode or it's settings, but rather confirm the
-organizational chaincode definition for the channel. 
-The channel chaincode definition transaction will
+approved organizational chaincode definitions for the channel. 
+The commit chaincode definition transaction will
 be submitted by only one organization. 
 A successful transaction must be endorsed by enough
 organizations to satisfy the channel's chaincode lifecycle system policy
-and there must be enough committed organizational chaincode definition
+and there must be enough approved organizational chaincode definition
 transactions committed that also satisfies the
 channel's chaincode lifecycle system policy.
-Think of this step as the tallying of the votes to run the chaincode.
-The action to actually count the votes must be approved by enough members
+Think of the commit step as the counting of the votes to run the chaincode and
+the approve step as the voting.
+The action to actually count the votes must be endorsed by enough members
 and then there must be enough votes before the chaincode will
 be allowed to run.
-When only a chaincode setting has been changed, like an endorsement policy,
+When only a chaincode setting has been changed, for example the endorsement policy,
+and enough organizations have approved,
 a successful commit of the channel chaincode definition transaction will
-enable the new policy for this chaincode. The initialize step will not be
-required as the chaincode container will not have to change. If this is
+enable the new policy for this chaincode. If this is
 for a new chaincode or an update to the chaincode code, then the initialize
-step will be required.
+step may will be required.
 
 ```
-// send a define chaincode for channel transaction
+// send a commit chaincode for channel transaction
 const tx_id = client.newTransactionID();
 const request = {
    targets: [peer1, peer3],
@@ -255,7 +256,7 @@ const request = {
    txId: tx_id
 }
 // send to the peers to be endorsed
-const {proposalResponses, proposal} = await mychannel.defineChaincode(request);
+const {proposalResponses, proposal} = await mychannel.commitChaincode(request);
 const orderer_request = {
    proposalResponses: proposalResponses,
    proposal, proposal
@@ -268,10 +269,13 @@ const results = await mychannel.sendTransaction(orderer_request);
 This step will start new chaincode on your channel.
 This will be the last step before the chaincode may be used for invokes and
 queries.
-This step will...
 The initialize transaction will start the container and then call the
-`init` method of the chaincode with the provided arguments.
+`init` method of the chaincode with the provided arguments. The chaincode
+definition must be defined as "initRequired=true" for the "Init" method
+to be called on this invoke transaction rather than the "Invoke" method
+of your chaincode.
 
+TODO need a much better description here
 ```
 // initialize the chaincode
 const tx_id = client.newTransactionID();
@@ -279,7 +283,8 @@ const request = {
    chaincodeId : chaincodeId,
    fcn: 'init',
    args: args,
-   txId: tx_id
+   txId: tx_id,
+   is_init: true // must be set to initialization
 }
 // starting the container will take longer than the normal request-timeout
 const init_results = await mychannel.sendTransaction(request, 20000);
@@ -306,8 +311,9 @@ to define it for the entire channel and initialize it.
 // step 1:
 const mychaincode = client.newChaincode('mychaincode', 'version1');
 const policy_def = { ... };
-mychaincode.setEndorsementPolicy(policy_def);
+mychaincode.setEndorsementPolicyDefinition(policy_def);
 mychaincode.setSequence(1); //set to one for a new chaincode
+mychaincode.setInitRequired(true);
 
 // step 2:
 const packge_request = {
@@ -323,16 +329,16 @@ const package = await mychaincode.package(package_request);
    targets: [peer1, peer2],
    request_timeout: 20000 // give the peers some extra time
  }
-const hash = await mychaincode.install(install_request);
+const package_id = await mychaincode.install(install_request);
 
 // step 4:
 const tx_id = client.newTransactionID();
 const request = {
-   target: peer1,
+   targets: [peer1],
    chaincode: mychaincode,
    txId: tx_id
 }
-const {proposalResponses, proposal} = await mychannel.defineChaincodeForOrg(request);
+const {proposalResponses, proposal} = await mychannel.approveChaincodeForOrg(request);
 const orderer_request = {
    proposalResponses: proposalResponses,
    proposal, proposal
@@ -346,7 +352,7 @@ const request = {
    chaincode: mychaincode,
    txId: tx_id
 }
-const {proposalResponses, proposal} = await mychannel.defineChaincode(request);
+const {proposalResponses, proposal} = await mychannel.commitChaincode(request);
 const orderer_request = {
    proposalResponses: proposalResponses,
    proposal, proposal
@@ -359,7 +365,8 @@ const request = {
    chaincodeId : chaincodeId,
    fcn: 'init',
    args: args,
-   txId: tx_id
+   txId: tx_id,
+   is_init: true
 }
 const init_results = await mychannel.sendTransaction(request, 20000);
 const orderer_request = {
@@ -383,7 +390,7 @@ to define it for the entire channel and initialize it.
 // step 1:
 const mychaincode = client.newChaincode('mychaincode', 'version2');
 const policy_def = { ... };
-mychaincode.setEndorsementPolicy(policy_def);
+mychaincode.setEndorsementPolicyDefinition(policy_def);
 mychaincode.setSequence(2);
 
 // step 2:
@@ -401,16 +408,16 @@ const package = await mychaincode.package(package_request);
    targets: [peer1, peer2],
    request_timeout: 20000 // give the peers some extra time
  }
-const hash = await mychaincode.install(install_request);
+const package_id = await mychaincode.install(install_request);
 
 // step 4:
 const tx_id = client.newTransactionID();
 const request = {
-   target: peer1,
+   targets: [peer1],
    chaincode: mychaincode,
    txId: tx_id
 }
-const {proposalResponses, proposal} = await mychannel.defineChaincodeForOrg(request);
+const {proposalResponses, proposal} = await mychannel.approveChaincodeForOrg(request);
 const orderer_request = {
    proposalResponses: proposalResponses,
    proposal, proposal
@@ -425,7 +432,7 @@ const request = {
    txId: tx_id
 }
 // send to the peers to be endorsed
-const {proposalResponses, proposal} = await mychannel.defineChaincode(request);
+const {proposalResponses, proposal} = await mychannel.commitChaincode(request);
 const orderer_request = {
    proposalResponses: proposalResponses,
    proposal, proposal
@@ -433,23 +440,6 @@ const orderer_request = {
 // send to the orderer to be committed
 const results = await mychannel.sendTransaction(orderer_request);
 
-// step 6:
-// initialize the chaincode
-const tx_id = client.newTransactionID();
-const request = {
-   chaincodeId : chaincodeId,
-   fcn: 'init',
-   args: args,
-   txId: tx_id
-}
-// starting the container will take longer than the normal request-timeout
-const init_results = await mychannel.sendTransaction(request, 20000);
-const orderer_request = {
-   proposalResponses: init_results[0],
-   proposal: init_results[1]
-}
-// send to the orderer to be committed
-const results = await mychannel.sendTransaction(orderer_request);
 ```
 
 #### Modify the Endorsement policy
@@ -470,11 +460,11 @@ to define it for the entire channel.
 // step 1:
 const mychaincode = client.newChaincode('mychaincode', 'version2');
 const new_policy_def = { ... };
-mychaincode.setEndorsementPolicy(new_policy_def);
+mychaincode.setEndorsementPolicyDefinition(new_policy_def);
 mychaincode.setSequence(3);
 
 // step 3:
-mychaincode.setHash(hash);
+mychaincode.setPackageId(package_id);
 
 // step 4:
 const tx_id = client.newTransactionID();
@@ -483,7 +473,7 @@ const request = {
    chaincode: mychaincode,
    txId: tx_id
 }
-const {proposalResponses, proposal} = await mychannel.defineChaincodeForOrg(request);
+const {proposalResponses, proposal} = await mychannel.approveChaincodeForOrg(request);
 const orderer_request = {
    proposalResponses: proposalResponses,
    proposal, proposal
@@ -498,7 +488,7 @@ const request = {
    txId: tx_id
 }
 // send to the peers to be endorsed
-const {proposalResponses, proposal} = await mychannel.defineChaincode(request);
+const {proposalResponses, proposal} = await mychannel.commitChaincode(request);
 const orderer_request = {
    proposalResponses: proposalResponses,
    proposal, proposal
@@ -515,26 +505,33 @@ perform a few of the steps with the existing values.
 // step 1:
 const mychaincode = client.newChaincode('mychaincode', 'version2');
 const policy_def = { ... };
-mychaincode.setEndorsementPolicy(policy_def);
+mychaincode.setEndorsementPolicyDefinition(policy_def);
 mychaincode.setSequence(3);
 
 // step 3:
-mychaincode.setHash(hash);
+mychaincode.setPackageId(package_id);
 
 // step 4:
 const tx_id = client.newTransactionID();
 const request = {
-   target: peer1, // this peer is in my org
+   targets: [peer1], // this peer is in my org
    chaincode: mychaincode,
    txId: tx_id
 }
-const {proposalResponses, proposal} = await mychannel.defineChaincodeForOrg(request);
+const {proposalResponses, proposal} = await mychannel.approveChaincodeForOrg(request);
 const orderer_request = {
    proposalResponses: proposalResponses,
    proposal, proposal
 }
 const results = await mychannel.sendTransaction(orderer_request);
 ```
+#### Show the new Queries
+TODO show the queries
+QueryApprovalStatus
+QueryInstalledChaincode
+QueryInstalledChaincodes
+QueryChaincodeDefinition
+QueryNamespaceDefinitions
 
 <a rel="license" href="http://creativecommons.org/licenses/by/4.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by/4.0/88x31.png" /></a><br />This work is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by/4.0/">Creative Commons Attribution 4.0 International License</a>.
 
