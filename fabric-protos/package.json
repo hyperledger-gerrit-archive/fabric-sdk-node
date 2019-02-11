@@ -32,7 +32,8 @@
   ],
   "dependencies": {
     "grpc": "1.14.2",
-    "protobufjs": "5.0.3"
+    "pbjs": "0.0.5",
+    "protobufjs": "^5.0.3"
   },
   "devDependencies": {
     "cpx": "^1.5.0",

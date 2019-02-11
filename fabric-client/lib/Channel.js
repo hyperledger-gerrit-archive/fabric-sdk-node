@@ -2625,23 +2625,28 @@ const Channel = class {
 	}
 
 	/**
-	 * This method will build and send an "allow chaincode for organization for channel"
+	 * This method will build and send an
+	 * "approve chaincode definition for organization for channel"
 	 * transaction to the fabric lifecycle system chaincode.
 	 * see {@link Chaincode}
 	 *
 	 * @async
+	 * @param {peer[] | string[]} targets - Required. The peers that will
+	 *        approve this chaincode definition for this organinization.
+	 *        Only one peer is required, peers will be used in order until
+	 *        one has responded.
 	 * @param {ChaincodeDefineRequest} request - Required.
 	 * @param {Number} timeout - Optional. Timeout specific for this request.
 	 *
 	 * @return {Object} Return object will contain the proposalResponses and the proposal
 	 */
-	async allowChaincodeForOrg(request, timeout) {
+	async approveChaincodeForOrg(request, timeout) {
 		const method = 'allowChaincodeForOrg';
 		logger.debug('%s - start', method);
 
 		this._verifyChaincodeRequest(request);
 
-		// TODO - build send the define for org transaction to the lifecycle chaincode.
+		// TODO - build & send the define for org transaction to the lifecycle chaincode.
 
 		const proposal = {};
 
@@ -2651,18 +2656,23 @@ const Channel = class {
 	}
 
 	/**
-	 * This method will build and send a "commit chaincode for channel"
+	 * This method will build and send a
+	 * "commit chaincode definition for channel"
 	 * transaction to the fabric lifecycle system chaincode.
 	 * see {@link Chaincode}
 	 *
 	 * @async
+	 * @param {peer[] | string[]} targets - Required. The peers that will
+	 *        endorse the commit chaincode definition for this channel. There
+	 *        must be enough peers to satisfy the channel's chaincode lifecycle
+	 *        policy.
 	 * @param {ChaincodeDefineRequest} request - Required.
 	 * @param {Number} timeout - Optional. Timeout specific for this request.
 	 *
 	 * @return {Object} Return object will contain the proposalResponses and the proposal
 	 */
-	async CommitChaincode(request, timeout) {
-		const method = 'CommitChaincode';
+	async commitChaincode(request, timeout) {
+		const method = 'commitChaincode';
 		logger.debug('%s - start', method);
 
 		this._verifyChaincodeRequest(request);
