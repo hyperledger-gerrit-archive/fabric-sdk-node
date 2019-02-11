@@ -17,12 +17,11 @@ const {format} = require('util');
 
 const utils = require('./utils.js');
 const logger = utils.getLogger('Chaincode.js');
+const Packager = require('./Packager.js');
 const Policy = require('./Policy.js');
 const CollectionConfig = require('./SideDB.js');
-const fabprotos = require('fabric-protos').protos;
-
-
-
+const fabric_protos = require('fabric-protos').protos;
+// const lifecycle_protos = require('fabric-protos').lifecycle;
 
 /**
  * @classdesc
@@ -203,10 +202,13 @@ const Chaincode = class {
 		if (!client) {
 			throw new Error('Missing client parameter');
 		}
+		this._client = client;
 		this._name = name;
 		this._version = version;
-		this._client = client;
-
+		this._type = null;
+		this._chaincode_path = null;
+		this._metadata_path = null;
+		this._golang_path = null;
 		this._sequence = null;
 		this._package = null;
 		this._hash = null;
@@ -284,6 +286,71 @@ const Chaincode = class {
 	}
 
 	/**
+	 * Sets the chaincode type
+	 * @param {string} type The type of this chaincode. Must be "golang",
+	 *        "node", "java" or "car".
+	 */
+	setType(type) {
+		this._type = Chaincode.checkType(type);
+	}
+
+	/**
+	 * Gets the chaincode type
+	 */
+	getType() {
+
+		return this._type;
+	}
+
+	/**
+	 * Sets the chaincode path
+	 * @param {string} path The path of this chaincode.
+	 */
+	setChaincodePath(path) {
+		this._chaincode_path = path;
+	}
+
+	/**
+	 * Gets the chaincode path
+	 */
+	getChaincodePath() {
+
+		return this._chaincode_path;
+	}
+
+	/**
+	 * Sets the metadata path
+	 * @param {string} path The path of this metadata.
+	 */
+	setMetadataPath(path) {
+		this._metadata_path = path;
+	}
+
+	/**
+	 * Gets the chaincode path
+	 */
+	getMetadataPath() {
+
+		return this._metadata_path;
+	}
+
+	/**
+	 * Sets the goLang path
+	 * @param {string} path The golang path.
+	 */
+	setGoLangPath(path) {
+		this._golang_path = path;
+	}
+
+	/**
+	 * Gets the goLang path
+	 */
+	getGoLangPath() {
+
+		return this._golang_path;
+	}
+
+	/**
 	 * @typedef {Object} ChaincodeInstallRequest
 	 * @property {string} chaincodeType - Required. Type of chaincode. One of
 	 *        'golang', 'car', 'node' or 'java'.
@@ -298,9 +365,11 @@ const Chaincode = class {
 	 */
 
 	/**
-	 *  Package the files at the locations provided.
-	 *  This method will both return the package and set the
-	 *  package on this instance.
+	 * Package the files at the locations provided.
+	 * This method will both return the package and set the package on this instance.
+	 * This method will set the type, and paths (if provided in the request).
+	 * The this._hash will be set by the install method or manually by the application.
+	 * The this._hash must be set before using this object on the {@link Channel#approveChaincodeForOrg}.
 	 *
 	 * @async
 	 * @param {ChaincodePackageRequest} request - Required. The parameters to build the
@@ -323,11 +392,21 @@ const Chaincode = class {
 			throw new Error('Chaincode package "chaincodeType" parameter is required');
 		}
 
-		const _type = Chaincode.translateCCType(request.chaincodeType);
+		const _type = Chaincode.checkType(request.chaincodeType);
 		if (!_type) {
 			throw new Error(format('Chaincode package "chaincodeType" parameter is not a known type %s', request.chaincodeType));
 		}
 
+		if (!request.chaincodePath) {
+			throw new Error('Chaincode package "chaincodePath" parameter is required');
+		}
+
+		this._type = _type;
+		this._chaincode_path = request.chaincodePath;
+		this._metadata_path = request.metadataPath;
+		this._go_path = request.goPath;
+
+		this._package = await Packager.package(request.chaincodePath, request.chaincodeType, false, request.metadataPath);
 
 		return this._package;
 	}
@@ -402,7 +481,7 @@ const Chaincode = class {
 
 	/**
 	 * @typedef {Object} ChaincodeInstallRequest
-	 * @property {Buffer} target Required. The peer to use for this request
+	 * @property {Buffer} targets Required. The peers to use for this request
 	 * @property {number} request_timeout Optional. The amount of time for the
 	 *        to respond. The default will be the system configuration
 	 *        value of 'request-timeout'.
@@ -432,14 +511,22 @@ const Chaincode = class {
 			throw new Error('Install operation requires a chaincode package be assigned to this chaincode');
 		}
 
+		if (!request.targets) {
+			throw new Error('Chaincode install "targets" parameter is required');
+		}
+
+		if (!Array.isArray(request.targets)) {
+			throw new Error('Chaincode install "targets" parameter must be an array of peers');
+		}
+
 		const peers = request.targets; // TODO validate the targets
 
 		// loop on each peer in the target list
 		for (const peer of peers) {
-			const hash = 'somehash'; // TODO put the install call here to the peer
 			logger.debug('%s - working with peer %s', method, peer);
 
 			// TODO install process here
+			const hash = 'somehash';
 
 			if (this._hash) {
 				if (hash === this._hash) {
@@ -535,12 +622,12 @@ const Chaincode = class {
 
 		if (config instanceof Object) {
 			logger.debug('%s - have a config object %j', method, config);
+			this._colletion_config_proto = CollectionConfig.buildCollectionConfigPackage(config);
+			logger.debug('%s - have a valid config object', method);
 			this._collection_config_json = config;
 		} else {
 			throw new Error('A JSON config parameter is required');
 		}
-
-		this._colletion_config_proto = CollectionConfig.buildCollectionConfigPackage(config);
 
 		return this;
 	}
@@ -557,20 +644,22 @@ const Chaincode = class {
 		'}';
 	}
 
-	static translateCCType(type) {
+	static checkType(type) {
 		const chaincodeType = type.toLowerCase();
 
 		const map = {
-			golang: fabprotos.ChaincodeSpec.Type.GOLANG,
-			car: fabprotos.ChaincodeSpec.Type.CAR,
-			java: fabprotos.ChaincodeSpec.Type.JAVA,
-			node: fabprotos.ChaincodeSpec.Type.NODE
+			golang: fabric_protos.ChaincodeSpec.Type.GOLANG,
+			car: fabric_protos.ChaincodeSpec.Type.CAR,
+			java: fabric_protos.ChaincodeSpec.Type.JAVA,
+			node: fabric_protos.ChaincodeSpec.Type.NODE
 		};
 		const value = map[chaincodeType];
-
-		return value;
+		if (value) {
+			return chaincodeType;
+		} else {
+			throw new Error(format('Chaincode type is not a known type %s', type));
+		}
 	}
-
 };
 
 module.exports = Chaincode;

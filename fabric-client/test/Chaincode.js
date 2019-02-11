@@ -14,6 +14,7 @@
 
 'use strict';
 
+const path = require('path');
 const rewire = require('rewire');
 
 const Chaincode = rewire('../lib/Chaincode');
@@ -23,6 +24,7 @@ const chai = require('chai');
 const chaiAsPromised = require('chai-as-promised');
 const sinon = require('sinon');
 const should = chai.should();
+const expect = chai.expect;
 chai.use(chaiAsPromised);
 
 function propertiesToBeEqual(obj, properties, value) {
@@ -214,6 +216,64 @@ describe('Chaincode', () => {
 			const check = chaincode.hasPackage();
 			should.equal(check, false);
 		});
+
+		it('should get error on bad chaincode type', () => {
+			(() => {
+				chaincode.setType('bad');
+			}).should.throw('Chaincode type is not a known type bad');
+		});
+
+		it('check the type setter and getter', () => {
+			chaincode.setType('GOLANG');
+			should.equal(chaincode._type, 'golang');
+			const type = chaincode.getType();
+			should.equal(type, 'golang');
+		});
+
+		it('check the type setter and getter', () => {
+			chaincode.setType('node');
+			should.equal(chaincode._type, 'node');
+			const type = chaincode.getType();
+			should.equal(type, 'node');
+		});
+
+		it('check the type setter and getter', () => {
+			chaincode.setType('java');
+			should.equal(chaincode._type, 'java');
+			const type = chaincode.getType();
+			should.equal(type, 'java');
+		});
+
+		it('check the type setter and getter', () => {
+			chaincode.setType('car');
+			should.equal(chaincode._type, 'car');
+			const type = chaincode.getType();
+			should.equal(type, 'car');
+		});
+
+		it('check the chaincode path setter and getter', () => {
+			const my_path = '/mypath';
+			chaincode.setChaincodePath(my_path);
+			should.equal(chaincode._chaincode_path, my_path);
+			const chaincode_path = chaincode.getChaincodePath();
+			should.equal(chaincode_path, my_path);
+		});
+
+		it('check the metadata path setter and getter', () => {
+			const my_path = '/mypath';
+			chaincode.setMetadataPath(my_path);
+			should.equal(chaincode._metadata_path, my_path);
+			const metadata_path = chaincode.getMetadataPath();
+			should.equal(metadata_path, my_path);
+		});
+
+		it('check the golang path setter and getter', () => {
+			const my_path = '/mypath';
+			chaincode.setGoLangPath(my_path);
+			should.equal(chaincode._golang_path, my_path);
+			const golang_path = chaincode.getGoLangPath();
+			should.equal(golang_path, my_path);
+		});
 	});
 
 	describe('#setEndorsementPolicy', () => {
@@ -268,33 +328,6 @@ describe('Chaincode', () => {
 		});
 	});
 
-	describe('#install', () => {
-		const client = new Client();
-		let chaincode;
-
-		beforeEach(() => {
-			chaincode = new Chaincode('mychaincode', 'v1', client);
-		});
-
-		it('should require a package', async () => {
-			try {
-				await chaincode.install();
-				should.fail();
-			} catch (err) {
-				err.message.should.equal('Install operation requires a ChaincodeInstallRequest object parameter');
-			}
-		});
-
-		it('should require a package', async () => {
-			try {
-				await chaincode.install({});
-				should.fail();
-			} catch (err) {
-				err.message.should.equal('Install operation requires a chaincode package be assigned to this chaincode');
-			}
-		});
-	});
-
 	describe('#package', () => {
 		const client = new Client();
 		let chaincode;
@@ -321,12 +354,156 @@ describe('Chaincode', () => {
 			}
 		});
 
-		it('should require a package request chaincodeType parameter', async () => {
+		it('should require a good package request chaincodeType parameter', async () => {
+			try {
+				await chaincode.package({chaincodeType: 'node'});
+				should.fail();
+			} catch (err) {
+				err.message.should.equal('Chaincode package "chaincodePath" parameter is required');
+			}
+		});
+
+		it('should require a good package request chaincodeType parameter', async () => {
 			try {
 				await chaincode.package({chaincodeType: 'bad'});
 				should.fail();
 			} catch (err) {
-				err.message.should.equal('Chaincode package "chaincodeType" parameter is not a known type bad');
+				err.message.should.equal('Chaincode type is not a known type bad');
+			}
+		});
+
+		it('should require a good GOPATH environment with "golang" chaincodeType', async () => {
+			process.env.GOPATH = path.join(__dirname, 'bad');
+
+			try {
+				await chaincode.package({
+					chaincodeType: 'golang',
+					chaincodePath: 'github.com/example_cc'
+				});
+				should.fail();
+			} catch (err) {
+				err.message.should.equal('ENOENT: no such file or directory, lstat \'/anodesdk/jan11-19/fabric-sdk-node/fabric-client/test/bad/src/github.com/example_cc\'');
+			}
+		});
+
+		it('should require a good GOPATH environment setting and chaincodePath parameter with "golang" chaincodeType', async () => {
+			process.env.GOPATH = path.join(__dirname, '../../test', 'fixtures');
+
+			const packaged_chaincode = await chaincode.package({
+				chaincodeType: 'golang',
+				chaincodePath: 'github.com/example_cc'
+			});
+			expect(packaged_chaincode).to.have.property('length', 1828);
+		});
+
+		it('should require a good chaincodePath parameter with "node" chaincodeType', async () => {
+			const node_path = path.join(__dirname, '../../test', 'fixtures/src/node_cc/example_cc');
+
+			const packaged_chaincode = await chaincode.package({
+				chaincodeType: 'node',
+				chaincodePath: node_path
+			});
+			expect(packaged_chaincode).to.have.property('length', 2235);
+		});
+
+
+		it('should require a good chaincodePath parameter with "java" chaincodeType', async () => {
+			const java_path = path.join(__dirname, '../../test', 'fixtures/src/java_cc/example_cc');
+
+			const packaged_chaincode = await chaincode.package({
+				chaincodeType: 'java',
+				chaincodePath: java_path
+			});
+			expect(packaged_chaincode).to.have.property('length', 1998);
+		});
+
+		it('should require a good GOPATH environment setting and chaincodePath and metadataPath parameters with "golang" chaincodeType', async () => {
+			process.env.GOPATH = path.join(__dirname, '../../test', 'fixtures');
+			const metadataPath = path.join(__dirname, '../../test', 'fixtures/metadata');
+
+			const packaged_chaincode = await chaincode.package({
+				chaincodeType: 'golang',
+				chaincodePath: 'github.com/example_cc',
+				metadataPath: metadataPath
+			});
+			expect(packaged_chaincode).to.have.property('length', 1945);
+			expect(chaincode.getPackage()).to.have.property('length', 1945);
+
+		});
+
+		it('should require a good chaincodePath and metadataPath parameters with "node" chaincodeType', async () => {
+			const node_path = path.join(__dirname, '../../test', 'fixtures/src/node_cc/example_cc');
+			const metadataPath = path.join(__dirname, '../../test', 'fixtures/metadata');
+
+			const packaged_chaincode = await chaincode.package({
+				chaincodeType: 'node',
+				chaincodePath: node_path,
+				metadataPath: metadataPath
+			});
+			expect(packaged_chaincode).to.have.property('length', 2344);
+			expect(chaincode.getPackage()).to.have.property('length', 2344);
+		});
+
+
+		it('should require a good chaincodePath and metadataPath parameters with "java" chaincodeType', async () => {
+			const java_path = path.join(__dirname, '../../test', 'fixtures/src/java_cc/example_cc');
+			const metadataPath = path.join(__dirname, '../../test', 'fixtures/metadata');
+
+			const packaged_chaincode = await chaincode.package({
+				chaincodeType: 'java',
+				chaincodePath: java_path,
+				metadataPath: metadataPath
+			});
+			expect(packaged_chaincode).to.have.property('length', 2114);
+			expect(chaincode.getPackage()).to.have.property('length', 2114);
+			expect(chaincode._package).to.have.property('length', 2114);
+		});
+
+	});
+
+	describe('#install', () => {
+		const client = new Client();
+		let chaincode;
+
+		beforeEach(() => {
+			chaincode = new Chaincode('mychaincode', 'v1', client);
+		});
+
+		it('should require a ChaincodeInstallRequest parameter', async () => {
+			try {
+				await chaincode.install();
+				should.fail();
+			} catch (err) {
+				err.message.should.equal('Install operation requires a ChaincodeInstallRequest object parameter');
+			}
+		});
+
+		it('should require a package be assigned to this chaincode instance', async () => {
+			try {
+				await chaincode.install({});
+				should.fail();
+			} catch (err) {
+				err.message.should.equal('Install operation requires a chaincode package be assigned to this chaincode');
+			}
+		});
+
+		it('should require targets parameter', async () => {
+			try {
+				chaincode.setPackage(Buffer.from('ABC'));
+				await chaincode.install({});
+				should.fail();
+			} catch (err) {
+				err.message.should.equal('Chaincode install "targets" parameter is required');
+			}
+		});
+
+		it('should require targets parameter to be an array', async () => {
+			try {
+				chaincode.setPackage(Buffer.from('ABC'));
+				await chaincode.install({targets: 'bad'});
+				should.fail();
+			} catch (err) {
+				err.message.should.equal('Chaincode install "targets" parameter must be an array of peers');
 			}
 		});
 	});

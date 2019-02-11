@@ -2620,7 +2620,8 @@ const Channel = class {
 	}
 
 	/**
-	 * This method will build and send an "allow chaincode for organization for channel"
+	 * This method will build and send an
+	 * "approve chaincode definition for organization for channel"
 	 * transaction to the fabric lifecycle system chaincode.
 	 * see {@link Chaincode}
 	 *
@@ -2630,13 +2631,13 @@ const Channel = class {
 	 *
 	 * @return {Object} Return object will contain the proposalResponses and the proposal
 	 */
-	async allowChaincodeForOrg(request, timeout) {
+	async approveChaincodeForOrg(request, timeout) {
 		const method = 'allowChaincodeForOrg';
 		logger.debug('%s - start', method);
 
 		this._verifyChaincodeRequest(request);
 
-		// TODO - build send the define for org transaction to the lifecycle chaincode.
+		// TODO - build & send the define for org transaction to the lifecycle chaincode.
 
 		const proposal = {};
 
@@ -2646,7 +2647,8 @@ const Channel = class {
 	}
 
 	/**
-	 * This method will build and send a "commit chaincode for channel"
+	 * This method will build and send a
+	 * "commit chaincode definition for channel"
 	 * transaction to the fabric lifecycle system chaincode.
 	 * see {@link Chaincode}
 	 *
