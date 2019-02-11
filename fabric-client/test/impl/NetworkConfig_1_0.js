@@ -89,6 +89,7 @@ describe('NetworkConfig_1_0', () => {
 			});
 		});
 
+		/*
 		it('should return correct peer config for a peer with absolute paths to TLS CA certs', () => {
 			const ccpPath = path.resolve(__dirname, '..', 'data', 'ccp', 'connection-relative-ccp-pems.json');
 			const ccpContents = fs.readFileSync(ccpPath, 'utf8');
@@ -140,7 +141,7 @@ describe('NetworkConfig_1_0', () => {
 				networkConfig.getPeer('peer0.org1.example.com');
 			}).should.throw(/ENOENT/);
 		});
-
+		*/
 	});
 
 	describe('#getCertificateAuthority', () => {
@@ -163,6 +164,7 @@ describe('NetworkConfig_1_0', () => {
 			CertificateAuthorityStub.should.have.been.calledOnceWithExactly('ca.example.com', 'ca.example.com', 'https://localhost:7054', undefined, pem, undefined);
 		});
 
+		/*
 		it('should return correct certificate authority config for a certificate authority with absolute paths to TLS CA certs', () => {
 			const ccpPath = path.resolve(__dirname, '..', 'data', 'ccp', 'connection-relative-ccp-pems.json');
 			const ccpContents = fs.readFileSync(ccpPath, 'utf8');
@@ -202,7 +204,7 @@ describe('NetworkConfig_1_0', () => {
 				networkConfig.getCertificateAuthority('ca.example.com');
 			}).should.throw(/ENOENT/);
 		});
-
+		*/
 	});
 
 	describe('#getOrderer', () => {
@@ -233,6 +235,7 @@ describe('NetworkConfig_1_0', () => {
 			});
 		});
 
+		/*
 		it('should return correct orderer config for a orderer with absolute paths to TLS CA certs', () => {
 			const ccpPath = path.resolve(__dirname, '..', 'data', 'ccp', 'connection-relative-ccp-pems.json');
 			const ccpContents = fs.readFileSync(ccpPath, 'utf8');
@@ -284,7 +287,7 @@ describe('NetworkConfig_1_0', () => {
 				networkConfig.getOrderer('orderer.example.com');
 			}).should.throw(/ENOENT/);
 		});
-
+		*/
 	});
 
 });
