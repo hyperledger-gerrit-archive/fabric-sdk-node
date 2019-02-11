@@ -279,6 +279,113 @@ function logError(msg, obj) {
 	}
 }
 
+async function getClientForOrg(network_ccp, org_ccp) {
+	// build a 'Client' instance that knows of a network
+	//  this network config does not have the client information, we will
+	//  load that later so that we can switch this client to be in a different
+	//  organization
+	const client = Client.loadFromConfig(network_ccp);
+
+	// load the client information for this organization
+	// this file only has the client section
+	client.loadFromConfig(org_ccp);
+
+	// tell this client instance where the state and key stores are located
+	await client.initCredentialStores();
+
+	// get the CA associated with this client's organization
+	// ---- this must only be run after the client has been loaded with a
+	// client section of the connection profile
+	const caService = client.getCertificateAuthority();
+
+	const request = {
+		enrollmentID: 'admin',
+		enrollmentSecret: 'adminpw',
+		profile: 'tls'
+	};
+	const enrollment = await caService.enroll(request);
+
+	const key = enrollment.key.toBytes();
+	const cert = enrollment.certificate;
+
+	// set the material on the client to be used when building endpoints for the user
+	client.setTlsClientCertAndKey(cert, key);
+
+	return client;
+}
+
+async function createUpdateChannel(create, file, channel_name, client_org1, client_org2, orderer_org1, orderer_org2) {
+	// get the config envelope created by the configtx tool
+	const envelope_bytes = fs.readFileSync(file);
+	// Have the sdk get the config update object from the envelope.
+	// the config update object is what is required to be signed by all
+	// participating organizations
+	const config = client_org1.extractChannelConfig(envelope_bytes);
+
+	const signatures = [];
+	// sign the config by the  admins
+	const signature1 = client_org1.signChannelConfig(config);
+	signatures.push(signature1);
+	const signature2 = client_org2.signChannelConfig(config);
+	signatures.push(signature2);
+	// now we have enough signatures...
+
+	// get an admin based transaction
+	const tx_id = client_org1.newTransactionID(true);
+
+	const request = {
+		config: config,
+		signatures : signatures,
+		name : channel_name,
+		orderer : orderer_org1,
+		txId  : tx_id
+	};
+
+	let results = null;
+	let text = 'create';
+	if (create) {
+		results = await client_org1.createChannel(request);
+	} else {
+		text = 'update';
+		results = await client_org1.updateChannel(request);
+	}
+	if (results.status === 'SUCCESS') {
+		await sleep(5000);
+	} else {
+		throw new Error('Failed to ' + text + ' the channel. ');
+	}
+}
+
+async function joinChannel(channel_name, peer, orderer, client) {
+	const channel = client.newChannel(channel_name);
+
+	// get an admin based transaction
+	let tx_id = client.newTransactionID(true);
+
+	let request = {
+		orderer: orderer,
+		txId : 	tx_id
+	};
+
+	const genesis_block = await channel.getGenesisBlock(request);
+
+	tx_id = client.newTransactionID(true);
+	request = {
+		targets: [peer],
+		block : genesis_block,
+		txId : 	tx_id
+	};
+
+	const join_results = await channel.joinChannel(request, 30000);
+	if (join_results && join_results[0] && join_results[0].response && join_results[0].response.status === 200) {
+		sleep(10000); // let the peer catch up
+	} else {
+		throw new Error('Failed to join channel on org');
+	}
+
+	return channel;
+}
+
 module.exports.TIMEOUTS = TIMEOUTS;
 module.exports.storePathForOrg = storePathForOrg;
 module.exports.sleep = sleep;
@@ -288,3 +395,7 @@ module.exports.getSubmitter = getSubmitter;
 module.exports.tlsEnroll = tlsEnroll;
 module.exports.logMsg = logMsg;
 module.exports.logError = logError;
+module.exports.getClientForOrg = getClientForOrg;
+module.exports.createUpdateChannel = createUpdateChannel;
+module.exports.joinChannel = joinChannel;
+
