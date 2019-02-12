@@ -175,13 +175,13 @@ gulp.task('run-test-cucumber', shell.task(
 // Main test method to run all test suites
 // - lint, unit first, then FV, then scenario
 gulp.task('run-test', (done) => {
-	const tasks = ['clean-up', 'docker-clean', 'pre-test', 'ca', 'compile', 'lint', 'run-test-mocha', 'run-tape-unit', 'run-tape-e2e', 'run-logger-unit', 'docker-clean', 'run-test-cucumber'];
+	const tasks = ['clean-up', 'docker-clean', 'pre-test', 'ca', 'compile', 'lint', 'run-test-mocha', 'run-tape-unit', 'run-tape-e2e', 'docker-clean', 'run-test-cucumber'];
 	runSequence(...tasks, done);
 });
 
 // Run all non-integration tests
 gulp.task('run-test-headless', (done) => {
-	const tasks = ['clean-up', 'pre-test', 'ca', 'lint', 'run-test-mocha', 'run-tape-unit', 'run-logger-unit'];
+	const tasks = ['clean-up', 'pre-test', 'ca', 'lint', 'run-test-mocha', 'run-tape-unit'];
 	runSequence(...tasks, done);
 });
 
@@ -202,8 +202,8 @@ gulp.task('run-tape-unit',
 			}));
 	});
 
-// Run logger in isolation
-gulp.task('run-logger-unit',
+// must Run logger in isolation, where it is the only test within the node env
+gulp.task('test-logging',
 	() => {
 		// this is needed to avoid a problem in tape-promise with adding
 		// too many listeners to the "unhandledRejection" event
