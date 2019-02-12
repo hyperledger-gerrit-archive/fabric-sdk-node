@@ -155,6 +155,12 @@ sdk_E2e_Tests() {
 
         echo -e "\033[32m Execute Headless and Integration Tests" "\033[0m"
         gulp test || err_Check "ERROR!!! gulp test failed"
+
+        echo -e "\033[32m Execute logging test only" "\033[0m"
+        gulp test-logging || err_Check "ERROR!!! gulp test failed"
+
+        echo -e "\033[32m Execute cucumber tests" "\033[0m"
+        gulp run-test-sceanrio || err_Check "ERROR!!! gulp test failed"
 }
 
 # Publish npm modules after successful merge on amd64
