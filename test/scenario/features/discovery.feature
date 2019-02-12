@@ -16,6 +16,8 @@ Feature: Configure Fabric using SDK using discovery service and submit/evaluate 
 		And I can update channel with name mychannel with config file ../../config/crypto-config/mychannel-org1anchor.tx from the tls common connection profile
 		And I can install/instantiate node chaincode at version 1.0.0 named marbles to the tls Fabric network for all organizations on channel mychannel with endorsement policy 1AdminOr2Other and args [init,a,1000,b,2000]
 		And I can create a gateway named discovery_gateway as user User1 within Org1 using the discovery common connection profile
-	 	And I use the gateway named discovery_gateway to submit a transaction with args [initMarble,marble1,blue,35,tom] for chaincode marbles instantiated on channel mychannel
-		And I use the gateway named discovery_gateway to evaluate transaction with args [readMarble,marble1] for chaincode marbles instantiated on channel mychannel with the response matching {"color":"blue","docType":"marble","name":"marble1","owner":"tom","size":35}
+	 	When I use the gateway named discovery_gateway to submit a transaction with args [initMarble,marble1,red,50,bob] for chaincode marbles instantiated on channel mychannel
+		Then The gateway named discovery_gateway has a submit type response
+		When I use the gateway named discovery_gateway to evaluate transaction with args [readMarble,marble1] for chaincode marbles instantiated on channel mychannel
+		Then The gateway named discovery_gateway has a evaluate type response matching {"color":"red","docType":"marble","name":"marble1","owner":"bob","size":50}
 		And I can disconnect from the gateway named discovery_gateway

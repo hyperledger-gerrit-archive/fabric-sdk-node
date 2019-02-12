@@ -33,18 +33,29 @@ module.exports = function () {
 	});
 
 	this.Then(/^I use the gateway named (.+?) to submit a transaction with args (.+?) for chaincode (.+?) instantiated on channel (.+?)$/, {timeout: testUtil.TIMEOUTS.LONG_STEP}, async (gatewayName, args, ccName, channelName) => {
-		return network_util.performGatewayTransaction(gatewayName, ccName, channelName, args, true);
+		return await network_util.performGatewayTransaction(gatewayName, ccName, channelName, args, true);
 	});
 
-	this.Then(/^I use the gateway named (.+?) to evaluate transaction with args (.+?) for chaincode (.+?) instantiated on channel (.+?) with the response matching (.+?)$/, {timeout: testUtil.TIMEOUTS.LONG_STEP}, async (gatewayName, args, ccName, channelName, expected) => {
-		const result = await network_util.performGatewayTransaction(gatewayName, ccName, channelName, args, false);
+	this.Then(/^I use the gateway named (.+?) to evaluate transaction with args (.+?) for chaincode (.+?) instantiated on channel (.+?)$/, {timeout: testUtil.TIMEOUTS.LONG_STEP}, async (gatewayName, args, ccName, channelName) => {
+		return await network_util.performGatewayTransaction(gatewayName, ccName, channelName, args, false);
+	});
 
-		if (result === expected) {
+	this.Then(/^The gateway named (.+?) has a (.+?) type response$/, {timeout: testUtil.TIMEOUTS.LONG_STEP}, async (gatewayName, type) => {
+		if (network_util.lastTypeCompare(gatewayName, type)) {
 			return Promise.resolve();
 		} else {
-			throw new Error('Expected and actual results from evaluateTransaction() did not match');
+			throw new Error('Expected and actual results from previous transaction did not match');
 		}
+	});
 
+	this.Then(/^The gateway named (.+?) has a (.+?) type response matching (.+?)$/, {timeout: testUtil.TIMEOUTS.LONG_STEP}, async (gatewayName, type, expected) => {
+		const sameType = network_util.lastTypeCompare(gatewayName, type);
+		const sameResponse = network_util.lastResponseCompare(gatewayName, expected);
+		if (sameType && sameResponse) {
+			return Promise.resolve();
+		} else {
+			throw new Error('Expected and actual results from previous transaction did not match');
+		}
 	});
 
 	this.Then(/^I can disconnect from the gateway named (.+?)$/, {timeout:testUtil.TIMEOUTS.SHORT_STEP}, async (gatewayName) => {
