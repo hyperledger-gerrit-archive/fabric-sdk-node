@@ -2656,6 +2656,14 @@ describe('Channel', () => {
 	describe('#loadConfigGroup', () => {});
 
 	describe('#loadConfigValue', () => {});
+
+	describe('#sendTokenCommand', () => {});
+
+	describe('#sendTokenTransaction', () => {});
+
+	describe('#_buildSignedTokenCommand', () => {});
+
+	describe('#_buildTokenTxEnvelope', () => {});
 });
 
 describe('ChannelPeer', () => {
