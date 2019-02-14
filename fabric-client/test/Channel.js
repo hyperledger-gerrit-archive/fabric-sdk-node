@@ -2656,6 +2656,164 @@ describe('Channel', () => {
 	describe('#loadConfigGroup', () => {});
 
 	describe('#loadConfigValue', () => {});
+
+	describe('#sendTokenCommand', () => {});
+
+	describe('#sendTokenTransaction', () => {});
+
+	describe('#_buildSignedTokenCommand', () => {
+		let clientStub;
+		let signingIdentityStub;
+		let txIdStub;
+		let request;
+		let command;
+
+		const channelId = 'mychannel';
+		const signature = Buffer.from('command-signature');
+		const serializedCreator = Buffer.from('serialized-creator');
+		const nonce = Buffer.from('txid-nonce');
+		const clientCertHash = Buffer.from('');
+
+		beforeEach(() => {
+			// create stubs to return mock data
+			signingIdentityStub = sinon.createStubInstance(SigningIdentity);
+			signingIdentityStub.sign.returns(signature);
+			signingIdentityStub.serialize.returns(serializedCreator);
+
+			clientStub = sinon.createStubInstance(Client);
+			clientStub._getSigningIdentity.returns(signingIdentityStub);
+			clientStub.getClientCertHash.returns(clientCertHash);
+
+			txIdStub = sinon.createStubInstance(TransactionID);
+			txIdStub.getNonce.returns(nonce);
+
+			// create token command request
+			command = new fabprotos.token.Command();
+			const importRequest = new fabprotos.token.ImportRequest();
+			command.set('import_request', importRequest);
+			request = {tokenCommand: command, txId: txIdStub};
+		});
+
+		it('should return a signed command', () => {
+			const signedCommand = Channel._buildSignedTokenCommand(request, channelId, clientStub);
+
+			// verify signature
+			expect(signedCommand.signature.toBuffer()).to.deep.equal(signature);
+
+			// decode it first so that we can get timestamp since it is dynamic value
+			const decodedCommand = fabprotos.token.Command.decode(signedCommand.command);
+
+			// construct expected header and copy timestamp from decoded command
+			const expectedHeader = new fabprotos.token.Header();
+			expectedHeader.setChannelId(channelId);
+			expectedHeader.setCreator(serializedCreator);
+			expectedHeader.setNonce(nonce);
+			expectedHeader.setTlsCertHash(clientCertHash);
+			expectedHeader.timestamp = decodedCommand.header.timestamp;
+
+			// verify command (including header)
+			command.header = expectedHeader;
+			expect(decodedCommand.toBuffer()).to.deep.equal(command.toBuffer());
+		});
+
+		it('should throw an error if signingIndentity fails to sign', () => {
+			(() => {
+				const fakeError = new Error('forced sign error');
+				signingIdentityStub.sign.throws(fakeError);
+				Channel._buildSignedTokenCommand(request, channelId, clientStub);
+			}).should.throw(Error, 'forced sign error');
+		});
+
+		it('should throw an error if signingIndentity fails to serialize', () => {
+			(() => {
+				const fakeError = new Error('forced serialize error');
+				signingIdentityStub.serialize.throws(fakeError);
+				Channel._buildSignedTokenCommand(request, channelId, clientStub);
+			}).should.throw(Error, 'forced serialize error');
+		});
+	});
+
+	describe('#_buildTokenTxEnvelope', () => {
+		let clientStub;
+		let signingIdentityStub;
+		let txIdStub;
+		let request;
+		let tokenTx;
+
+		const channelId = 'mychannel';
+		const signature = Buffer.from('command-signature');
+		const serializedCreator = Buffer.from('serialized-creator');
+		const nonce = Buffer.from('txid-nonce');
+		const clientCertHash = Buffer.from('');
+
+		beforeEach(() => {
+			// create stubs to return mock data
+			signingIdentityStub = sinon.createStubInstance(SigningIdentity);
+			signingIdentityStub.sign.returns(signature);
+			signingIdentityStub.serialize.returns(serializedCreator);
+
+			clientStub = sinon.createStubInstance(Client);
+			clientStub._getSigningIdentity.returns(signingIdentityStub);
+			clientStub.getClientCertHash.returns(clientCertHash);
+
+			txIdStub = sinon.createStubInstance(TransactionID);
+			txIdStub.getNonce.returns(nonce);
+			txIdStub.getTransactionID.returns('mock-txid');
+
+			// prepare token transaction request
+			tokenTx = new fabprotos.token.TokenTransaction();
+			tokenTx.set('plain_action', new fabprotos.token.PlainTokenAction());
+			request = {tokenTransaction: tokenTx, txId: txIdStub};
+		});
+
+		it('should return a signed envelope', () => {
+			const envelope = Channel._buildTokenTxEnvelope(request, channelId, clientStub, signingIdentityStub, false);
+			const payload = fabprotos.common.Payload.decode(envelope.payload);
+
+			// verify signature
+			expect(envelope.signature.toBuffer()).to.deep.equal(signature);
+
+			// verify payload has correct token transaction
+			expect(payload.data.toBuffer()).to.deep.equal(tokenTx.toBuffer());
+
+			// verify channel header
+			const expectedChannelHeader = new fabprotos.common.ChannelHeader();
+			expectedChannelHeader.setType(fabprotos.common.HeaderType.TOKEN_TRANSACTION);
+			expectedChannelHeader.setVersion(1);
+			expectedChannelHeader.setChannelId(channelId);
+			expectedChannelHeader.setTxId('mock-txid');
+			expectedChannelHeader.setTlsCertHash(clientCertHash);
+
+			// update expectedChannelHeader with timestamp
+			const channelHeader = fabprotos.common.ChannelHeader.decode(payload.header.channel_header);
+			expectedChannelHeader.timestamp = channelHeader.timestamp;
+
+			// verify channel header
+			expect(channelHeader.toBuffer()).to.deep.equal(expectedChannelHeader.toBuffer());
+
+			// verify signature header
+			const expectedSignatureHeader = new fabprotos.common.SignatureHeader();
+			expectedSignatureHeader.setCreator(serializedCreator);
+			expectedSignatureHeader.setNonce(nonce);
+			expect(payload.header.signature_header.toBuffer()).to.deep.equal(expectedSignatureHeader.toBuffer());
+		});
+
+		it('should throw an error if signingIndentity fails to sign', () => {
+			(() => {
+				const fakeError = new Error('forced sign error');
+				signingIdentityStub.sign.throws(fakeError);
+				Channel._buildTokenTxEnvelope(request, channelId, clientStub, signingIdentityStub, false);
+			}).should.throw(Error, 'forced sign error');
+		});
+
+		it('should throw an error if signingIndentity fails to serialize', () => {
+			(() => {
+				const fakeError = new Error('forced serialize error');
+				signingIdentityStub.serialize.throws(fakeError);
+				Channel._buildTokenTxEnvelope(request, channelId, clientStub, signingIdentityStub, false);
+			}).should.throw(Error, 'forced serialize error');
+		});
+	});
 });
 
 describe('ChannelPeer', () => {
