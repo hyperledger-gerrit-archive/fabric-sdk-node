@@ -294,6 +294,7 @@ gulp.task('run-tape-e2e', ['docker-ready'],
 			'test/integration/javachaincode/e2e.js',
 			'test/integration/discovery.js',
 			'test/integration/grpc.js',
+			'test/integration/tokene2e.js',
 
 			// Typescript
 			'test/typescript/test.js',
