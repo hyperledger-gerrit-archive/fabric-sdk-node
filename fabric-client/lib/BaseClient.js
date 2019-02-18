@@ -77,8 +77,10 @@ const BaseClient = class {
 	 * file-based implementation, this requires a single property <code>path</code> to the top-level folder for the store
 	 * @returns {Promise} A Promise for a {@link module:api.KeyValueStore} instance of the KeyValueStore implementation
 	 */
-	static newDefaultKeyValueStore(options) {
-		return sdkUtils.newKeyValueStore(options);
+	static async newDefaultKeyValueStore(options) {
+		const store = sdkUtils.newKeyValueStore(options);
+		await store.init();
+		return store;
 	}
 
 	/**
