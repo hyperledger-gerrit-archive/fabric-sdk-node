@@ -92,20 +92,15 @@ gulp.task('clean-up', () => {
 
 gulp.task('docker-clean', shell.task([
 	// stop and remove chaincode docker instances
-	'docker kill $(docker ps | grep "dev-" | awk \'{print $1}\')',
-	'docker rm $(docker ps -a | grep "dev-" | awk \'{print $1}\')',
+	'docker kill $(docker ps -aq)',
+	'docker rm $(docker ps -aq) -f',
 
 	// remove chaincode images so that they get rebuilt during test
 	'docker rmi $(docker images | grep "^dev-" | awk \'{print $3}\')',
 
-	// clean up all the containers created by docker-compose
-	// -tape
-	'docker-compose -f test/fixtures/docker-compose.yaml down',
-	// -cucumber
-	'docker-compose -f test/scenario/docker-compose/docker-compose-tls.yaml down'
 ], {
 	verbose: true, // so we can see the docker command output
-	ignoreErrors: true // kill and rm may fail because the containers may have been cleaned up
+	ignoreErrors: true // kill, rm, and rmi may fail because the containers may have been cleaned up or not exist
 }));
 
 gulp.task('docker-ready', ['docker-clean'], shell.task([
@@ -297,10 +292,6 @@ gulp.task('run-tape-e2e', ['docker-ready'],
 
 			// Typescript
 			'test/typescript/test.js',
-
-			// Perf
-			'test/integration/perf/orderer.js',
-			'test/integration/perf/peer.js'
 		]))
 			.pipe(tape({
 				reporter: tapColorize()
