@@ -48,7 +48,7 @@ test('\n\n***** SDK Built config update  create flow  *****\n\n', async (t) => {
 	t.pass('Successfully retrieved TLS certificate');
 	client.setTlsClientCertAndKey(tlsInfo.certificate, tlsInfo.key);
 
-	const store = await Client.newDefaultKeyValueStore({path: testUtil.storePathForOrg(org)});
+	const store = Client.newDefaultKeyValueStore({path: testUtil.storePathForOrg(org)});
 	client.setStateStore(store);
 	const cryptoSuite = Client.newCryptoSuite();
 	cryptoSuite.setCryptoKeyStore(Client.newCryptoKeyStore({path: testUtil.storePathForOrg(org)}));

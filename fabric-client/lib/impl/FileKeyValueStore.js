@@ -39,54 +39,42 @@ const FileKeyValueStore = class extends KeyValueStore {
 		// Create the keyValStore instance
 		super();
 
-		const self = this;
 		this._dir = options.path;
-		return new Promise(((resolve, reject) => {
-			fs.mkdirs(self._dir, (err) => {
-				if (err) {
-					logger.error('constructor, error creating directory, code: %s', err.code);
-					return reject(err);
-				}
-				return resolve(self);
-			});
-		}));
+		try {
+			fs.mkdirSync(this._dir);
+		} catch (err) {
+			logger.error('constructor, error creating directory, code: %s', err.code);
+			throw err;
+		}
 	}
 
-	getValue(name) {
+	async getValue(name) {
 		logger.debug('getValue', {key: name});
 
-		const self = this;
-
-		return new Promise(((resolve, reject) => {
-			const p = path.join(self._dir, name);
-			fs.readFile(p, 'utf8', (err, data) => {
-				if (err) {
-					if (err.code !== 'ENOENT') {
-						return reject(err);
-					} else {
-						return resolve(null);
-					}
-				}
-				return resolve(data);
-			});
-		}));
+		try {
+			const p = path.join(this._dir, name);
+			return await fs.readFile(p, 'utf8');
+		} catch (err) {
+			if (err.code !== 'ENOENT') {
+				// reject
+				return Promise.reject(err);
+			} else {
+				// resolve null
+				return Promise.resolve(null);
+			}
+		}
 	}
 
-	setValue(name, value) {
+	async setValue(name, value) {
 		logger.debug('setValue', {key: name});
 
-		const self = this;
-
-		return new Promise(((resolve, reject) => {
-			const p = path.join(self._dir, name);
-			fs.writeFile(p, value, (err) => {
-				if (err) {
-					reject(err);
-				} else {
-					return resolve(value);
-				}
-			});
-		}));
+		try {
+			const p = path.join(this._dir, name);
+			return await fs.writeFile(p, value);
+		} catch (err) {
+			// reject
+			return Promise.reject(err);
+		}
 	}
 };
 

@@ -59,7 +59,7 @@ test('*****  Test channel events', async (t) => {
 
 		const tlsInfo = await e2eUtils.tlsEnroll('org1');
 		client.setTlsClientCertAndKey(tlsInfo.certificate, tlsInfo.key);
-		const store = await Client.newDefaultKeyValueStore({path: testUtil.storePathForOrg('peerOrg1')});
+		const store = Client.newDefaultKeyValueStore({path: testUtil.storePathForOrg('peerOrg1')});
 		client.setStateStore(store);
 
 		// get the peer org's admin user identity
