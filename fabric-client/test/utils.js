@@ -113,7 +113,7 @@ describe('Utils', () => {
 
 	describe('#newKeyValueStore', () => {
 		it('should create a new key value store', async() => {
-			const MockKeyValStore = sandbox.stub().returns(new Object({'value': 1}));
+			const MockKeyValStore = sandbox.stub().returns(new Object({'value': 1, init: sinon.stub().resolves}));
 			requireStub = sandbox.stub().returns(MockKeyValStore);
 			const getConfigSettingStub = sandbox.stub().returns('kvs');
 			revert.push(Utils.__set__('exports.getConfigSetting', getConfigSettingStub));
@@ -122,7 +122,7 @@ describe('Utils', () => {
 			const kvs = await Utils.newKeyValueStore('options');
 			sinon.assert.calledWith(requireStub, 'kvs');
 			sinon.assert.calledWith(MockKeyValStore, 'options');
-			kvs.should.deep.equal({value: 1});
+			kvs.value.should.equal(1);
 		});
 	});
 

@@ -1210,7 +1210,6 @@ const Client = class extends BaseClient {
 	 * instances of the stores and assign them to this client and the crypto suites
 	 * if needed.
 	 *
-	 * @returns {Promise} - A promise to build a key value store and crypto store.
 	 */
 	async initCredentialStores() {
 		if (!this._network_config) {
@@ -1224,7 +1223,6 @@ const Client = class extends BaseClient {
 			// all crypto suites should extends api.CryptoSuite
 			crypto_suite.setCryptoKeyStore(BaseClient.newCryptoKeyStore(client_config.credentialStore.cryptoStore));
 			this.setCryptoSuite(crypto_suite);
-			return true;
 		} else {
 			throw new Error('No credentialStore settings found');
 		}

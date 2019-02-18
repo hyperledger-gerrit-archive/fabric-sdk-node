@@ -1816,11 +1816,15 @@ describe('Client', () => {
 		let setCryptoKeyStoreStub;
 		let newCryptoKeyStoreStub;
 		let setCryptoSuiteStub;
+		let keyValStub;
 
 		let client;
 		beforeEach(() => {
+			keyValStub = {
+				init: sinon.stub()
+			};
 			getClientConfigStub = sinon.stub();
-			newDefaultKeyValueStoreStub = sinon.stub().returns(Promise.resolve('key-val-store'));
+			newDefaultKeyValueStoreStub = sinon.stub().returns(keyValStub);
 			revert.push(Client.__set__('BaseClient.newDefaultKeyValueStore', newDefaultKeyValueStoreStub));
 			setStateStoreStub = sinon.stub();
 			setCryptoKeyStoreStub = sinon.stub();
@@ -1855,20 +1859,18 @@ describe('Client', () => {
 			}
 		});
 
-		it('should return true and set the cryptokeystore', async () => {
+		it('should set the cryptokeystore', async () => {
 			getClientConfigStub.returns({credentialStore: {cryptoStore: 'store'}});
 			client._network_config = {getClientConfig: getClientConfigStub};
 			newCryptoKeyStoreStub.returns('new-crypto');
-			const success = await client.initCredentialStores();
-			success.should.be.true;
+			await client.initCredentialStores();
 			sinon.assert.called(getClientConfigStub);
 			sinon.assert.calledWith(newDefaultKeyValueStoreStub, {cryptoStore: 'store'});
-			sinon.assert.calledWith(setStateStoreStub, 'key-val-store');
+			sinon.assert.calledWith(setStateStoreStub, keyValStub);
 			sinon.assert.called(cryptoSuiteStub);
 			sinon.assert.calledWith(setCryptoKeyStoreStub, 'new-crypto');
 			sinon.assert.calledWith(newCryptoKeyStoreStub, 'store');
 			sinon.assert.calledWith(setCryptoSuiteStub, {setCryptoKeyStore: setCryptoKeyStoreStub});
-
 		});
 	});
 

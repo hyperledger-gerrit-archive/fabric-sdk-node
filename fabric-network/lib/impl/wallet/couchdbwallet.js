@@ -53,7 +53,7 @@ class CouchDBWallet extends BaseWallet {
 		return dbOptions;
 	}
 
-	async getStateStore(label) {
+	getStateStore(label) {
 		const method = 'getStateStore';
 		logger.debug('in %s, label = %s', method, label);
 		const store = new CouchDBWalletKeyValueStore(this._createOptions());

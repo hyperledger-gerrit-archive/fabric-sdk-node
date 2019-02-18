@@ -65,7 +65,8 @@ class BaseWallet extends Wallet {
 			client = new Client();
 		}
 
-		const store = await this.getStateStore(label);
+		const store = this.getStateStore(label);
+		await store.init();
 		client.setStateStore(store);
 
 		let cryptoSuite;
@@ -86,7 +87,7 @@ class BaseWallet extends Wallet {
 	// a mixin can override the getCryptoSuite
 	// ========================================
 
-	async getStateStore(label) { // eslint-disable-line no-unused-vars
+	getStateStore(label) { // eslint-disable-line no-unused-vars
 		throw new Error('Not implemented');
 	}
 
