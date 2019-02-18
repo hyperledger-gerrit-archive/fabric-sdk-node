@@ -48,12 +48,12 @@ test('\n\n** TEST ** orderer via member missing orderer', (t) => {
 	cryptoSuite.setCryptoKeyStore(Client.newCryptoKeyStore({path: testUtil.storePathForOrg(orgName)}));
 	client.setCryptoSuite(cryptoSuite);
 
-	Client.newDefaultKeyValueStore({
+	const store = Client.newDefaultKeyValueStore({
 		path: testUtil.KVS
-	}).then((store) => {
-		client.setStateStore(store);
-		return testUtil.getSubmitter(client, t, org);
-	}).then(
+	});
+
+	client.setStateStore(store);
+	testUtil.getSubmitter(client, t, org).then(
 		() => {
 			t.pass('Successfully enrolled user \'admin\'');
 

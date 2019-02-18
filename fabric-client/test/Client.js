@@ -1820,7 +1820,7 @@ describe('Client', () => {
 		let client;
 		beforeEach(() => {
 			getClientConfigStub = sinon.stub();
-			newDefaultKeyValueStoreStub = sinon.stub().returns(Promise.resolve('key-val-store'));
+			newDefaultKeyValueStoreStub = sinon.stub().returns('key-val-store');
 			revert.push(Client.__set__('BaseClient.newDefaultKeyValueStore', newDefaultKeyValueStoreStub));
 			setStateStoreStub = sinon.stub();
 			setCryptoKeyStoreStub = sinon.stub();

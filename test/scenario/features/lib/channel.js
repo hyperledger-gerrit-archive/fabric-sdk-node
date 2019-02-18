@@ -53,7 +53,7 @@ async function create_channel(configPath, ccp, tls, channelName) {
 		let config = null;
 		const signatures = [];
 
-		const store = await Client.newDefaultKeyValueStore({path: testUtil.storePathForOrg(org)});
+		const store = Client.newDefaultKeyValueStore({path: testUtil.storePathForOrg(org)});
 		client.setStateStore(store);
 		const cryptoSuite = Client.newCryptoSuite();
 		cryptoSuite.setCryptoKeyStore(Client.newCryptoKeyStore({path: testUtil.storePathForOrg(org)}));
@@ -132,7 +132,7 @@ async function existing_channels(ccp, tls) {
 			client.setTlsClientCertAndKey(tlsInfo.certificate, tlsInfo.key);
 		}
 
-		const store = await Client.newDefaultKeyValueStore({path: testUtil.storePathForOrg(org)});
+		const store = Client.newDefaultKeyValueStore({path: testUtil.storePathForOrg(org)});
 		client.setStateStore(store);
 		const cryptoSuite = Client.newCryptoSuite();
 		cryptoSuite.setCryptoKeyStore(Client.newCryptoKeyStore({path: testUtil.storePathForOrg(org)}));
@@ -193,7 +193,7 @@ async function join_channel(ccp, tls, channelName, orgName) {
 			client.setTlsClientCertAndKey(tlsInfo.certificate, tlsInfo.key);
 		}
 
-		const store = await Client.newDefaultKeyValueStore({path: testUtil.storePathForOrg(orgName)});
+		const store = Client.newDefaultKeyValueStore({path: testUtil.storePathForOrg(orgName)});
 		client.setStateStore(store);
 
 		// set user internal to client
@@ -308,7 +308,7 @@ async function update_channel(ccp, channelName, configPath, tls) {
 		let config = null;
 		const signatures = [];
 
-		const store = await Client.newDefaultKeyValueStore({path: testUtil.storePathForOrg(org)});
+		const store = Client.newDefaultKeyValueStore({path: testUtil.storePathForOrg(org)});
 		client.setStateStore(store);
 		const cryptoSuite = Client.newCryptoSuite();
 		cryptoSuite.setCryptoKeyStore(Client.newCryptoKeyStore({path: testUtil.storePathForOrg(org)}));

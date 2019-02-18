@@ -44,7 +44,7 @@ test('\n\n **** E R R O R  T E S T I N G on upgrade call', async (t) => {
 	const tlsInfo = await e2eUtils.tlsEnroll(org);
 	t.pass('Successfully retrieved TLS certificate');
 	client.setTlsClientCertAndKey(tlsInfo.certificate, tlsInfo.key);
-	const store = await Client.newDefaultKeyValueStore({path: testUtil.storePathForOrg(orgName)});
+	const store = Client.newDefaultKeyValueStore({path: testUtil.storePathForOrg(orgName)});
 	client.setStateStore(store);
 	await testUtil.getSubmitter(client, t, true /* use peer org admin */, org);
 	t.pass('Successfully enrolled user \'admin\'');

@@ -945,7 +945,7 @@ async function getCollectionsConfig(t, org, chaincodeId, channel_name) {
 		t.pass('Successfully retrieved TLS certificate');
 		tlsInfo = enrollment;
 		client.setTlsClientCertAndKey(tlsInfo.certificate, tlsInfo.key);
-		const store = await Client.newDefaultKeyValueStore({path: testUtil.storePathForOrg(orgName)});
+		const store = Client.newDefaultKeyValueStore({path: testUtil.storePathForOrg(orgName)});
 		client.setStateStore(store);
 
 		const admin = await testUtil.getSubmitter(client, t, org);
