@@ -108,9 +108,9 @@ const Client = class extends BaseClient {
 	 * @param {object | string} loadConfig - This may be the config object or a path to the configuration file
 	 * @return {Client} An instance of this class initialized with the network end points.
 	 */
-	static loadFromConfig(loadConfig) {
+	static async loadFromConfig(loadConfig) {
 		const client = new Client();
-		client.loadFromConfig(loadConfig);
+		await client.loadFromConfig(loadConfig);
 		return client;
 	}
 
@@ -120,7 +120,7 @@ const Client = class extends BaseClient {
 	 *
 	 * @param {object | string} config - This may be the config object or a path to the configuration file
 	 */
-	loadFromConfig(loadConfig) {
+	async loadFromConfig(loadConfig) {
 		const additional_network_config = _getNetworkConfig(loadConfig, this);
 		if (!this._network_config) {
 			this._network_config = additional_network_config;
@@ -128,7 +128,7 @@ const Client = class extends BaseClient {
 			this._network_config.mergeSettings(additional_network_config);
 		}
 		if (this._network_config.hasClient()) {
-			this._setAdminFromConfig();
+			await this._setAdminFromConfig();
 			this._setMspidFromConfig();
 			this._addConnectionOptionsFromConfig();
 		}
@@ -1210,7 +1210,6 @@ const Client = class extends BaseClient {
 	 * instances of the stores and assign them to this client and the crypto suites
 	 * if needed.
 	 *
-	 * @returns {Promise} - A promise to build a key value store and crypto store.
 	 */
 	async initCredentialStores() {
 		if (!this._network_config) {
@@ -1224,7 +1223,6 @@ const Client = class extends BaseClient {
 			// all crypto suites should extends api.CryptoSuite
 			crypto_suite.setCryptoKeyStore(BaseClient.newCryptoKeyStore(client_config.credentialStore.cryptoStore));
 			this.setCryptoSuite(crypto_suite);
-			return true;
 		} else {
 			throw new Error('No credentialStore settings found');
 		}
@@ -1290,7 +1288,7 @@ const Client = class extends BaseClient {
 	 * @param {string} certificate the PEM-encoded string of certificate
 	 * @param {string} mspid The Member Service Provider id for the local signing identity
 	 */
-	setAdminSigningIdentity(private_key, certificate, mspid) {
+	async setAdminSigningIdentity(private_key, certificate, mspid) {
 		logger.debug('setAdminSigningIdentity - start mspid:%s', mspid);
 		if (typeof private_key === 'undefined' || private_key === null || private_key === '') {
 			throw new Error('Invalid parameter. Must have a valid private key.');
@@ -1305,8 +1303,8 @@ const Client = class extends BaseClient {
 		if (!crypto_suite) {
 			crypto_suite = BaseClient.newCryptoSuite();
 		}
-		const key = crypto_suite.importKey(private_key, {ephemeral: true});
-		const public_key = crypto_suite.importKey(certificate, {ephemeral: true});
+		const key = await crypto_suite.importKey(private_key, {ephemeral: true});
+		const public_key = await crypto_suite.importKey(certificate, {ephemeral: true});
 
 		this._adminSigningIdentity = new SigningIdentity(certificate, public_key, mspid, crypto_suite, new Signer(crypto_suite, key));
 	}
@@ -1317,7 +1315,7 @@ const Client = class extends BaseClient {
 	 * be must loaded that defines an organization for this client and have an
 	 * admin credentials defined.
 	 */
-	_setAdminFromConfig() {
+	async _setAdminFromConfig() {
 		let admin_key, admin_cert, mspid = null;
 		if (!this._network_config) {
 			throw new Error('No common connection profile has been loaded');
@@ -1334,7 +1332,7 @@ const Client = class extends BaseClient {
 		}
 		// if we found all we need then set the admin
 		if (admin_key && admin_cert && mspid) {
-			this.setAdminSigningIdentity(admin_key, admin_cert, mspid);
+			await this.setAdminSigningIdentity(admin_key, admin_cert, mspid);
 		}
 	}
 
