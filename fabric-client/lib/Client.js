@@ -1218,7 +1218,7 @@ const Client = class extends BaseClient {
 		}
 		const client_config = this._network_config.getClientConfig();
 		if (client_config && client_config.credentialStore) {
-			const key_value_store = await BaseClient.newDefaultKeyValueStore(client_config.credentialStore);
+			const key_value_store = BaseClient.newDefaultKeyValueStore(client_config.credentialStore);
 			this.setStateStore(key_value_store);
 			const crypto_suite = BaseClient.newCryptoSuite();
 			// all crypto suites should extends api.CryptoSuite

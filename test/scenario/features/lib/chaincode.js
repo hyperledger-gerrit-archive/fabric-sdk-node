@@ -78,7 +78,7 @@ async function installChaincode(ccName, ccId, ccType, ccVersion, tls, ccp, orgNa
 	});
 
 	try {
-		const store = await Client.newDefaultKeyValueStore({path: testUtil.storePathForOrg(orgName)});
+		const store = Client.newDefaultKeyValueStore({path: testUtil.storePathForOrg(orgName)});
 		client.setStateStore(store);
 
 		// set user to send install chaincode requests
@@ -186,7 +186,7 @@ async function instantiateChaincode(ccName, ccId, ccType, args, version, upgrade
 	try {
 		testUtil.logMsg('Performing ' + type + ' transaction on chaincode with ID [' + ccId + '] as organization [' + orgName + '] ...');
 
-		const store = await Client.newDefaultKeyValueStore({path: testUtil.storePathForOrg(orgName)});
+		const store = Client.newDefaultKeyValueStore({path: testUtil.storePathForOrg(orgName)});
 		client.setStateStore(store);
 
 		// set user to send install chaincode requests
