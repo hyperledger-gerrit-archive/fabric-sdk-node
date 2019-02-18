@@ -95,24 +95,29 @@ test('\n\n** utils.newCryptoSuite tests **\n\n', (t) => {
 	t.end();
 });
 
-test('\n\n ** CryptoSuite_ECDSA_AES - error tests **\n\n', (t) => {
+test('\n\n ** CryptoSuite_ECDSA_AES - error tests **\n\n', async (t) => {
 	testutil.resetDefaults();
 	const cryptoUtils = utils.newCryptoSuite();
-	t.throws(
-		() => {
-			cryptoUtils.importKey(TEST_CERT_PEM);
-		},
-		/importKey opts.ephemeral is false, which requires CryptoKeyStore to be set./,
-		'Test missing cryptoKeyStore: cryptoSuite.importKey'
-	);
-	cryptoUtils.generateKey().catch(err => {
+
+	try {
+		await cryptoUtils.importKey(TEST_CERT_PEM);
+		t.fail('Import key did not fail when testing missing cryptoKeyStore');
+	} catch (err) {
+		t.ok(err.toString()
+			.includes('importKey opts.ephemeral is false, which requires CryptoKeyStore to be set'),
+		'Test missing cryptoKeyStore: cryptoSuite.importKey');
+	}
+
+	try {
+		await cryptoUtils.generateKey();
+		t.fail('generateKey did not fail when testing missing cryptoKeyStore');
+	} catch (err) {
 		t.ok(err.toString()
 			.includes('generateKey opts.ephemeral is false, which requires CryptoKeyStore to be set.'),
 		'Test missing cryptoKeyStore: cryptoSuite.generateKey');
+	}
 
-		t.end();
-	});
-
+	t.end();
 });
 
 test('\n\n ** CryptoSuite_ECDSA_AES - generateEphemeralKey tests **\n\n', (t) => {

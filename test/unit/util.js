@@ -318,12 +318,12 @@ module.exports.getClientForOrg = async function(t, org) {
 	//  this network config does not have the client information, we will
 	//  load that later so that we can switch this client to be in a different
 	//  organization
-	const client = Client.loadFromConfig('test/fixtures/network-ad.yaml');
+	const client = await Client.loadFromConfig('test/fixtures/network-ad.yaml');
 	t.pass('Successfully loaded a common connection profile');
 
 	// load the client information for this organization
 	// this file only has the client section
-	client.loadFromConfig('test/fixtures/' + org + '.yaml');
+	await client.loadFromConfig('test/fixtures/' + org + '.yaml');
 	t.pass('Successfully loaded client section of network config for organization:' + org);
 	if (client._adminSigningIdentity) {
 		t.pass('Successfully assigned an admin idenity to this client');
