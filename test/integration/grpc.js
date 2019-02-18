@@ -47,7 +47,7 @@ test('\n\n*** GRPC message size tests ***\n\n', async (t) => {
 		client.setCryptoSuite(cryptoSuite);
 		const tlsInfo = await e2eUtils.tlsEnroll(userOrg);
 		client.setTlsClientCertAndKey(tlsInfo.certificate, tlsInfo.key);
-		const store = await Client.newDefaultKeyValueStore({path: testUtil.storePathForOrg(orgName)});
+		const store = Client.newDefaultKeyValueStore({path: testUtil.storePathForOrg(orgName)});
 		client.setStateStore(store);
 		await testUtil.getSubmitter(client, t, userOrg, true);
 
