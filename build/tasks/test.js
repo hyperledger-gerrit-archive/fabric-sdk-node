@@ -297,10 +297,6 @@ gulp.task('run-tape-e2e', ['docker-ready'],
 
 			// Typescript
 			'test/typescript/test.js',
-
-			// Perf
-			'test/integration/perf/orderer.js',
-			'test/integration/perf/peer.js'
 		]))
 			.pipe(tape({
 				reporter: tapColorize()
