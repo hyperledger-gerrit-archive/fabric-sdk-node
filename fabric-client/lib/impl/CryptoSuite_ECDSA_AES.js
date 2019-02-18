@@ -126,7 +126,7 @@ class CryptoSuite_ECDSA_AES extends CryptoSuite {
 	/**
 	 * This is an implementation of {@link module:api.CryptoSuite#importKey}
 	 */
-	importKey(pem, opts) {
+	async importKey(pem, opts) {
 		logger.debug('importKey - start');
 		let store_key = true; // default
 		if (typeof opts !== 'undefined' && typeof opts.ephemeral !== 'undefined' && opts.ephemeral === true) {
@@ -174,17 +174,9 @@ class CryptoSuite_ECDSA_AES extends CryptoSuite {
 				logger.error('importKey - %j', error);
 				return Promise.reject(error);
 			}
-			return new Promise((resolve, reject) => {
-				return self._cryptoKeyStore._getKeyStore()
-					.then((store) => {
-						return store.putKey(theKey);
-					}).then(() => {
-						return resolve(theKey);
-					}).catch((err) => {
-						reject(err);
-					});
-
-			});
+			const store =  self._cryptoKeyStore._getKeyStore();
+			await store.putKey(theKey);
+			return theKey;
 		}
 	}
 
