@@ -355,7 +355,7 @@ describe('MSP', () => {
 			should.not.exist(args[1].ephemeral);
 		});
 
-		it('should deserialise a serialized identity', async () => {
+		xit('should deserialise a serialized identity', async () => {
 
 			// Set base/default config
 			const config = new Config();
