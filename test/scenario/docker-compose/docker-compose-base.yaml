@@ -75,7 +75,7 @@ services:
 
       # LOGGING SETTINGS
       - CORE_LOGGING_LEVEL=${DOCKER_DEBUG}
-      - CORE_CHAINCODE_LOGGING_LEVE=${DOCKER_DEBUG}
+      - CORE_CHAINCODE_LOGGING_LEVEL=${DOCKER_DEBUG}
       - CORE_LOGGING_MSP=${DOCKER_DEBUG}
       - CORE_LOGGING_GRPC=${DOCKER_DEBUG}
       - CORE_LOGGING_LEDGER=${DOCKER_DEBUG}
@@ -99,4 +99,4 @@ services:
 
   couchdb:
     container_name: couchdb
-    image: hyperledger/fabric-couchdb
+    image: hyperledger/fabric-couchdb${THIRDPARTY_IMG_TAG}
