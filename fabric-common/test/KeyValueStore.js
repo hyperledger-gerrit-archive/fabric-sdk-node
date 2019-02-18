@@ -26,6 +26,13 @@ describe('KeyValueStore', () => {
 		keyValueStore = new KeyValueStore();
 	});
 
+	describe('#init', () => {
+		it('should return undefined', async () => {
+			const result = await keyValueStore.init();
+			should.equal(result, undefined);
+		});
+	});
+
 	describe('#getName', () => {
 		it('should return undefined', () => {
 			const value1 = keyValueStore.getValue('name');
