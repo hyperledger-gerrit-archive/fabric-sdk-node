@@ -757,6 +757,7 @@ module.exports.queryClientAsAdmin = async function(t, client, channel, peer) {
 module.exports.sleep = function(ms) {
 	return new Promise(resolve => setTimeout(resolve, ms));
 };
+
 exports.tapeAsyncThrow = async (t, asyncFun, regx, message) => {
 	try {
 		await asyncFun();
@@ -768,5 +769,14 @@ exports.tapeAsyncThrow = async (t, asyncFun, regx, message) => {
 			t.fail(message);
 			t.comment(err.toString());
 		}
+	}
+};
+
+exports.tapeAsyncNoThrow = async (t, asyncFun, msg) => {
+	try {
+		await asyncFun();
+		t.pass('Successfully ' + msg);
+	} catch (err) {
+		t.fail('Should be ' + msg);
 	}
 };

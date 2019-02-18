@@ -22,7 +22,7 @@ const path = require('path');
 const testUtil = require('../unit/util.js');
 
 
-test('\n\n***** clean up the connection profile testing stores  *****\n\n', (t) => {
+test('\n\n***** clean up the connection profile testing stores  *****\n\n', async (t) => {
 /*
 	* The following is just testing housekeeping... cleanup from the last time
 	* this test was run, a real application would not do this.
