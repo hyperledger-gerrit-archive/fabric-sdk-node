@@ -89,7 +89,6 @@ class InMemoryKVS extends KeyValueStore {
 		super();
 		logger.debug('in InMemoryKVS constructor, prefix = ' + prefix);
 		this.partitionKey = prefix;
-		return Promise.resolve(this);
 	}
 
 	async getValue(name) {
