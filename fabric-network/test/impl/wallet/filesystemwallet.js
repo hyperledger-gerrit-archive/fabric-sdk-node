@@ -51,10 +51,22 @@ describe('FileSystemWallet', () => {
 	});
 
 	describe('#_createFileKVS', () => {
+		let revert;
+		let instanceStub;
+
+		beforeEach(() => {
+			instanceStub = sinon.stub();
+			revert = FileSystemWallet.__set__('FileKVS', instanceStub);
+		});
+
+		afterEach(() => {
+			revert();
+		});
+
 		it('should create a File Key Value Store', async () => {
-			sandbox.stub(fs, 'mkdirs').callsArg(1);
-			const store = await FileSystemWallet._createFileKVS('test');
-			store.should.be.an.instanceof(KeyValueStore);
+			await FileSystemWallet._createFileKVS('test');
+			sinon.assert.calledWithNew(instanceStub);
+			sinon.assert.calledWith(instanceStub, {path: 'test'});
 		});
 	});
 

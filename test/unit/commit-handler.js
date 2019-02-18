@@ -28,7 +28,7 @@ test('\n\n ** BasicCommitHandler - test **\n\n', async (t) => {
 	Client.setConfigSetting('endorsement-handler', 'fabric-client/lib/impl/BasicCommitHandler.js');
 
 	const client = new Client();
-	const store = await Client.newDefaultKeyValueStore({path: TestUtil.storePathForOrg('org1')});
+	const store = Client.newDefaultKeyValueStore({path: TestUtil.storePathForOrg('org1')});
 	client.setStateStore(store);
 	await TestUtil.setAdmin(client, 'org1');
 	const channel = client.newChannel('handlertest');
