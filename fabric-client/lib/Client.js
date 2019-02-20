@@ -202,7 +202,7 @@ const Client = class extends BaseClient {
 		const method = 'getConnectionOptions';
 		logger.debug('%s - start', method);
 		let return_options = Object.assign({}, Client.getConfigSetting('connection-options'));
-		return_options = Object.assign({}, this._connection_options);
+		return_options = Object.assign(return_options, this._connection_options);
 		return_options = Object.assign(return_options, options);
 
 		if (!return_options.clientCert) {
