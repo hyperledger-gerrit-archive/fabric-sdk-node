@@ -197,6 +197,9 @@ sdk_E2e_Tests() {
         echo -e "\033[32m Execute logging test only" "\033[0m"
         gulp test-logging || err_Check "ERROR!!! gulp test failed"
 
+		echo -e "\033[32m Execute functional tests" "\033[0m"
+       	gulp run-test-functional || err_Check "ERROR!!! functional test failed"
+
         echo -e "\033[32m Execute cucumber tests" "\033[0m"
         gulp run-test-sceanrio || err_Check "ERROR!!! gulp test failed"
 }
