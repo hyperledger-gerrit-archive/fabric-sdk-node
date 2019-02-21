@@ -204,31 +204,15 @@ function installChaincode(params, t) {
 				t.fail(params.testDesc + ' - Failed to enroll user \'admin\'. ' + err);
 				throw new Error(params.testDesc + ' - Failed to enroll user \'admin\'. ' + err);
 			}).then((results) => {
-				const proposalResponses = results[0];
-
-				// var proposal = results[1];
-				let all_good = true;
-				let error = null;
-				for (const i in proposalResponses) {
-					let one_good = false;
-					if (proposalResponses && proposalResponses[i].response && proposalResponses[i].response.status === 200) {
-						one_good = true;
-						logger.info(params.testDesc + ' - install proposal was good');
-					} else {
-						logger.error(params.testDesc + ' - install proposal was bad');
-						error = proposalResponses[i];
-					}
-					all_good = all_good & one_good;
-				}
-				if (all_good) {
+				const isGood = results.responses.some((response) => response.response.status === 200);
+				if (isGood) {
 					return 'success';
-				} else {
-					if (error) {
-						return error;
-					} else {
-						return 'fail';
-					}
 				}
+
+				const errorMsg = results.responses[0] && results.responses[0].response.message ||
+					results.errors[0] && results.errors[0].message ||
+					'fail';
+				return new Error(errorMsg);
 			},
 			(err) => {
 				return new Error(err.stack ? err.stack : err);

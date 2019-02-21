@@ -171,7 +171,7 @@ describe('MSP', () => {
 			const setOrganizationalUnitIdentifiersStub = sinon.stub();
 			const setTlsRootCertsStub = sinon.stub();
 			const getTlsIntermediateCertsStub = sinon.stub();
-			const toBufferStub = sinon.stub().returns(new Buffer('test_buffer'));
+			const toBufferStub = sinon.stub().returns(Buffer.from('test_buffer'));
 			const protoStub = sinon.stub().returns({
 				setName: setNameStub,
 				setRootCerts: setRootCertsStub,
@@ -222,7 +222,7 @@ describe('MSP', () => {
 		it('should set the type to 0 (Fabric)', () => {
 			const setNameStub = sinon.stub();
 			const setRootCertsStub = sinon.stub();
-			const toBufferStub = sinon.stub().returns(new Buffer('test_buffer'));
+			const toBufferStub = sinon.stub().returns(Buffer.from('test_buffer'));
 			const protoStub = sinon.stub().returns({
 				setName: setNameStub,
 				setRootCerts: setRootCertsStub,
@@ -243,7 +243,7 @@ describe('MSP', () => {
 		it('should set the config to the output of the FabricMSPConfig toBuffer call', () => {
 			const setNameStub = sinon.stub();
 			const setRootCertsStub = sinon.stub();
-			const toBufferStub = sinon.stub().returns(new Buffer('test_buffer'));
+			const toBufferStub = sinon.stub().returns(Buffer.from('test_buffer'));
 			const protoStub = sinon.stub().returns({
 				setName: setNameStub,
 				setRootCerts: setRootCertsStub,

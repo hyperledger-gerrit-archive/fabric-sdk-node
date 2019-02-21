@@ -213,6 +213,11 @@ test('\n\n***** use the connection profile file  *****\n\n', async (t) => {
 		let results = await channel_on_org2.joinChannel(request); // admin from org2
 		logger.debug(util.format('Join Channel R E S P O N S E using default targets: %j', results));
 
+		// t.strictEqual(results.length, 2, 'Received two proposal responses');
+
+		// const goodResponses = results.filter((response) => response.response.status === 200);
+		// t.strictEqual(goodResponses.length, 1, 'Only one good response since ID only has permission for one org');
+
 		// first of the results should not have good status as submitter does not have permission
 		if (results && results[0] && results[0].response && results[0].response.status === 200) {
 			t.fail(util.format('Successfully had peer in organization %s join the channel', 'org1'));
@@ -228,7 +233,6 @@ test('\n\n***** use the connection profile file  *****\n\n', async (t) => {
 			t.fail(' Failed to join channel');
 			throw new Error('Failed to join channel');
 		}
-
 
 		tx_id = client_org1.newTransactionID(true);
 		request = {
@@ -265,7 +269,7 @@ test('\n\n***** use the connection profile file  *****\n\n', async (t) => {
 		};
 
 		results = await client_org1.installChaincode(request);
-		if (results && results[0] && results[0][0].response && results[0][0].response.status === 200) {
+		if (results.responses[0] && results.responses[0].response.status === 200) {
 			t.pass('Successfully installed chain code on org1');
 		} else {
 			t.fail(' Failed to install chaincode on org1');
@@ -284,7 +288,7 @@ test('\n\n***** use the connection profile file  *****\n\n', async (t) => {
 		};
 
 		results = await client_org2.installChaincode(request);
-		if (results && results[0] && results[0][0].response && results[0][0].response.status === 200) {
+		if (results.responses[0] && results.responses[0].response.status === 200) {
 			t.pass('Successfully installed chain code on org2');
 		} else {
 			t.fail(' Failed to install chaincode');
@@ -309,8 +313,8 @@ test('\n\n***** use the connection profile file  *****\n\n', async (t) => {
 		};
 
 		results = await channel_on_org1.sendInstantiateProposal(request);
-		let proposalResponses = results[0];
-		let proposal = results[1];
+		let proposalResponses = results.responses;
+		let proposal = results.proposal;
 		let response;
 		if (proposalResponses && proposalResponses[0].response && proposalResponses[0].response.status === 200) {
 			t.pass('Successfully sent Proposal and received ProposalResponse');
@@ -360,8 +364,8 @@ test('\n\n***** use the connection profile file  *****\n\n', async (t) => {
 		};
 
 		results = await channel_on_org1.sendTransactionProposal(request); // logged in as org1 user
-		proposalResponses = results[0];
-		proposal = results[1];
+		proposalResponses = results.responses;
+		proposal = results.proposal;
 		let all_good = true;
 		// Will check to be sure that we see two responses as there are two peers defined on this
 		// channel that are endorsing peers
@@ -643,7 +647,7 @@ test('\n\n***** use the connection profile file  *****\n\n', async (t) => {
 
 		// put in a very small timeout to force a failure, thereby checking that the timeout value was being used
 		results = await channel_on_org1.sendTransactionProposal(request, 1); // logged in as org1 user
-		proposalResponses = results[0];
+		proposalResponses = results.responses;
 		for (const i in proposalResponses) {
 			const proposal_response = proposalResponses[i];
 			if (proposal_response instanceof Error && proposal_response.toString().indexOf('REQUEST_TIMEOUT') > 0) {

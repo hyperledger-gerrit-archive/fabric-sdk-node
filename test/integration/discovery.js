@@ -14,6 +14,7 @@ const test = _test(tape);
 
 const fs = require('fs');
 const path = require('path');
+const util = require('util');
 
 const testUtil = require('../unit/util.js');
 
@@ -80,6 +81,7 @@ test('\n\n***** D I S C O V E R Y  *****\n\n', async (t) => {
 	let q_results = {};
 	try {
 		q_results = await channel_org1.queryInstantiatedChaincodes(peer_org1, true);
+		t.pass(util.format('Queried installed chaincodes: %j', q_results));
 	} catch (error) {
 		t.fail(error.toString());
 	}
@@ -393,7 +395,8 @@ async function installChaincode(t, client, channel, peer, chaincode_id, chaincod
 		};
 
 		const install_results = await client.installChaincode(request);
-		if (install_results && !(install_results[0] instanceof Error)) {
+		const isSuccessful = install_results.responses.some((response) => response.response.status < 400);
+		if (isSuccessful) {
 			t.pass('Able to install chaincode ' + chaincode_id + ' on the peer');
 		} else {
 			t.failed('Chaincode not installed');
@@ -457,11 +460,12 @@ async function startChaincode(t, client, channel, orderer, peers, chaincode_id, 
 		};
 
 		const proposal_results = await channel.sendInstantiateProposal(proposal_request, 10 * 60 * 1000);
-		if (proposal_results[0][0].response.status === 200) {
+		const isSuccessful = proposal_results.responses.some((response) => response.response.status < 400);
+		if (isSuccessful) {
 			const commit_request = {
 				orderer: orderer,
-				proposalResponses: proposal_results[0],
-				proposal: proposal_results[1],
+				proposalResponses: proposal_results.responses,
+				proposal: proposal_results.proposal,
 				txId : tx_id
 			};
 
@@ -472,6 +476,8 @@ async function startChaincode(t, client, channel, orderer, peers, chaincode_id, 
 			} else {
 				t.fail('Chaincode is not running');
 			}
+		} else {
+			t.fail('No success responses for instantiate proposal');
 		}
 	} catch (error) {
 		logger.error(error);

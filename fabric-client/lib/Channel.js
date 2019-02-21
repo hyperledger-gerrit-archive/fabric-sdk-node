@@ -43,6 +43,20 @@ function logAndThrow(methodName, errorMessage) {
 	throw new Error(errorMessage);
 }
 
+function getValidProposalResponse(proposalResponse) {
+	const validResponse = proposalResponse.responses.find((response) => {
+		return response.response && response.response.status < 400 && response.response.payload;
+	});
+
+	if (!validResponse) {
+		const message = util.format('No valid responses received. Invalid responses: %j; Errors: %O',
+			proposalResponse.responses, proposalResponse.errors);
+		throw new Error(message);
+	}
+
+	return validResponse;
+}
+
 /**
  * Channels provide data isolation for a set of participating organizations.
  * <br><br>
@@ -839,13 +853,7 @@ const Channel = class {
 	 * @returns {ChannelPeer} The ChannelPeer instance
 	 */
 	getChannelPeer(name) {
-		const channel_peer = this._channel_peers.get(name);
-
-		if (!channel_peer) {
-			throw new Error(util.format(PEER_NOT_ASSIGNED_MSG, name));
-		}
-
-		return channel_peer;
+		return this.getPeer(name);
 	}
 
 	/**
@@ -1713,9 +1721,9 @@ const Channel = class {
 	 *                              response before rejecting the promise with a
 	 *                              timeout error. This overrides the default timeout
 	 *                              of the {@link Peer} instance(s) and the global timeout in the config settings.
-	 * @returns {Promise} A Promise for an array of {@link ProposalResponse} from the target peers
+	 * @returns {ProposalResponse[]} Responses from the target peers.
 	 */
-	joinChannel(request, timeout) {
+	async joinChannel(request, timeout) {
 		logger.debug('joinChannel - start');
 		let errorMsg = null;
 
@@ -1765,7 +1773,16 @@ const Channel = class {
 		const proposal = client_utils.buildProposal(chaincodeSpec, header);
 		const signed_proposal = client_utils.signProposal(signer, proposal);
 
-		return client_utils.sendPeersProposal(targets, signed_proposal, timeout);
+		const responseObj = await client_utils.sendPeersProposal(targets, signed_proposal, timeout);
+		const allResponses = responseObj.responses.concat(responseObj.errors);
+
+		const peerResponses = {};
+		allResponses.forEach((response) => {
+			peerResponses[response.peer.name] = response;
+		});
+
+		const results = targets.map((peer) => peerResponses[peer.getName()]);
+		return results;
 	}
 
 	/**
@@ -1796,25 +1813,15 @@ const Channel = class {
 		request.targets = this._getTargets(request.targets, Constants.NetworkConfig.ENDORSING_PEER_ROLE);
 
 		const results = await Channel.sendTransactionProposal(request, this._name, this._clientContext, timeout);
-		const responses = results[0];
-		// const proposal = results[1];
 		logger.debug('%s - results received', method);
-		if (responses && Array.isArray(responses)) {
-			const response = responses[0];
-			if (response instanceof Error) {
-				throw response;
-			} else if (response.response && response.response.payload && response.response.status === 200) {
-				const block = fabprotos.common.Block.decode(response.response.payload);
-				const envelope = fabprotos.common.Envelope.decode(block.data.data[0]);
-				const payload = fabprotos.common.Payload.decode(envelope.payload);
-				const config_envelope = fabprotos.common.ConfigEnvelope.decode(payload.data);
-				return config_envelope;
-			} else {
-				logger.error('%s - unknown response ::%s', method, response);
-				throw new Error(JSON.stringify(response));
-			}
-		}
-		throw new Error('Payload results are missing from the get channel config');
+
+		const response = getValidProposalResponse(results);
+
+		const block = fabprotos.common.Block.decode(response.response.payload);
+		const envelope = fabprotos.common.Envelope.decode(block.data.data[0]);
+		const payload = fabprotos.common.Payload.decode(envelope.payload);
+		const config_envelope = fabprotos.common.ConfigEnvelope.decode(payload.data);
+		return config_envelope;
 	}
 
 	/**
@@ -2037,21 +2044,10 @@ const Channel = class {
 		};
 
 		const results = await Channel.sendTransactionProposal(request, this._name, this._clientContext, null);
-		const responses = results[0];
-		logger.debug('queryInfo - got responses=' + responses.length);
-		// will only be one response as we are only querying the primary peer
-		const response = responses[0];
-		if (response instanceof Error) {
-			throw response;
-		}
-		if (response.response && response.response.status && response.response.status === 200) {
-			logger.debug('queryInfo - response status %d:', response.response.status);
-			return fabprotos.common.BlockchainInfo.decode(response.response.payload);
-		} else if (response.response && response.response.status) {
-			// no idea what we have, lets fail it and send it back
-			throw new Error(response.response.message);
-		}
-		throw new Error('Payload results are missing from the query channel info');
+		const response = getValidProposalResponse(results);
+		const blockchainInfo = fabprotos.common.BlockchainInfo.decode(response.response.payload);
+
+		return blockchainInfo;
 	}
 
 	/**
@@ -2065,7 +2061,7 @@ const Channel = class {
 	 * @param {boolean} skipDecode - Optional. If true, this function returns an encoded block.
 	 * @returns {Promise} A Promise for a {@link Block} matching the tx_id, fully decoded into an object.
 	 */
-	async queryBlockByTxID(tx_id, target, useAdmin, skipDecode) {
+	async queryBlockByTxID(tx_id, target, useAdmin = false, skipDecode = false) {
 		logger.debug('queryBlockByTxID - start');
 		if (!tx_id || !(typeof tx_id === 'string')) {
 			throw new Error('tx_id as string is required');
@@ -2084,26 +2080,15 @@ const Channel = class {
 		};
 
 		const results = await Channel.sendTransactionProposal(request, this._name, this._clientContext, null);
-		const responses = results[0];
-		logger.debug('queryBlockByTxID - got response', responses.length);
-		const response = responses[0];
-		if (response instanceof Error) {
-			throw response;
+		const response = getValidProposalResponse(results);
+
+		if (skipDecode) {
+			return response.response.payload;
+		} else {
+			const block = BlockDecoder.decode(response.response.payload);
+			logger.debug('queryBlockByTxID - looking at block :: %s', block.header.number);
+			return block;
 		}
-		if (response.response && response.response.status && response.response.status === 200) {
-			logger.debug('queryBlockByTxID - response status %d:', response.response.status);
-			if (skipDecode) {
-				return response.response.payload;
-			} else {
-				const block = BlockDecoder.decode(response.response.payload);
-				logger.debug('queryBlockByTxID - looking at block :: %s', block.header.number);
-				return block;
-			}
-		} else if (response.response && response.response.status) {
-			// no idea what we have, lets fail it and send it back
-			throw new Error(response.response.message);
-		}
-		throw new Error('Payload results are missing from the query');
 	}
 
 	/**
@@ -2136,26 +2121,15 @@ const Channel = class {
 		};
 
 		const results = await Channel.sendTransactionProposal(request, this._name, this._clientContext, null);
-		const responses = results[0];
-		logger.debug('queryBlockByHash - got response');
-		const response = responses[0];
-		if (response instanceof Error) {
-			throw response;
+		const response = getValidProposalResponse(results);
+
+		if (skipDecode) {
+			return response.response.payload;
+		} else {
+			const block = BlockDecoder.decode(response.response.payload);
+			logger.debug('queryBlockByHash - looking at block :: %s', block.header.number);
+			return block;
 		}
-		if (response.response && response.response.status && response.response.status === 200) {
-			logger.debug('queryBlockByHash - response status %d:', response.response.status);
-			if (skipDecode) {
-				return response.response.payload;
-			} else {
-				const block = BlockDecoder.decode(response.response.payload);
-				logger.debug('queryBlockByHash - looking at block :: %s', block.header.number);
-				return block;
-			}
-		} else if (response.response && response.response.status) {
-			// no idea what we have, lets fail it and send it back
-			throw new Error(response.response.message);
-		}
-		throw new Error('Payload results are missing from the query');
 	}
 
 	/**
@@ -2190,26 +2164,15 @@ const Channel = class {
 		};
 
 		const results = await Channel.sendTransactionProposal(request, this._name, this._clientContext, null);
-		const responses = results[0];
-		logger.debug('queryBlock - got response');
-		const response = responses[0];
-		if (response instanceof Error) {
-			throw response;
+		const response = getValidProposalResponse(results);
+
+		if (skipDecode) {
+			return response.response.payload;
+		} else {
+			const block = BlockDecoder.decode(response.response.payload);
+			logger.debug('queryBlock - looking at block :: %s', block.header.number);
+			return block;
 		}
-		if (response.response && response.response.status && response.response.status === 200) {
-			logger.debug('queryBlock - response status %d:', response.response.status);
-			if (skipDecode) {
-				return response.response.payload;
-			} else {
-				const block = BlockDecoder.decode(response.response.payload);
-				logger.debug('queryBlock - looking at block :: %s', block.header.number);
-				return block;
-			}
-		} else if (response.response && response.response.status) {
-			// no idea what we have, lets fail it and send it back
-			throw new Error(response.response.message);
-		}
-		throw new Error('Payload results are missing from the query');
 	}
 
 	/**
@@ -2243,25 +2206,13 @@ const Channel = class {
 		};
 
 		const results = await Channel.sendTransactionProposal(request, this._name, this._clientContext, null);
-		const responses = results[0];
-		logger.debug('queryTransaction - got response');
-		const response = responses[0];
-		if (response instanceof Error) {
-			throw response;
-		}
-		if (response.response && response.response.status && response.response.status === 200) {
-			logger.debug('queryTransaction - response status :: %d', response.response.status);
-			if (skipDecode) {
-				return response.response.payload;
-			} else {
-				return BlockDecoder.decodeTransaction(response.response.payload);
-			}
-		} else if (response.response && response.response.status) {
-			// no idea what we have, lets fail it and send it back
-			throw new Error(response.response.message);
-		}
+		const response = getValidProposalResponse(results);
 
-		throw new Error('Payload results are missing from the query');
+		if (skipDecode) {
+			return response.response.payload;
+		} else {
+			return BlockDecoder.decodeTransaction(response.response.payload);
+		}
 	}
 
 	/**
@@ -2291,28 +2242,14 @@ const Channel = class {
 		};
 
 		const results = await Channel.sendTransactionProposal(request, this._name, this._clientContext, null);
-		const responses = results[0];
-		logger.debug('queryInstantiatedChaincodes - got response');
-		const response = responses[0];
-		if (response instanceof Error) {
-			throw response;
+		const response = getValidProposalResponse(results);
+
+		const queryTrans = fabprotos.protos.ChaincodeQueryResponse.decode(response.response.payload);
+		logger.debug('queryInstantiatedChaincodes - ProcessedTransaction.chaincodeInfo.length :: %s', queryTrans.chaincodes.length);
+		for (const chaincode of queryTrans.chaincodes) {
+			logger.debug('queryInstantiatedChaincodes - name %s, version %s, path %s', chaincode.name, chaincode.version, chaincode.path);
 		}
-		if (response.response) {
-			if (response.response.status === 200) {
-				logger.debug('queryInstantiatedChaincodes - response status :: %d', response.response.status);
-				const queryTrans = fabprotos.protos.ChaincodeQueryResponse.decode(response.response.payload);
-				logger.debug('queryInstantiatedChaincodes - ProcessedTransaction.chaincodeInfo.length :: %s', queryTrans.chaincodes.length);
-				for (const chaincode of queryTrans.chaincodes) {
-					logger.debug('queryInstantiatedChaincodes - name %s, version %s, path %s', chaincode.name, chaincode.version, chaincode.path);
-				}
-				return queryTrans;
-			} else {
-				if (response.response.message) {
-					throw new Error(response.response.message);
-				}
-			}
-		}
-		throw new Error('Payload results are missing from the query');
+		return queryTrans;
 	}
 
 	/**
@@ -2379,36 +2316,12 @@ const Channel = class {
 			args: [options.chaincodeId],
 		};
 
-		try {
-			const [responses] = await Channel.sendTransactionProposal(request, this._name, this._clientContext, null);
-			if (responses && Array.isArray(responses)) {
-				if (responses.length > 1) {
-					throw new Error('Too many results returned');
-				}
-				const [response] = responses;
-				if (response instanceof Error) {
-					throw response;
-				}
-				if (!response.response) {
-					throw new Error('Didn\'t receive a valid peer response');
-				}
-				logger.debug('%s - response status :: %d', method, response.response.status);
+		const results = await Channel.sendTransactionProposal(request, this._name, this._clientContext, null);
+		const response = getValidProposalResponse(results);
 
-				if (response.response.status !== 200) {
-					logger.debug('%s - response:%j', method, response);
-					if (response.response.message) {
-						throw new Error(response.response.message);
-					}
-					throw new Error('Failed to retrieve collections config from peer');
-				}
-				const queryResponse = decodeCollectionsConfig(response.response.payload);
-				logger.debug('%s - get %s collections for chaincode %s from peer', method, queryResponse.length, options.chaincodeId);
-				return queryResponse;
-			}
-			throw new Error('Failed to retrieve collections config from peer');
-		} catch (e) {
-			throw e;
-		}
+		const queryResponse = decodeCollectionsConfig(response.response.payload);
+		logger.debug('%s - get %s collections for chaincode %s from peer', method, queryResponse.length, options.chaincodeId);
+		return queryResponse;
 	}
 
 	/**
@@ -2494,9 +2407,9 @@ const Channel = class {
 	 *                              response before rejecting the promise with a
 	 *                              timeout error. This overrides the default timeout
 	 *                              of the Peer instance and the global timeout in the config settings.
-	 * @returns {Promise} A Promise for the {@link ProposalResponseObject}
+	 * @returns {ProposalResponseObject} Peer responses.
 	 */
-	sendInstantiateProposal(request, timeout) {
+	async sendInstantiateProposal(request, timeout) {
 		return this._sendChaincodeProposal(request, 'deploy', timeout);
 	}
 
@@ -2516,14 +2429,16 @@ const Channel = class {
 	 *                              response before rejecting the promise with a
 	 *                              timeout error. This overrides the default timeout
 	 *                              of the Peer instance and the global timeout in the config settings.
-	 * @returns {Promise} A Promise for the {@link ProposalResponseObject}
+	 * @returns {ProposalResponseObject} Peer responses.
 	 */
-	sendUpgradeProposal(request, timeout) {
+	async sendUpgradeProposal(request, timeout) {
 		return this._sendChaincodeProposal(request, 'upgrade', timeout);
 	}
 
-	/*
+	/**
 	 * Internal method to handle both chaincode calls
+	 * @private
+	 * @returns {ProposalResponseObject} Peer responses.
 	 */
 	async _sendChaincodeProposal(request, command, timeout) {
 		let errorMsg = null;
@@ -2628,8 +2543,10 @@ const Channel = class {
 		const proposal = client_utils.buildProposal(lcccSpec, header, request.transientMap);
 		const signed_proposal = client_utils.signProposal(signer, proposal);
 
-		const responses = await client_utils.sendPeersProposal(peers, signed_proposal, timeout);
-		return [responses, proposal];
+		const result = await client_utils.sendPeersProposal(peers, signed_proposal, timeout);
+
+		result.proposal = proposal;
+		return result;
 	}
 	/**
 	 * @typedef {Object} ChaincodeDefineRequest
@@ -2676,7 +2593,7 @@ const Channel = class {
 	 * @param {ChaincodeDefineRequest} request - Required.
 	 * @param {Number} timeout - Optional. Timeout specific for this request.
 	 *
-	 * @return {Object} Return object will contain the proposalResponses and the proposal
+	 * @return {ProposalResponseObject} Return object will contain the proposalResponses and the proposal
 	 */
 	async allowChaincodeForOrg(request, timeout) {
 		const method = 'allowChaincodeForOrg';
@@ -2686,11 +2603,12 @@ const Channel = class {
 
 		// TODO - build send the define for org transaction to the lifecycle chaincode.
 
-		const proposal = {};
-
-		const proposal_responses = [];
-
-		return {proposalResponses: proposal_responses, proposal: proposal};
+		const result = {
+			errors: [],
+			proposal: {},
+			responses: []
+		};
+		return result;
 	}
 
 	/**
@@ -2702,7 +2620,7 @@ const Channel = class {
 	 * @param {ChaincodeDefineRequest} request - Required.
 	 * @param {Number} timeout - Optional. Timeout specific for this request.
 	 *
-	 * @return {Object} Return object will contain the proposalResponses and the proposal
+	 * @return {ProposalResponseObject} Return object will contain the proposalResponses and the proposal
 	 */
 	async CommitChaincode(request, timeout) {
 		const method = 'CommitChaincode';
@@ -2712,11 +2630,12 @@ const Channel = class {
 
 		// TODO - build send the define for org transaction to the lifecycle chaincode.
 
-		const proposal = {};
-
-		const proposal_responses = [];
-
-		return {proposalResponses: proposal_responses, proposal: proposal};
+		const result = {
+			errors: [],
+			proposal: {},
+			responses: [],
+		};
+		return result;
 	}
 
 	/**
@@ -2817,7 +2736,7 @@ const Channel = class {
 	 *        response before rejecting the promise with a timeout error. This
 	 *        overrides the default timeout of the Peer instance and the global
 	 *        timeout in the config settings.
-	 * @returns {Promise} A Promise for the {@link ProposalResponseObject}
+	 * @returns {ProposalResponseObject} Peer responses.
 	 */
 	async sendTransactionProposal(request, timeout) {
 		const method = 'sendTransactionProposal';
@@ -2857,9 +2776,11 @@ const Channel = class {
 				use_discovery: this._use_discovery
 			};
 
-			const responses = await this._endorsement_handler.endorse(params);
-
-			return [responses, proposal.source];
+			return {
+				errors: [],
+				responses: await this._endorsement_handler.endorse(params),
+				proposal: proposal.source
+			};
 		} else {
 			logger.debug('%s - running without endorsement handler', method);
 
@@ -2870,6 +2791,7 @@ const Channel = class {
 	/*
 	 * Internal static method to allow transaction proposals to be called without
 	 * creating a new channel
+	 * @returns {ProposalResponseObject} Peer responses.
 	 */
 	static async sendTransactionProposal(request, channelId, client_context, timeout) {
 		const method = 'sendTransactionProposal(static)';
@@ -2893,8 +2815,10 @@ const Channel = class {
 
 		const proposal = Channel._buildSignedProposal(request, channelId, client_context);
 
-		const responses = await client_utils.sendPeersProposal(request.targets, proposal.signed, timeout);
-		return [responses, proposal.source];
+		const result = await client_utils.sendPeersProposal(request.targets, proposal.signed, timeout);
+
+		result.proposal = proposal.source;
+		return result;
 	}
 
 	static _buildSignedProposal(request, channelId, client_context) {
@@ -3010,31 +2934,29 @@ const Channel = class {
 		let proposalResponses = request.proposalResponses;
 		const chaincodeProposal = request.proposal;
 
-		const endorsements = [];
 		if (!Array.isArray(proposalResponses)) {
 			// convert to array
 			proposalResponses = [proposalResponses];
 		}
-		for (const proposalResponse of proposalResponses) {
-			// make sure only take the valid responses to set on the consolidated response object
-			// to use in the transaction object
-			if (proposalResponse && proposalResponse.response && proposalResponse.response.status === 200) {
-				endorsements.push(proposalResponse.endorsement);
-			}
-		}
+
+		// make sure only take the valid responses to set on the consolidated response object
+		// to use in the transaction object
+		const validResponses = proposalResponses.filter((proposalResponse) => {
+			return proposalResponse && proposalResponse.response && proposalResponse.response.status < 400;
+		});
+		const endorsements = validResponses.map((response) => response.endorsement);
 
 		if (endorsements.length < 1) {
 			logger.error('sendTransaction - no valid endorsements found');
 			throw new Error('no valid endorsements found');
 		}
-		const proposalResponse = proposalResponses[0];
 
 		let use_admin_signer = false;
 		if (request.txId) {
 			use_admin_signer = request.txId.isAdmin();
 		}
 
-		const envelope = Channel.buildEnvelope(this._clientContext, chaincodeProposal, endorsements, proposalResponse, use_admin_signer);
+		const envelope = Channel.buildEnvelope(this._clientContext, chaincodeProposal, endorsements, validResponses[0], use_admin_signer);
 
 		if (this._commit_handler) {
 			// protect the users input
@@ -3171,10 +3093,10 @@ const Channel = class {
 	 * @param {SignedProposal} request signed endorse transaction proposal, this signed
 	 * proposal would be send to peer directly.
 	 * @param {number} timeout the timeout setting passed on sendSignedProposal
+	 * @returns {PeerResponseObject} Peer responses.
 	 */
 	static async sendSignedProposal(request, timeout) {
-		const responses = await client_utils.sendPeersProposal(request.targets, request.signedProposal, timeout);
-		return responses;
+		return client_utils.sendPeersProposal(request.targets, request.signedProposal, timeout);
 	}
 
 	/**
@@ -3646,42 +3568,34 @@ const Channel = class {
 
 		// make a new request object so we can add in the txId and not change the user's
 		const query_request = {
-			targets: targets,
+			targets,
 			chaincodeId: request.chaincodeId,
 			fcn: request.fcn,
 			args: request.args,
 			transientMap: request.transientMap,
 			txId,
-			signer: signer
+			signer
 		};
 
-		const proposalResults = await Channel.sendTransactionProposal(query_request, this._name, this._clientContext, request.request_timeout);
-		const responses = proposalResults[0];
+		const proposalResponses = await Channel.sendTransactionProposal(query_request, this._name, this._clientContext, request.request_timeout);
 		logger.debug('queryByChaincode - results received');
 
-		if (!responses || !Array.isArray(responses)) {
-			throw new Error('Payload results are missing from the chaincode query');
-		}
+		const responses = proposalResponses.responses;
+		const errors = proposalResponses.errors;
 
-		const results = [];
+		const peerResults = {};
 		responses.forEach((response) => {
-			if (response instanceof Error) {
-				results.push(response);
-			} else if (response.response && response.response.payload) {
-				if (response.response.status === 200) {
-					results.push(response.response.payload);
-				} else {
-					if (response.response.message) {
-						results.push(new Error(response.response.message));
-					} else {
-						results.push(new Error(response));
-					}
-				}
+			if (response.response.status === 200 && response.response.payload) {
+				peerResults[response.peer.name] = response.response.payload;
 			} else {
-				logger.error('queryByChaincode - unknown or missing results in query ::' + results);
-				results.push(new Error(response));
+				peerResults[response.peer.name] = new Error(response.response.message || response);
 			}
 		});
+		errors.forEach((error) => {
+			peerResults[error.peer.name] = error;
+		});
+
+		const results = targets.map((peer) => peerResults[peer.getName()]);
 
 		return results;
 	}
@@ -4225,10 +4139,10 @@ const ChannelPeer = class {
 	 *
 	 * The roles this Peer performs on this channel are indicated with is object.
 	 *
-	 * @param {string} mspid - The mspid of the organization this peer belongs.
+	 * @param {?string} mspid - The mspid of the organization this peer belongs.
 	 * @param {Channel} channel - The Channel instance.
 	 * @param {Peer} peer - The Peer instance.
-	 * @param {ChannelPeerRoles} roles - The roles for this peer.
+	 * @param {ChannelPeerRoles} [roles] - The roles for this peer.
 	 */
 	constructor(mspid, channel, peer, roles) {
 		this._mspid = mspid;

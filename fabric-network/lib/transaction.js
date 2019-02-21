@@ -122,19 +122,16 @@ class Transaction {
 		const request = this._buildRequest(args);
 
 		// node sdk will target all peers on the channel that are endorsingPeer or do something special for a discovery environment
-		const results = await channel.sendTransactionProposal(request);
-		const proposalResponses = results[0];
-		const proposal = results[1];
-
-		// get only the valid responses to submit to the orderer
-		const {validResponses} = this._validatePeerResponses(proposalResponses);
+		const proposalResult = await channel.sendTransactionProposal(request);
+		console.log('proposalResult', proposalResult);
+		const validResponses = this._getValidResponses(proposalResult);
 
 		await eventHandler.startListening();
 
 		// Submit the endorsed transaction to the primary orderers.
 		const response = await channel.sendTransaction({
 			proposalResponses: validResponses,
-			proposal
+			proposal: proposalResult.proposal
 		});
 
 		if (response.status !== 'SUCCESS') {
@@ -172,49 +169,42 @@ class Transaction {
 	/**
      * Check for proposal response errors.
      * @private
-     * @param {any} responses the responses from the install, instantiate or invoke
-     * @return {Object} number of ignored errors and valid responses
-     * @throws if there are no valid responses at all.
+     * @param {ProposalResponseObject} proposalResult Proposal results.
+	 * @returns {ProposalResponse[]} Valid proposal responses.
+     * @throws if there are no valid responses.
      */
-	_validatePeerResponses(responses) {
-		if (!responses.length) {
-			logger.error('_validatePeerResponses: No results were returned from the request');
-			throw new Error('No results were returned from the request');
-		}
-
+	_getValidResponses(proposalResult) {
 		const validResponses = [];
-		const invalidResponses = [];
-		const invalidResponseMsgs = [];
+		const txId = this._transactionId.getTransactionID();
 
-		responses.forEach((responseContent) => {
-			if (responseContent instanceof Error) {
-				// this is either an error from the sdk, peer response or chaincode response.
-				// we can distinguish between sdk vs peer/chaincode by the isProposalResponse flag in the future.
-				// TODO: would be handy to know which peer the response is from and include it here.
-				const message = responseContent.message;
-				logger.warn('_validatePeerResponses: Received error response from peer:', responseContent);
-				logger.debug('_validatePeerResponses: invalid response from peer %j', responseContent.peer);
-				invalidResponseMsgs.push(message);
-				invalidResponses.push(responseContent);
+		proposalResult.responses.forEach((proposalResponse) => {
+			if (proposalResponse.response.status < 400) {
+				validResponses.push(proposalResponse);
 			} else {
-				// anything else is a successful response ie status will be less then 400.
-				// in the future we can do things like verifyProposalResponse and compareProposalResponseResults
-				// as part of an extended client side validation strategy but for now don't perform any client
-				// side checks as the peers will have to do this anyway and it impacts client performance
-				logger.debug('_validatePeerResponses: valid response from peer %j', responseContent.peer);
-				validResponses.push(responseContent);
+				const message = util.format('Invalid proposal response for transaction %j from peer %j with status %s: %s',
+					txId, proposalResponse.peer.url, proposalResponse.response.status, proposalResponse.response.message);
+				logger.warn('_validatePeerResponses:', message);
 			}
 		});
 
-		if (validResponses.length === 0) {
-			const messages = Array.of(`No valid responses from any peers. ${invalidResponseMsgs.length} peer error responses:`,
-				...invalidResponseMsgs);
-			const msg = messages.join('\n    ');
-			logger.error('_validatePeerResponses: ' + msg);
-			throw new Error(msg);
+		proposalResult.errors.forEach((error) => {
+			const message = util.format('Error sending proposal for transaction %j to peer %j: %j',
+				txId, error.peer && error.peer.url, error);
+			logger.warn('_validatePeerResponses:', message);
+		});
+
+		if (validResponses.length < 1) {
+			const invalidPeers = proposalResult.responses.map((response) => response.peer.url);
+			const errorPeers = proposalResult.errors.map((error) => error.peer && error.peer.url);
+			const message = util.format(
+				'No valid responses from any peers for transaction %s. Invalid responses from peers: %j. Errors sending proposal to peers: %j',
+				txId, invalidPeers, errorPeers
+			);
+			logger.error('_validatePeerResponses:', message);
+			throw new Error(message);
 		}
 
-		return {validResponses, invalidResponses};
+		return validResponses;
 	}
 
 	/**

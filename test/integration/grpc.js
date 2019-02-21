@@ -207,17 +207,20 @@ async function sendToConnectionProfile(client, channel, config, cc, megs) {
 	return channel.sendTransactionProposal(request);
 }
 
-function checkResponse(t, response, message, error_message) {
-	const err = (response[0] && response[0][0] && response[0][0] instanceof Error) ? response[0][0] : {};
-	const pattern = new RegExp('\\b(' + error_message + ')', 'g');
-	const error_words_length = error_message.split('|').length;
+function checkResponse(t, responseObj, message, error_message) {
+	const badResponse = responseObj.responses.find((response) => response.response.status >= 400);
+	const error = responseObj.errors[0];
+	const responseError = (badResponse && badResponse.response.message) || (error && error.message);
 
-	if (err.message) {
-		if (pattern.test(err.message) && err.message.match(pattern).length === error_words_length) {
+	if (responseError) {
+		const pattern = new RegExp('\\b(' + error_message + ')', 'g');
+		const error_words_length = error_message.split('|').length;
+
+		if (pattern.test(responseError) && responseError.match(pattern).length === error_words_length) {
 			t.pass('Successfully ' + message);
 		} else {
 			t.fail('Failed message not match ' + error_message + ' for ' + message);
-			t.comment('Failed with error of ' + err.message);
+			t.comment('Failed with error of ' + responseError);
 		}
 	} else {
 		t.fail('Failed to get an error message for ' + message);

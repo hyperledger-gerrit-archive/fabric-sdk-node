@@ -27,6 +27,16 @@ const sinon = require('sinon');
 const fabprotos = require('fabric-protos');
 
 describe('Peer', () => {
+	const peerLogger = PeerRewire.__get__('logger');
+
+	beforeEach(() => {
+		sinon.spy(peerLogger, 'debug');
+		sinon.spy(peerLogger, 'error');
+	});
+
+	afterEach(() => {
+		sinon.restore();
+	});
 
 	describe('#constructor', () => {
 
@@ -45,34 +55,34 @@ describe('Peer', () => {
 
 	describe('#close', () => {
 		it('should call close on the endorser client if it exists', () => {
-			const obj = new Peer('grpc://host:2700');
+			const peer = new Peer('grpc://host:2700');
 
 			const mockClose = sinon.stub();
 			const mockPC = sinon.stub();
 			mockPC.close = mockClose;
 
 			// replace with the mock item
-			obj._endorserClient = mockPC;
+			peer._endorserClient = mockPC;
 
 			// call
-			obj.close();
+			peer.close();
 
 			// assert
 			sinon.assert.called(mockClose);
 		});
 
 		it('should call close on the discovery client if it exists', () => {
-			const obj = new Peer('grpc://host:2700');
+			const peer = new Peer('grpc://host:2700');
 
 			const mockClose = sinon.stub();
 			const mockPC = sinon.stub();
 			mockPC.close = mockClose;
 
 			// replace with the mock item
-			obj._discoveryClient = mockPC;
+			peer._discoveryClient = mockPC;
 
 			// call
-			obj.close();
+			peer.close();
 
 			// assert
 			sinon.assert.called(mockClose);
@@ -80,39 +90,134 @@ describe('Peer', () => {
 	});
 
 	describe('#sendProposal', () => {
+		async function sendProposalAndAssertPeerDetails(peer, ...args) {
+			try {
+				const result = await peer.sendProposal(...args);
+				should.exist(result.peer, `No peer property on response returned from sendProposal(): ${result}`);
+				result.peer.should.deep.equal(peer.getCharacteristics());
+				return result;
+			} catch (error) {
+				should.exist(error.peer, `No peer property on error thrown from sendProposal(): ${error}`);
+				error.peer.should.deep.equal(peer.getCharacteristics());
+				throw error;
+			}
+		}
 
-		const sandbox = sinon.createSandbox();
+		it('should log function entry', async () => {
+			const peer = new PeerRewire('grpc://host:2700');
 
-		afterEach(() => {
-			sandbox.restore();
-		});
-
-		it('should log function entry', () => {
-			const FakeLogger = {
-				debug : () => {},
-				error: () => {}
-			};
-
-			const debugStub = sandbox.stub(FakeLogger, 'debug');
-
-			PeerRewire.__set__('logger', FakeLogger);
-
-			const obj = new PeerRewire('grpc://host:2700');
-
-			// this will throw, but we can still check method entry
-			obj.sendProposal()
-				.then(() => {
-					sinon.assert.fail();
-				})
-				.catch(() => {
-					sinon.assert.called(debugStub);
-					debugStub.getCall(1).args.should.deep.equal(['%s - Start ----%s %s', 'sendProposal', 'host:2700', 'grpc://host:2700']);
-				});
+			await sendProposalAndAssertPeerDetails(peer).should.be.rejected;
+			sinon.assert.calledWith(peerLogger.debug, '%s - Start ----%s %s', 'sendProposal', 'host:2700', 'grpc://host:2700');
 		});
 
 		it('should reject if no proposal', async () => {
-			const obj = new Peer('grpc://host:2700');
-			await obj.sendProposal().should.be.rejectedWith(/Missing proposal to send to peer/);
+			const peer = new Peer('grpc://host:2700');
+			await sendProposalAndAssertPeerDetails(peer).should.be.rejectedWith(/Missing proposal to send to peer/);
+		});
+
+		it('should reject on timeout', async () => {
+			PeerRewire.__set__('Peer.prototype.waitForReady', sinon.stub().resolves());
+
+			function Fake(params, callback) {
+				setTimeout(() => {
+					callback.call(null, 'TEST_FAIL');
+				}, 10);
+			}
+
+			const endorserClient = sinon.stub();
+			endorserClient.processProposal = sinon.stub().callsFake(Fake);
+
+			const peer = new PeerRewire('grpc://host:2700');
+			peer._endorserClient = endorserClient;
+
+			await sendProposalAndAssertPeerDetails(peer, 'deliver', 0).should.be.rejectedWith('Timeout');
+		});
+
+		it('should log and reject Error object on proposal response error string', async () => {
+			PeerRewire.__set__('Peer.prototype.waitForReady', sinon.stub().resolves());
+
+			const expectedError = 'I_AM_AN_ERROR';
+			const endorserClient = sinon.stub();
+			endorserClient.processProposal = sinon.stub().callsArgWith(1, expectedError);
+
+			const peerUrl = 'grpc://host:2700';
+			const peer = new PeerRewire(peerUrl);
+			peer._endorserClient = endorserClient;
+
+			await sendProposalAndAssertPeerDetails(peer, 'deliver').should.be.rejectedWith(expectedError);
+			sinon.assert.calledWith(peerLogger.error, sinon.match.string, 'sendProposal', peerUrl, expectedError);
+		});
+
+		it('should reject Error object on proposal response error object', async () => {
+			PeerRewire.__set__('Peer.prototype.waitForReady', sinon.stub().resolves());
+
+			const expectedError = new Error('I_AM_AN_ERROR');
+			const endorserClient = sinon.stub();
+			endorserClient.processProposal = sinon.stub().callsArgWith(1, expectedError);
+
+			const peerUrl = 'grpc://host:2700';
+			const peer = new PeerRewire(peerUrl);
+			peer._endorserClient = endorserClient;
+
+			await sendProposalAndAssertPeerDetails(peer, 'deliver').should.be.rejectedWith(expectedError);
+			sinon.assert.calledWith(peerLogger.error, sinon.match.string, 'sendProposal', peerUrl, expectedError);
+		});
+
+		it('should log and reject on null proposal response', async () => {
+			PeerRewire.__set__('Peer.prototype.waitForReady', sinon.stub().resolves());
+
+			const endorserClient = sinon.stub();
+			endorserClient.processProposal = sinon.stub().callsArgWith(1, undefined, null);
+
+			const peerUrl = 'grpc://host:2700';
+			const peer = new PeerRewire(peerUrl);
+			peer._endorserClient = endorserClient;
+
+			await sendProposalAndAssertPeerDetails(peer, 'deliver').should.be.rejectedWith(peerUrl);
+			sinon.assert.calledWith(peerLogger.error, sinon.match.string, 'sendProposal', peerUrl, null);
+		});
+
+		it('should log and reject on invalid proposal response', async () => {
+			PeerRewire.__set__('Peer.prototype.waitForReady', sinon.stub().resolves());
+
+			const response = {data: 'invalid'};
+			const endorserClient = sinon.stub();
+			endorserClient.processProposal = sinon.stub().callsArgWith(1, undefined, response);
+
+			const peerUrl = 'grpc://host:2700';
+			const peer = new PeerRewire(peerUrl);
+			peer._endorserClient = endorserClient;
+
+			await sendProposalAndAssertPeerDetails(peer, 'deliver').should.be.rejectedWith(peerUrl);
+			sinon.assert.calledWith(peerLogger.error, sinon.match.string, 'sendProposal', peerUrl, response);
+		});
+
+		it('should resolve on valid proposal response', async () => {
+			PeerRewire.__set__('Peer.prototype.waitForReady', sinon.stub().resolves());
+
+			const proposalResponse = {
+				response: {
+					status: 418,
+					message: 'passed_values'
+				}
+			};
+			const endorserClient = sinon.stub();
+			endorserClient.processProposal = sinon.stub().callsArgWith(1, undefined, proposalResponse);
+
+			const peerUrl = 'grpc://host:2700';
+			const peer = new PeerRewire(peerUrl);
+			peer._endorserClient = endorserClient;
+
+			const result = await sendProposalAndAssertPeerDetails(peer, 'deliver');
+			result.should.include(proposalResponse);
+			sinon.assert.calledWith(peerLogger.debug, sinon.match.string, 'sendProposal', peerUrl, proposalResponse.response.status);
+		});
+	});
+
+	describe('#sendDiscovery', () => {
+		it('should reject if no request to send', async () => {
+			const peer = new Peer('grpc://host:2700');
+			await peer.sendDiscovery().should.be.rejectedWith(/Missing request to send to peer discovery service/);
 		});
 
 		it('should reject on timeout', async () => {
@@ -124,317 +229,16 @@ describe('Peer', () => {
 				}, 10);
 			}
 
-			const endorserClient = sinon.stub();
-			endorserClient.processProposal = sinon.stub().callsFake(Fake);
-
-			const obj = new PeerRewire('grpc://host:2700');
-			obj._endorserClient = endorserClient;
-
-			await obj.sendProposal('deliver', 0).should.be.rejectedWith(/REQUEST_TIMEOUT/);
-		});
-
-		it('should log and reject Error object on proposal response error string', async () => {
-
-			const FakeLogger = {
-				debug : () => {},
-				error: () => {}
-			};
-
-			const debugStub = sandbox.stub(FakeLogger, 'debug');
-
-			PeerRewire.__set__('logger', FakeLogger);
-
-			PeerRewire.__set__('Peer.prototype.waitForReady', sinon.stub().resolves());
-
-			const endorserClient = sinon.stub();
-
-			function Fake(params, callback) {
-				callback.call(null, 'i_am_an_error');
-			}
-
-			endorserClient.processProposal = sinon.stub().callsFake(Fake);
-
-			const obj = new PeerRewire('grpc://host:2700');
-			obj._endorserClient = endorserClient;
-
-			await obj.sendProposal('deliver').should.be.rejectedWith(/i_am_an_error/);
-			sinon.assert.calledWith(debugStub, '%s - Received proposal response from: %s status: %s');
-		});
-
-		it('should reject Error object on proposal response error object', async () => {
-			const FakeLogger = {
-				debug : () => {},
-				error: () => {}
-			};
-
-			const debugStub = sandbox.stub(FakeLogger, 'debug');
-
-			PeerRewire.__set__('logger', FakeLogger);
-
-			PeerRewire.__set__('Peer.prototype.waitForReady', sinon.stub().resolves());
-
-			const endorserClient = sinon.stub();
-
-			function Fake(params, callback) {
-				callback.call(null, new Error('FORCED_ERROR'));
-			}
-
-			endorserClient.processProposal = sinon.stub().callsFake(Fake);
-
-			const obj = new PeerRewire('grpc://host:2700');
-			obj._endorserClient = endorserClient;
-
-			await obj.sendProposal('deliver').should.be.rejectedWith(/FORCED_ERROR/);
-			sinon.assert.calledWith(debugStub, '%s - Received proposal response from: %s status: %s');
-		});
-
-		it('should log and reject on undefined proposal response', async () => {
-			const FakeLogger = {
-				debug : () => {},
-				error: () => {}
-			};
-
-			const errorStub = sandbox.stub(FakeLogger, 'error');
-
-			PeerRewire.__set__('logger', FakeLogger);
-
-			PeerRewire.__set__('Peer.prototype.waitForReady', sinon.stub().resolves());
-
-			const endorserClient = sinon.stub();
-
-			function Fake(params, callback) {
-				callback.call(null, null, null);
-			}
-
-			endorserClient.processProposal = sinon.stub().callsFake(Fake);
-
-			const obj = new PeerRewire('grpc://host:2700');
-			obj._endorserClient = endorserClient;
-
-			await obj.sendProposal('deliver').should.be.rejectedWith(/GRPC client got a null or undefined response from the peer/);
-			sinon.assert.calledWith(errorStub, '%s - rejecting with:%s');
-		});
-
-		it('should log and reject on invalid proposal response', async () => {
-			const FakeLogger = {
-				debug : () => {},
-				error: () => {}
-			};
-
-			const errorStub = sandbox.stub(FakeLogger, 'error');
-			const debugStub = sandbox.stub(FakeLogger, 'debug');
-
-			PeerRewire.__set__('logger', FakeLogger);
-
-			PeerRewire.__set__('Peer.prototype.waitForReady', sinon.stub().resolves());
-
-			const endorserClient = sinon.stub();
-
-			function Fake(params, callback) {
-				callback.call(null, null, {data: 'invalid'});
-			}
-
-			endorserClient.processProposal = sinon.stub().callsFake(Fake);
-
-			const obj = new PeerRewire('grpc://host:2700');
-			obj._endorserClient = endorserClient;
-
-			await obj.sendProposal('deliver').should.be.rejectedWith(/GRPC client failed to get a proper response from the peer/);
-			sinon.assert.calledWith(debugStub, '%s - Received proposal response from peer "%s": status - %s');
-			sinon.assert.calledWith(errorStub, '%s - rejecting with:%s');
-		});
-
-		it('should log and reject on proposal response error status greater than or equal to 400', async () => {
-			const FakeLogger = {
-				debug : () => {},
-				error: () => {}
-			};
-
-			const debugStub = sandbox.stub(FakeLogger, 'debug');
-
-			PeerRewire.__set__('logger', FakeLogger);
-
-			PeerRewire.__set__('Peer.prototype.waitForReady', sinon.stub().resolves());
-
-			const endorserClient = sinon.stub();
-
-			function Fake(params, callback) {
-				callback.call(null, null, {response: {status: 400, message: 'fail_string'}});
-			}
-
-			endorserClient.processProposal = sinon.stub().callsFake(Fake);
-
-			const obj = new PeerRewire('grpc://host:2700');
-			obj._endorserClient = endorserClient;
-
-			await obj.sendProposal('deliver').should.be.rejectedWith(/fail_string/);
-			sinon.assert.calledWith(debugStub, '%s - Received proposal response from peer "%s": status - %s');
-		});
-
-		it('should resolve on valid proposal response', async () => {
-			const FakeLogger = {
-				debug : () => {},
-				error: () => {}
-			};
-
-			const debugStub = sandbox.stub(FakeLogger, 'debug');
-
-			PeerRewire.__set__('logger', FakeLogger);
-
-			PeerRewire.__set__('Peer.prototype.waitForReady', sinon.stub().resolves());
-
-			const endorserClient = sinon.stub();
-
-			const myResponse = {response: {status: 399, message: 'passed_values'}};
-			function Fake(params, callback) {
-				callback.call(null, null, myResponse);
-			}
-
-			endorserClient.processProposal = sinon.stub().callsFake(Fake);
-
-			const obj = new PeerRewire('grpc://host:2700');
-			obj._endorserClient = endorserClient;
-
-			const response = await obj.sendProposal('deliver');
-			response.should.deep.equal(myResponse);
-			response.peer.name.should.equal('host:2700');
-			response.peer.url.should.equal('grpc://host:2700');
-			sinon.assert.calledWith(debugStub, '%s - Received proposal response from peer "%s": status - %s');
-		});
-
-		it('should mark errors from chaincode as proposal response', async () => {
-			const FakeLogger = {
-				debug : () => {},
-				error: () => {}
-			};
-
-			PeerRewire.__set__('logger', FakeLogger);
-			PeerRewire.__set__('Peer.prototype.waitForReady', sinon.stub().resolves());
-			const endorserClient = sinon.stub();
-
-			const myResponse = {response: {status: 500, message: 'some error'}};
-			function Fake(params, callback) {
-				callback.call(null, null, myResponse);
-			}
-
-			endorserClient.processProposal = sinon.stub().callsFake(Fake);
-
-			const obj = new PeerRewire('grpc://host:2700');
-			obj._endorserClient = endorserClient;
-
-			try {
-				await obj.sendProposal('deliver');
-				should.fail();
-			} catch (err) {
-				err.isProposalResponse.should.be.true;
-				err.status.should.equal(500);
-				err.message.should.equal('some error');
-				err.peer.name.should.equal('host:2700');
-				err.peer.url.should.equal('grpc://host:2700');
-			}
-		});
-
-		it('should not mark errors as proposal response if not a proposal response', async () => {
-			PeerRewire.__set__('Peer.prototype.waitForReady', sinon.stub().resolves());
-
-			function Fake(params, callback) {
-				setTimeout(() => {
-					callback.call(null, 'timeout not honoured');
-				}, 10);
-			}
-
-			const endorserClient = sinon.stub();
-			endorserClient.processProposal = sinon.stub().callsFake(Fake);
-
-			const obj = new PeerRewire('grpc://host:2700');
-			obj._endorserClient = endorserClient;
-
-			try {
-				await obj.sendProposal('deliver', 0);
-				should.fail();
-			} catch (error) {
-				should.equal(error.isProposalResponse, undefined);
-			}
-		});
-
-
-
-	});
-
-	describe('#sendDiscovery', () => {
-		const sandbox = sinon.createSandbox();
-
-		afterEach(() => {
-			sandbox.restore();
-		});
-
-		it('should log on entry', async () => {
-			const FakeLogger = {
-				debug : () => {},
-				error: () => {}
-			};
-
-			const debugStub = sandbox.stub(FakeLogger, 'debug');
-
-			PeerRewire.__set__('logger', FakeLogger);
-
-			const obj = new PeerRewire('grpc://host:2700');
-
-			// this will throw, but we can still check method entry
-			obj.sendDiscovery()
-				.then(() => {
-					sinon.assert.fail();
-				})
-				.catch(() => {
-					sinon.assert.called(debugStub);
-					debugStub.getCall(1).args.should.deep.equal(['%s - Start', 'sendDiscovery']);
-				});
-		});
-
-		it('should reject if no request to send', async () => {
-			const obj = new Peer('grpc://host:2700');
-			await obj.sendDiscovery().should.be.rejectedWith(/Missing request to send to peer discovery service/);
-		});
-
-		it('should log and reject on timeout', async () => {
-			const FakeLogger = {
-				debug : () => {},
-				error: () => {}
-			};
-
-			const errorStub = sandbox.stub(FakeLogger, 'error');
-
-			PeerRewire.__set__('logger', FakeLogger);
-
-			PeerRewire.__set__('Peer.prototype.waitForReady', sinon.stub().resolves());
-
-			function Fake(params, callback) {
-				setTimeout(() => {
-					callback.call(null, 'timeout not honoured');
-				}, 10);
-			}
-
 			const discoveryClient = sinon.stub();
 			discoveryClient.discover = sinon.stub().callsFake(Fake);
 
-			const obj = new PeerRewire('grpc://host:2700');
-			obj._discoveryClient = discoveryClient;
+			const peer = new PeerRewire('grpc://host:2700');
+			peer._discoveryClient = discoveryClient;
 
-			await obj.sendDiscovery('deliver', 0).should.be.rejectedWith(/REQUEST_TIMEOUT/);
-			sinon.assert.calledWith(errorStub, '%s - timed out after:%s');
+			await peer.sendDiscovery('deliver', 0).should.be.rejectedWith(/REQUEST_TIMEOUT/);
 		});
 
-		it('should log and reject Error object on discover Response error string', async () => {
-
-			const FakeLogger = {
-				debug : () => {},
-				error: () => {}
-			};
-
-			const debugStub = sandbox.stub(FakeLogger, 'debug');
-
-			PeerRewire.__set__('logger', FakeLogger);
-
+		it('should reject Error object on discover Response error string', async () => {
 			PeerRewire.__set__('Peer.prototype.waitForReady', sinon.stub().resolves());
 
 			function Fake(params, callback) {
@@ -444,24 +248,13 @@ describe('Peer', () => {
 			const discoveryClient = sinon.stub();
 			discoveryClient.discover = sinon.stub().callsFake(Fake);
 
-			const obj = new PeerRewire('grpc://host:2700');
-			obj._discoveryClient = discoveryClient;
+			const peer = new PeerRewire('grpc://host:2700');
+			peer._discoveryClient = discoveryClient;
 
-			await obj.sendDiscovery('deliver').should.be.rejectedWith(/i_am_an_error/);
-			sinon.assert.calledWith(debugStub, '%s - Received discovery response from: %s status: %s');
+			await peer.sendDiscovery('deliver').should.be.rejectedWith(/i_am_an_error/);
 		});
 
-		it('should log and reject Error object on discover Response error object', async () => {
-
-			const FakeLogger = {
-				debug : () => {},
-				error: () => {}
-			};
-
-			const debugStub = sandbox.stub(FakeLogger, 'debug');
-
-			PeerRewire.__set__('logger', FakeLogger);
-
+		it('should reject Error object on discover Response error object', async () => {
 			PeerRewire.__set__('Peer.prototype.waitForReady', sinon.stub().resolves());
 
 			function Fake(params, callback) {
@@ -471,24 +264,13 @@ describe('Peer', () => {
 			const discoveryClient = sinon.stub();
 			discoveryClient.discover = sinon.stub().callsFake(Fake);
 
-			const obj = new PeerRewire('grpc://host:2700');
-			obj._discoveryClient = discoveryClient;
+			const peer = new PeerRewire('grpc://host:2700');
+			peer._discoveryClient = discoveryClient;
 
-			await obj.sendDiscovery('deliver').should.be.rejectedWith(/FORCED_ERROR/);
-			sinon.assert.calledWith(debugStub, '%s - Received discovery response from: %s status: %s');
+			await peer.sendDiscovery('deliver').should.be.rejectedWith(/FORCED_ERROR/);
 		});
 
-		it('should log and reject Error object on null response from discovery', async () => {
-
-			const FakeLogger = {
-				debug : () => {},
-				error: () => {}
-			};
-
-			const errorStub = sandbox.stub(FakeLogger, 'error');
-
-			PeerRewire.__set__('logger', FakeLogger);
-
+		it('should reject Error object on null response from discovery', async () => {
 			PeerRewire.__set__('Peer.prototype.waitForReady', sinon.stub().resolves());
 
 			function Fake(params, callback) {
@@ -498,23 +280,13 @@ describe('Peer', () => {
 			const discoveryClient = sinon.stub();
 			discoveryClient.discover = sinon.stub().callsFake(Fake);
 
-			const obj = new PeerRewire('grpc://host:2700');
-			obj._discoveryClient = discoveryClient;
+			const peer = new PeerRewire('grpc://host:2700');
+			peer._discoveryClient = discoveryClient;
 
-			await obj.sendDiscovery('deliver').should.be.rejectedWith(/GRPC client failed to get a proper response from the peer/);
-			sinon.assert.calledWith(errorStub, '%s - rejecting with:%s');
+			await peer.sendDiscovery('deliver').should.be.rejectedWith(/GRPC client failed to get a proper response from the peer/);
 		});
 
-		it('should log and resolve on good response from discover', async () => {
-
-			const FakeLogger = {
-				debug : () => {},
-				error: () => {}
-			};
-
-			const debugStub = sandbox.stub(FakeLogger, 'debug');
-
-			PeerRewire.__set__('logger', FakeLogger);
+		it('should resolve on good response from discover', async () => {
 			PeerRewire.__set__('Peer.prototype.waitForReady', sinon.stub().resolves());
 
 			const myResponse = {me: 'valid'};
@@ -525,15 +297,13 @@ describe('Peer', () => {
 			const discoveryClient = sinon.stub();
 			discoveryClient.discover = sinon.stub().callsFake(Fake);
 
-			const obj = new PeerRewire('grpc://host:2700');
-			obj._discoveryClient = discoveryClient;
+			const peer = new PeerRewire('grpc://host:2700');
+			peer._discoveryClient = discoveryClient;
 
-			const response = await obj.sendDiscovery('deliver');
+			const response = await peer.sendDiscovery('deliver');
 			response.should.deep.equal(myResponse);
 			response.peer.name.should.equal('host:2700');
 			response.peer.url.should.equal('grpc://host:2700');
-
-			sinon.assert.calledWith(debugStub, '%s - Received discovery response from peer "%s"');
 		});
 
 	});
@@ -541,49 +311,20 @@ describe('Peer', () => {
 	describe('#toString', () => {
 
 		it('should return a string representation of the object', () => {
-			const obj = new Peer('grpc://host:2700');
-			obj.toString().should.equal('Peer:{url:grpc://host:2700}');
+			const peer = new Peer('grpc://host:2700');
+			peer.toString().should.equal('Peer:{url:grpc://host:2700}');
 		});
 	});
 
 	describe('#sendTokenCommand', () => {
+		it('should log function entry', async () => {
+			const peer = new PeerRewire('grpc://host:2700');
 
-		const sandbox = sinon.createSandbox();
-
-		afterEach(() => {
-			sandbox.restore();
-		});
-
-		it('should log function entry', () => {
-			const FakeLogger = {
-				debug : () => {},
-				error: () => {}
-			};
-
-			const debugStub = sandbox.stub(FakeLogger, 'debug');
-			PeerRewire.__set__('logger', FakeLogger);
-
-			const obj = new PeerRewire('grpc://host:2700');
-
-			// this will throw, but we can still check method entry
-			obj.sendTokenCommand()
-				.then(() => {
-					sinon.assert.fail();
-				})
-				.catch(() => {
-					sinon.assert.called(debugStub);
-					debugStub.getCall(1).args.should.deep.equal(['%s - Start ----%s %s', 'sendTokenCommand', 'host:2700', 'grpc://host:2700']);
-				});
+			await peer.sendTokenCommand().should.be.rejected;
+			sinon.assert.calledWith(peerLogger.debug, '%s - Start ----%s %s', 'sendTokenCommand', 'host:2700', 'grpc://host:2700');
 		});
 
 		it('should log and return signed command response', async () => {
-			const FakeLogger = {
-				debug : () => {},
-				error: () => {}
-			};
-
-			const debugStub = sandbox.stub(FakeLogger, 'debug');
-			PeerRewire.__set__('logger', FakeLogger);
 			PeerRewire.__set__('Peer.prototype.waitForReady', sinon.stub().resolves());
 
 			const myResponse = new fabprotos.token.SignedCommandResponse();
@@ -594,17 +335,17 @@ describe('Peer', () => {
 			const proverClient = sinon.stub();
 			proverClient.processCommand = sinon.stub().callsFake(Fake);
 
-			const obj = new PeerRewire('grpc://host:2700');
-			obj._proverClient = proverClient;
+			const peer = new PeerRewire('grpc://host:2700');
+			peer._proverClient = proverClient;
 
-			const response = await obj.sendTokenCommand('test');
+			const response = await peer.sendTokenCommand('test');
 			response.should.deep.equal(myResponse);
-			sinon.assert.calledWith(debugStub, '%s - Received signed command response %s from peer "%s"');
+			sinon.assert.calledWith(peerLogger.debug, '%s - Received signed command response %s from peer "%s"');
 		});
 
 		it('should reject if no command', async () => {
-			const obj = new Peer('grpc://host:2700');
-			await obj.sendTokenCommand().should.be.rejectedWith(/Missing command parameter to send to peer/);
+			const peer = new Peer('grpc://host:2700');
+			await peer.sendTokenCommand().should.be.rejectedWith(/Missing command parameter to send to peer/);
 		});
 
 		it('should reject on timeout', async () => {
@@ -619,20 +360,13 @@ describe('Peer', () => {
 			const proverClient = sinon.stub();
 			proverClient.processCommand = sinon.stub().callsFake(Fake);
 
-			const obj = new PeerRewire('grpc://host:2700');
-			obj._proverClient = proverClient;
+			const peer = new PeerRewire('grpc://host:2700');
+			peer._proverClient = proverClient;
 
-			await obj.sendTokenCommand('deliver', 0).should.be.rejectedWith(/REQUEST_TIMEOUT/);
+			await peer.sendTokenCommand('deliver', 0).should.be.rejectedWith(/REQUEST_TIMEOUT/);
 		});
 
 		it('should log and reject error objec when proverClient returns error', async () => {
-			const FakeLogger = {
-				debug : () => {},
-				error: () => {}
-			};
-
-			const errorStub = sandbox.stub(FakeLogger, 'error');
-			PeerRewire.__set__('logger', FakeLogger);
 			PeerRewire.__set__('Peer.prototype.waitForReady', sinon.stub().resolves());
 			const proverClient = sinon.stub();
 
@@ -642,11 +376,11 @@ describe('Peer', () => {
 
 			proverClient.processCommand = sinon.stub().callsFake(Fake);
 
-			const obj = new PeerRewire('grpc://host:2700');
-			obj._proverClient = proverClient;
+			const peer = new PeerRewire('grpc://host:2700');
+			peer._proverClient = proverClient;
 
-			await obj.sendTokenCommand('deliver').should.be.rejectedWith(/FORCED_ERROR/);
-			sinon.assert.calledWith(errorStub, '%s - Received error %s from peer %s');
+			await peer.sendTokenCommand('deliver').should.be.rejectedWith(/FORCED_ERROR/);
+			sinon.assert.calledWith(peerLogger.error, '%s - Received error %s from peer %s');
 		});
 	});
 });

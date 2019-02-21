@@ -190,7 +190,7 @@ declare namespace Client { // tslint:disable-line:no-namespace
 
 		public getGenesisBlock(request?: OrdererRequest): Promise<Block>;
 
-		public joinChannel(request: JoinChannelRequest, timeout?: number): Promise<ProposalResponse[]>;
+		public joinChannel(request: JoinChannelRequest, timeout?: number): Promise<PeerResponse[]>;
 		public getChannelConfig(target?: string | Peer, timeout?: number): Promise<any>;
 		public getChannelConfigFromOrderer(): Promise<any>;
 		public loadConfigUpdate(configUpdateBytes: Buffer): any;
@@ -219,7 +219,7 @@ declare namespace Client { // tslint:disable-line:no-namespace
 		public generateUnsignedTransaction(request: TransactionRequest): Promise<any>;
 		public sendSignedTransaction(request: SignedCommitProposal, timeout?: number): Promise<BroadcastResponse>;
 
-		public queryByChaincode(request: ChaincodeQueryRequest, useAdmin?: boolean): Promise<Buffer[]>;
+		public queryByChaincode(request: ChaincodeQueryRequest, useAdmin?: boolean): Promise<Array<Buffer | Error>>;
 		public verifyProposalResponse(proposalResponse: ProposalResponse): boolean;
 		public compareProposalResponseResults(proposalResponses: ProposalResponse[]): boolean;
 	}
@@ -287,7 +287,15 @@ declare namespace Client { // tslint:disable-line:no-namespace
 		info?: string;
 	}
 
-	export type ProposalResponseObject = [Array<Client.ProposalResponse | Error>, Client.Proposal];
+	export interface PeerError extends Error {
+		peer: RemoteCharacteristics;
+	}
+
+	export interface ProposalResponseObject {
+		errors: PeerError[];
+		proposal: Proposal;
+		responses: PeerResponse[];
+	}
 
 	export interface OrdererRequest {
 		txId?: TransactionId;
@@ -327,6 +335,9 @@ declare namespace Client { // tslint:disable-line:no-namespace
 		response: Response;
 		payload: Buffer;
 		endorsement: any;
+	}
+
+	export interface PeerResponse extends ProposalResponse {
 		peer: RemoteCharacteristics;
 	}
 

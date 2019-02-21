@@ -279,11 +279,14 @@ class DiscoveryEndorsementHandler extends EndorsementHandler {
 						peer_info.in_use = true;
 						try {
 							const endorsement = await peer.sendProposal(proposal, timeout);
+							const success = endorsement.response.status < 400;
 							// save this endorsement results in case we try this peer again
-							endorsement_plan.endorsements[peer_info.name] = {endorsement, success: true};
-							logger.debug('%s - endorsement completed to %s - %s', method, peer_info.name, endorsement.response.status);
-							resolve(endorsement);
-							return;
+							endorsement_plan.endorsements[peer_info.name] = {endorsement, success};
+							if (success) {
+								logger.debug('%s - endorsement completed to %s - %s', method, peer_info.name, endorsement.response.status);
+								return resolve(endorsement);
+							}
+							error = endorsement;
 						} catch (caught_error) {
 							if (!(caught_error instanceof Error)) {
 								error = new Error(caught_error.toString());

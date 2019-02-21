@@ -171,8 +171,8 @@ function invokeChaincode(userOrg, version, t, shouldFail, peersArray) {
 			throw new Error('Failed to enroll user \'admin\'. ' + err);
 
 		}).then(async (results) => {
-			const proposalResponses = results[0];
-			const proposal = results[1];
+			const proposalResponses = results.responses;
+			const proposal = results.proposal;
 			let all_good = true;
 
 			for (const i in proposalResponses) {

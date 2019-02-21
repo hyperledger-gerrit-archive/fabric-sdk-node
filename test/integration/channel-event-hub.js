@@ -98,7 +98,7 @@ test('*****  Test channel events', async (t) => {
 		};
 
 		let results = await client.installChaincode(req, 30000);
-		if (!checkResults(t, results[0])) {
+		if (!checkResults(t, results.responses)) {
 			throw Error('Failed to install chaincode');
 		}
 		t.pass('Successfully installed chaincode');
@@ -119,11 +119,11 @@ test('*****  Test channel events', async (t) => {
 
 		// the instantiate proposal can take longer
 		results = await channel.sendInstantiateProposal(req, 30000);
-		if (!checkResults(t, results[0])) {
+		if (!checkResults(t, results.responses)) {
 			throw Error('Failed to instantiate chaincode');
 		}
 		// get the initialize chaincode response status
-		const init_response = results[0][0].response;
+		const init_response = results.responses[0].response;
 		t.pass('The initialize response status:' + init_response.status);
 
 		/*
@@ -237,7 +237,7 @@ test('*****  Test channel events', async (t) => {
 			});
 		});
 
-		let send_trans = channel.sendTransaction({proposalResponses: results[0], proposal: results[1]});
+		let send_trans = channel.sendTransaction({proposalResponses: results.responses, proposal: results.proposal});
 
 		results = await Promise.all([event_monitor, send_trans]);
 		t.pass('Successfully got the instantiate results');
@@ -257,7 +257,7 @@ test('*****  Test channel events', async (t) => {
 		};
 
 		results = await channel.sendTransactionProposal(req);
-		if (!checkResults(t, results[0])) {
+		if (!checkResults(t, results.responses)) {
 			throw Error('Failed to endorse invoke proposal with "BLOCK" arg');
 		}
 
@@ -314,7 +314,7 @@ test('*****  Test channel events', async (t) => {
 				t.pass('Successfully received the error callback for "ALL" listener ::' + error);
 			});
 		});
-		send_trans = channel.sendTransaction({proposalResponses: results[0], proposal: results[1]});
+		send_trans = channel.sendTransaction({proposalResponses: results.responses, proposal: results.proposal});
 
 		/*
 		 * Test
@@ -361,7 +361,7 @@ test('*****  Test channel events', async (t) => {
 		};
 
 		results = await channel.sendTransactionProposal(req);
-		if (!checkResults(t, results[0])) {
+		if (!checkResults(t, results.responses)) {
 			throw Error('Failed to endorse invoke proposal with "CHAINCODE" arg');
 		}
 
@@ -371,7 +371,7 @@ test('*****  Test channel events', async (t) => {
 		 */
 		const event_monitor1 = createChaincodeRegistration(t, 'first chaincode', event_hub, chaincode_id, '^evtsender*');
 		const event_monitor2 = createChaincodeRegistration(t, 'second chaincode', event_hub, chaincode_id, '^evtsender*');
-		send_trans = channel.sendTransaction({proposalResponses: results[0], proposal: results[1]});
+		send_trans = channel.sendTransaction({proposalResponses: results.responses, proposal: results.proposal});
 
 		/*
 		 * Test
@@ -439,10 +439,10 @@ test('*****  Test channel events', async (t) => {
 		const send_proposal_2 = channel.sendTransactionProposal(req2);
 
 		results = await Promise.all([send_proposal_1, send_proposal_2]);
-		if (!checkResults(t, results[0][0])) {
+		if (!checkResults(t, results[0].responses)) {
 			throw Error('Failed to endorse invoke proposal with "TRANSACTIONID1" arg');
 		}
-		if (!checkResults(t, results[1][0])) {
+		if (!checkResults(t, results[1].responses)) {
 			throw Error('Failed to endorse invoke proposal with "TRANSACTIONID2" arg');
 		}
 
@@ -489,8 +489,8 @@ test('*****  Test channel events', async (t) => {
 		});
 
 		// now get the promises that will send to the orderer
-		const send_trans_1 = channel.sendTransaction({proposalResponses: results[0][0], proposal: results[0][1]});
-		const send_trans_2 = channel.sendTransaction({proposalResponses: results[1][0], proposal: results[1][1]});
+		const send_trans_1 = channel.sendTransaction({proposalResponses: results[0].responses, proposal: results[0].proposal});
+		const send_trans_2 = channel.sendTransaction({proposalResponses: results[1].responses, proposal: results[1].proposal});
 
 		// now lets have the events and the sendtransaction all execute together
 		// results will come back when all of them complete
@@ -647,7 +647,7 @@ test('*****  Test channel events', async (t) => {
 		};
 
 		results = await channel.sendTransactionProposal(req);
-		if (!checkResults(t, results[0])) {
+		if (!checkResults(t, results.responses)) {
 			throw Error('Failed to endorse invoke proposal with "BLOCK" arg');
 		}
 
@@ -669,7 +669,7 @@ test('*****  Test channel events', async (t) => {
 			});
 		});
 
-		send_trans = channel.sendTransaction({proposalResponses: results[0], proposal: results[1]});
+		send_trans = channel.sendTransaction({proposalResponses: results.responses, proposal: results.proposal});
 
 		results = await Promise.all([event_monitor, send_trans]);
 		t.pass('Successfully got the transaction results');
@@ -783,7 +783,7 @@ test('*****  Test channel events', async (t) => {
 		};
 
 		results = await channel.sendTransactionProposal(req);
-		if (!checkResults(t, results[0])) {
+		if (!checkResults(t, results.responses)) {
 			throw Error('Failed to endorse invoke proposal with "BLOCK" arg');
 		}
 
@@ -817,7 +817,7 @@ test('*****  Test channel events', async (t) => {
 			tx_event_checker.setTransactionId('bad'); // so we do not see it
 		});
 
-		send_trans = channel.sendTransaction({proposalResponses: results[0], proposal: results[1]});
+		send_trans = channel.sendTransaction({proposalResponses: results.responses, proposal: results.proposal});
 
 		results = await Promise.all([event_monitor, send_trans]);
 		t.equal(results[0], 'TIMEOUT', 'checking that the timeout occurred');
@@ -995,9 +995,7 @@ function checkResults(t, proposalResponses) {
 
 	for (const proposalResponse of proposalResponses) {
 		let one_good = false;
-		if (proposalResponse instanceof Error) {
-			t.fail(proposalResponse.toString());
-		} else if (proposalResponse.response && proposalResponse.response.status === 200) {
+		if (proposalResponse.response && proposalResponse.response.status === 200) {
 			one_good = true;
 		} else if (proposalResponse.response) {
 			t.fail ('response:' + proposalResponse.response);

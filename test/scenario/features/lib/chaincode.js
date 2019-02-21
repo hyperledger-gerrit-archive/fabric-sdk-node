@@ -102,7 +102,7 @@ async function installChaincode(ccName, ccId, ccType, ccVersion, tls, ccp, orgNa
 
 		const results = await client.installChaincode(request);
 
-		const proposalResponses = results[0];
+		const proposalResponses = results.responses;
 
 		let proposalResponsesValid = true;
 		const errors = [];
@@ -222,8 +222,8 @@ async function instantiateChaincode(ccName, ccId, ccType, args, version, upgrade
 			results = await channel.sendInstantiateProposal(proposalRequest);
 		}
 
-		const proposalResponses = results[0];
-		const proposal = results[1];
+		const proposalResponses = results.responses;
+		const proposal = results.proposal;
 		for (const i in proposalResponses) {
 			if (!(proposalResponses && proposalResponses[i].response && proposalResponses[i].response.status === 200)) {
 				Promise.reject(type + ' proposal was bad: ' + JSON.stringify(proposalResponses[i]));

@@ -190,7 +190,8 @@ test('Test sign a contract with a private key offline', async (t) => {
 		const targets = [peer];
 
 		const sendSignedProposalReq = {signedProposal, targets};
-		const proposalResponses = await channel.sendSignedProposal(sendSignedProposalReq);
+		const proposalResponseObj = await channel.sendSignedProposal(sendSignedProposalReq);
+		const proposalResponses = proposalResponseObj.responses;
 
 		t.equal(Array.isArray(proposalResponses), true);
 		t.equal(proposalResponses.length, 1);
@@ -223,7 +224,7 @@ test('Test sign a contract with a private key offline', async (t) => {
 
 		t.end();
 	} catch (e) {
-		t.fail(e.message);
+		t.fail(e.stack || e);
 	}
 });
 

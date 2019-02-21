@@ -144,7 +144,7 @@ function joinChannel(org, defaultChannelName, t) {
 		.then((results) => {
 			logger.debug(util.format('Join Channel R E S P O N S E : %j', results));
 
-			if (results && results[0] && results[0].response && results[0].response.status === 200) {
+			if (results[0] && results[0].response && results[0].response.status === 200) {
 				t.pass(util.format('Successfully joined peers in organization %s to join the channel', orgName));
 			} else {
 				t.fail(' Failed to join channel');

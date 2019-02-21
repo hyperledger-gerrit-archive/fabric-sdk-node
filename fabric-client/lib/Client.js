@@ -40,6 +40,19 @@ process.env.GRPC_SSL_CIPHER_SUITES = sdkUtils.getConfigSetting('grpc-ssl-cipher-
 
 const logger = sdkUtils.getLogger('Client.js');
 
+function getValidProposalResponse(proposalResponseObj) {
+	const response = proposalResponseObj.responses[0];
+
+	if (!response) {
+		throw proposalResponseObj.errors[0];
+	}
+	if (response.response.status !== 200) {
+		throw new Error(response.response.message);
+	}
+
+	return response;
+}
+
 /**
  * A client instance provides the main API surface to interact with a network of
  * peers and orderers. An application using the SDK may need to interact with
@@ -971,30 +984,19 @@ const Client = class extends BaseClient {
 			args: []
 		};
 		const results = await Channel.sendTransactionProposal(request, '' /* special channel id */, this);
-		const responses = results[0];
 		logger.debug('queryChannels - got response');
-		if (responses && Array.isArray(responses)) {
-			// will only be one response as we are only querying one peer
-			if (responses.length > 1) {
-				throw Error('Too many results returned');
-			}
-			const response = responses[0];
-			if (response instanceof Error) {
-				throw response;
-			}
-			if (response.response) {
-				logger.debug('queryChannels - response status :: %d', response.response.status);
-				const queryTrans = fabprotos.protos.ChannelQueryResponse.decode(response.response.payload);
-				logger.debug('queryChannels - ProcessedTransaction.channelInfo.length :: %s', queryTrans.channels.length);
-				for (const channel of queryTrans.channels) {
-					logger.debug('>>> channel id %s ', channel.channel_id);
-				}
-				return queryTrans;
-			}
-			// no idea what we have, lets fail it and send it back
-			throw Error(response);
+
+		const response = getValidProposalResponse(results);
+
+		logger.debug('queryChannels - response status :: %d', response.response.status);
+
+		const queryTrans = fabprotos.protos.ChannelQueryResponse.decode(response.response.payload);
+		logger.debug('queryChannels - ProcessedTransaction.channelInfo.length :: %s', queryTrans.channels.length);
+		for (const channel of queryTrans.channels) {
+			logger.debug('>>> channel id %s ', channel.channel_id);
 		}
-		throw Error('Payload results are missing from the query');
+
+		return queryTrans;
 	}
 
 	/**
@@ -1046,30 +1048,17 @@ const Client = class extends BaseClient {
 			args: []
 		};
 		const results = await Channel.sendTransactionProposal(request, '' /* special channel id */, this);
-		const responses = results[0];
 		logger.debug('queryInstalledChaincodes - got response');
-		if (responses && Array.isArray(responses)) {
-			// will only be one response as we are only querying one peer
-			if (responses.length > 1) {
-				throw new Error('Too many results returned');
-			}
-			const response = responses[0];
-			if (response instanceof Error) {
-				throw response;
-			}
-			if (response.response) {
-				logger.debug('queryInstalledChaincodes - response status :: %d', response.response.status);
-				const queryTrans = fabprotos.protos.ChaincodeQueryResponse.decode(response.response.payload);
-				logger.debug('queryInstalledChaincodes - ProcessedTransaction.chaincodeInfo.length :: %s', queryTrans.chaincodes.length);
-				for (const chaincode of queryTrans.chaincodes) {
-					logger.debug('>>> name %s, version %s, path %s', chaincode.name, chaincode.version, chaincode.path);
-				}
-				return queryTrans;
-			}
-			// no idea what we have, lets fail it and send it back
-			throw response;
+
+		const response = getValidProposalResponse(results);
+
+		logger.debug('queryInstalledChaincodes - response status :: %d', response.response.status);
+		const queryTrans = fabprotos.protos.ChaincodeQueryResponse.decode(response.response.payload);
+		logger.debug('queryInstalledChaincodes - ProcessedTransaction.chaincodeInfo.length :: %s', queryTrans.chaincodes.length);
+		for (const chaincode of queryTrans.chaincodes) {
+			logger.debug('>>> name %s, version %s, path %s', chaincode.name, chaincode.version, chaincode.path);
 		}
-		throw new Error('Payload results are missing from the query');
+		return queryTrans;
 	}
 
 	/**
@@ -1109,15 +1098,20 @@ const Client = class extends BaseClient {
 	 */
 
 	/**
-	 * All calls to the endorsing peers for proposal endorsement return this
-	 * standard array of objects.
+	 * All calls to endorsing peers for proposal endorsement return this standard object.
 	 *
-	 * @typedef {array} ProposalResponseObject
-	 * @property {Array.<(ProposalResponse|Error)>} index:0 - Array where each element is either a ProposalResponse
-	 *           object (for a successful response from the endorsing peer) or an Error object (for an unsuccessful
-	 *           peer response or runtime error).
-	 * @property {Object} index:1 - The original Proposal object needed when
-	 *           sending the transaction request to the orderer
+	 * @typedef {object} PeerResponseObject
+	 * @property {Error[]} errors Peer communication errors.
+	 * @property {ProposalResponse[]} responses Peer responses.
+	 */
+
+	/**
+	 * All calls to the endorsing peers for proposal endorsement, and for which the proposal is
+	 * available, return this standard object.
+	 *
+	 * @typedef {object} ProposalResponseObject
+	 * @extends PeerResponseObject
+	 * @property {ProposalRequest} proposal Unsigned peer proposal that produced this response.
 	 */
 
 	/**
@@ -1136,7 +1130,7 @@ const Client = class extends BaseClient {
 	 *        response before rejecting the promise with a timeout error. This
 	 *        overrides the default timeout of the Peer instance and the global
 	 *        timeout in the config settings.
-	 * @returns {Promise} A Promise for a {@link ProposalResponseObject}
+	 * @returns {ProposalResponseObject} Peer responses.
 	 */
 	async installChaincode(request, timeout) {
 		try {
@@ -1220,8 +1214,9 @@ const Client = class extends BaseClient {
 			const proposal = clientUtils.buildProposal(lcccSpec, header);
 			const signed_proposal = clientUtils.signProposal(signer, proposal);
 			logger.debug('installChaincode - about to sendPeersProposal');
-			const responses = await clientUtils.sendPeersProposal(peers, signed_proposal, timeout);
-			return [responses, proposal];
+			const result = await clientUtils.sendPeersProposal(peers, signed_proposal, timeout);
+			result.proposal = proposal;
+			return result;
 		} catch (error) {
 			logger.error(`installChaincode error ${error.message}`);
 			throw error;

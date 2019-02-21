@@ -259,7 +259,7 @@ test('use the connection profile file', async (t: any) => {
 
 			return client.installChaincode(request);
 		}).then(async (results: ProposalResponseObject) => {
-			const firstResponse = results[0][0];
+			const firstResponse = results.responses[0];
 			if (firstResponse instanceof Error || firstResponse.response.status !== 200) {
 				t.fail(' Failed to install chaincode on org1');
 				logger.debug('Failed due to: %j', results);
@@ -285,7 +285,7 @@ test('use the connection profile file', async (t: any) => {
 
 			return client.installChaincode(request);
 		}).then(async (results: ProposalResponseObject) => {
-			const firstResponse = results[0][0];
+			const firstResponse = results.responses[0];
 			if (firstResponse instanceof Error || firstResponse.response.status !== 200) {
 				t.fail(' Failed to install chaincode on org2');
 				logger.debug('Failed due to: %j', results);
@@ -313,11 +313,11 @@ test('use the connection profile file', async (t: any) => {
 
 			return channel.sendInstantiateProposal(request); // still have org2 admin signer
 		}).then((results: ProposalResponseObject) => {
-			const proposalResponses = results[0];
-			const proposal = results[1];
+			const proposalResponses = results.responses;
+			const proposal = results.proposal;
 
 			const firstResponse = proposalResponses[0];
-			if (firstResponse instanceof Error || firstResponse.response.status !== 200) {
+			if (!firstResponse || firstResponse.response.status !== 200) {
 				t.fail('Failed to send  Proposal or receive valid response. Response null or status is not 200. exiting...');
 				throw new Error('Failed to send Proposal or receive valid response. Response null or status is not 200. exiting...');
 			}
@@ -325,7 +325,7 @@ test('use the connection profile file', async (t: any) => {
 			t.pass('Successfully sent Proposal and received ProposalResponse');
 			const request: TransactionRequest = {
 				proposal,
-				proposalResponses: proposalResponses as ProposalResponse[],
+				proposalResponses,
 				txId: instansiateTxId, //required to indicate that this is an admin transaction
 				//orderer : not specifying, the first orderer defined in the
 				//          connection profile for this channel will be used
@@ -405,8 +405,8 @@ test('use the connection profile file', async (t: any) => {
 
 			return channel.sendTransactionProposal(request); //logged in as org1 user
 		}).then((results: ProposalResponseObject) => {
-			const proposalResponses: Array<ProposalResponse | Error> = results[0];
-			const proposal: Proposal = results[1];
+			const proposalResponses: ProposalResponse[] = results.responses;
+			const proposal: Proposal = results.proposal;
 			let allGood = true;
 			// Will check to be sure that we see two responses as there are two peers defined on this
 			// channel that are endorsing peers
@@ -702,13 +702,11 @@ test('use the connection profile file', async (t: any) => {
 			// put in a very small timeout to force a failure, thereby checking that the timeout value was being used
 			return channel.sendTransactionProposal(request, 1); //logged in as org1 user
 		}).then((results: ProposalResponseObject) => {
-			const proposalResponses = results[0];
-			for (const proposalResponse of proposalResponses) {
-				if (proposalResponse instanceof Error && proposalResponse.toString().indexOf('REQUEST_TIMEOUT') > 0) {
-					t.pass('Successfully cause a timeout error by setting the timeout setting to 1');
-				} else {
-					t.fail('Failed to get the timeout error');
-				}
+			const foundExpectedError = results.errors.some((error) => error.name === 'RequestTimeout');
+			if (foundExpectedError) {
+				t.pass('Successfully cause a timeout error by setting the timeout setting to 1');
+			} else {
+				t.fail('Failed to get the timeout error');
 			}
 
 			return true;
