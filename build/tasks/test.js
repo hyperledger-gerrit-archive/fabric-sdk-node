@@ -307,6 +307,11 @@ gulp.task('run-tape-e2e', ['docker-ready'],
 			}));
 	});
 
+gulp.task('run-test-functional', ['docker-clean'], () => {
+	return gulp.src('./test/functional/scripts/runFunctional.sh')
+		.pipe(shell('./test/functional/scripts/runFunctional.sh'));
+});
+
 // Filter out tests that should not be run on specific operating systems since only the x64 CI jobs are configured with SoftHSM
 // - disable the pkcs11 (HSM) tests for s390 (non x86)
 // - may be enabled manually with an environment variable, (actually left enabled, but disable the non HSM version of the e2e test)
