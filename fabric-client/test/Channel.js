@@ -226,6 +226,10 @@ describe('Channel', () => {
 		return configUpdate;
 	}
 
+	function addPeerDetails(response, peer = peer1) {
+		response.peer = peer.getCharacteristics();
+	}
+
 	describe('#constructor', () => {
 		// Default channel name regex is /^[a-z][a-z0-9.-]*$/
 		const invalidChannelName = '!INVALID_CHANNEL_NAME!';
@@ -858,8 +862,18 @@ describe('Channel', () => {
 
 	describe('#sendSignedProposal', () => {
 		it('returns results of calling sendProposal() on peers as an array', async () => {
-			const proposalResult1 = {_fake: 'peer1'};
-			const proposalResult2 = {_fake: 'peer2'};
+			const proposalResult1 = {
+				response: {
+					message: 'Hello',
+					status: 200
+				}
+			};
+			const proposalResult2 = {
+				response: {
+					message: 'Goodbye',
+					status: 418
+				}
+			};
 			sinon.stub(peer1, 'sendProposal').resolves(proposalResult1);
 			sinon.stub(peer2, 'sendProposal').resolves(proposalResult2);
 
@@ -869,7 +883,10 @@ describe('Channel', () => {
 			};
 			const results = await channel.sendSignedProposal(signedProposal, 1000);
 
-			expect(results).to.have.members([proposalResult1, proposalResult2]);
+			expect(results).to.deep.equal({
+				errors: [],
+				responses: [proposalResult1, proposalResult2]
+			});
 		});
 	});
 
@@ -883,14 +900,14 @@ describe('Channel', () => {
 			return expect(channel.initialize({discover: true, target: peer1})).to.be.rejectedWith('Forced error message');
 		});
 
-		it('successful with peer added and no request parameter', () => {
+		it('successful with peer added and no request parameter', async () => {
 			sinon.stub(peer1, 'sendProposal').resolves(createGetConfigBlockResponse());
 
 			channel.addPeer(peer1, 'mspid');
-			return expect(channel.initialize()).to.be.fulfilled;
+			await channel.initialize();
 		});
 
-		it('successful with two peers added and peer name supplied as request target parameter', () => {
+		it('successful with two peers added and peer name supplied as request target parameter', async () => {
 			sinon.stub(peer1, 'sendProposal').resolves('proposal sent to wrong peer');
 			sinon.stub(peer2, 'sendProposal').resolves(createGetConfigBlockResponse());
 
@@ -899,19 +916,19 @@ describe('Channel', () => {
 			const request = {
 				target: peer2.getName()
 			};
-			return expect(channel.initialize(request)).to.be.fulfilled;
+			await channel.initialize(request);
 		});
 
-		it('successful with no peer added and a Peer supplied as request target parameter', () => {
+		it('successful with no peer added and a Peer supplied as request target parameter', async () => {
 			sinon.stub(peer1, 'sendProposal').resolves(createGetConfigBlockResponse());
 
 			const request = {
 				target: peer1
 			};
-			return expect(channel.initialize(request)).to.be.fulfilled;
+			await channel.initialize(request);
 		});
 
-		it('successful with no peer added and a ChannelPeer supplied as request target parameter', () => {
+		it('successful with no peer added and a ChannelPeer supplied as request target parameter', async () => {
 			sinon.stub(peer1, 'sendProposal').resolves(createGetConfigBlockResponse());
 			channel.addPeer(peer1, 'mspid');
 			const channelPeer = channel.getChannelPeer(peer1.getName());
@@ -920,7 +937,7 @@ describe('Channel', () => {
 			const request = {
 				target: channelPeer
 			};
-			return expect(channel.initialize(request)).to.be.fulfilled;
+			channel.initialize(request);
 		});
 
 		it('throws if specified target peer name does not exist', () => {
@@ -2057,62 +2074,71 @@ describe('Channel', () => {
 
 	describe('#joinChannel', () => {
 
-		it('should throw if request is missing', () => {
-			expect(() => channel.joinChannel()).to.throw(/Missing all required input request parameters/);
+		it('should reject if request is missing', () => {
+			return expect(channel.joinChannel()).to.be.rejectedWith(/Missing all required input request parameters/);
 		});
 
-		it('should throw if request.txId is missing', () => {
-			expect(() => channel.joinChannel({})).to.throw(/Missing txId input parameter with the required transaction identifier/);
+		it('should reject if request.txId is missing', () => {
+			return expect(channel.joinChannel({})).to.be.rejectedWith(/Missing txId input parameter with the required transaction identifier/);
 		});
 
-		it('should throw if genesis block is missing', () => {
-			expect(() => channel.joinChannel({txId: 1})).to.throw(/Missing block input parameter with the required genesis block/);
+		it('should reject if genesis block is missing', () => {
+			return expect(channel.joinChannel({txId: 1})).to.be.rejectedWith(/Missing block input parameter with the required genesis block/);
 		});
 
-		it('should throw if targets is missing', () => {
-			expect(() => channel.joinChannel({txId: 1, block: 'something'})).to.throw(/"targets" parameter not specified and no peers are set on this Channel instance or specfied for this channel in the network/);
+		it('should reject if targets is missing', () => {
+			return expect(channel.joinChannel({txId: 1, block: 'something'})).to.be.rejectedWith(/"targets" parameter not specified and no peers are set on this Channel instance or specfied for this channel in the network/);
 		});
 
-		it('should throw if invalid target', () => {
-			expect(() => channel.joinChannel({txId: 1, block: 'something', targets: [{}]})).to.throw(/Target peer is not a valid peer object instance/);
+		it('should reject if invalid target', () => {
+			return expect(channel.joinChannel({txId: 1, block: 'something', targets: [{}]})).to.be.rejectedWith(/Target peer is not a valid peer object instance/);
 		});
 
-		it('should throw if not existing target', () => {
-			expect(() => channel.joinChannel({txId: 1, block: 'something', targets: 'penguin'})).to.throw(/Peer with name "penguin" not assigned to this channel/);
+		it('should reject if not existing target', () => {
+			return expect(channel.joinChannel({txId: 1, block: 'something', targets: 'penguin'})).to.be.rejectedWith(/Peer with name "penguin" not assigned to this channel/);
 		});
 
-		it('should be rejected is sendPeersProposal fails', async () => {
-			sinon.stub(peer1, 'waitForReady').resolves();
-			const err = new Error('forced error');
-			sinon.stub(peer1, 'sendProposal').callsFake(() => {
-				throw err;
-			});
+		it('should return peer proposal', async () => {
+			const response = createProposalResponse('yes');
+			addPeerDetails(response, peer1);
+			sinon.stub(peer1, 'sendProposal').resolves(response);
 			sinon.stub(channel._clientContext, 'getTargetOrderer').returns(orderer3);
 			const request = {
 				txId: client.newTransactionID(),
-				block: {toBuffer: () => new Buffer('{}')},
+				block: {toBuffer: () => Buffer.from('{}')},
 				targets: [peer1],
 			};
 			const res = await channel.joinChannel(request);
-			expect(res).to.deep.equal([err]);
+			expect(res).to.deep.equal([response]);
 		});
 	});
 
 	describe('#getChannelConfig', () => {
 		it('should throw if responses from the transaction proposal arent an array', () => {
-			// sinon.stub(peer1, 'sendProposal').resolves(createTransactionResponse(Buffer.from('result')));
-			// sinon.stub(peer1, 'waitForReady').resolves();
-			sinon.stub(ChannelRewire, 'sendTransactionProposal').resolves([]);
-			return expect(channel.getChannelConfig(peer1)).to.be.rejectedWith('Payload results are missing from the get channel config');
+			sinon.stub(ChannelRewire, 'sendTransactionProposal').resolves({
+				errors: [],
+				responses: []
+			});
+			return expect(channel.getChannelConfig(peer1)).to.be.rejectedWith('No valid responses received');
 		});
 
 		it('should throw if response is an instance of error', () => {
-			sinon.stub(ChannelRewire, 'sendTransactionProposal').resolves([[new Error('forced error')]]);
+			sinon.stub(ChannelRewire, 'sendTransactionProposal').resolves({
+				errors: [new Error('forced error')],
+				responses: []
+			});
 			return expect(channel.getChannelConfig(peer1)).to.be.rejectedWith('forced error');
 		});
 
 		it('should throw if response is not status 200', () => {
-			sinon.stub(ChannelRewire, 'sendTransactionProposal').resolves([[{response: {payload: '', status: 500}}]]);
+			sinon.stub(ChannelRewire, 'sendTransactionProposal').resolves({
+				errors: [],
+				responses: [
+					{
+						response: {payload: '', status: 500}
+					}
+				]
+			});
 			return expect(channel.getChannelConfig(peer1)).to.be.rejectedWith('{"response":{"payload":"","status":500}}');
 		});
 	});
@@ -2316,35 +2342,37 @@ describe('Channel', () => {
 		});
 
 		it('should throw if the response is an error', () => {
-			sinon.stub(peer1, 'waitForReady').resolves();
-			sinon.stub(peer1, 'sendProposal').resolves(new Error('forced error'));
+			sinon.stub(peer1, 'sendProposal').rejects(new Error('forced error'));
 			return expect(channel.queryInfo(peer1)).to.be.rejectedWith('forced error');
 		});
 
 		it('should throw if we dont get a status 200', () => {
-			sinon.stub(peer1, 'waitForReady').resolves();
 			sinon.stub(peer1, 'sendProposal').resolves({response: {status: 500, message: 'forced error'}});
 			return expect(channel.queryInfo(peer1)).to.be.rejectedWith('forced error');
 		});
 
 		it('should throw if the payload results are missing', async () => {
-			sinon.stub(peer1, 'waitForReady').resolves();
-			sinon.stub(peer1, 'sendProposal').resolves({});
-			return expect(channel.queryInfo(peer1)).to.be.rejectedWith('Payload results are missing from the query channel info');
+			sinon.stub(peer1, 'sendProposal').resolves({
+				response: {
+					status: 200
+				}
+			});
+			return expect(channel.queryInfo(peer1)).to.be.rejectedWith('No valid responses received');
 		});
 
 		it('should return decoded blockchain info', async () => {
-			sinon.stub(peer1, 'waitForReady').resolves();
 			sinon.stub(peer1, 'sendProposal').resolves({
 				response: {
 					status: 200,
-					payload: ''
+					payload: Buffer.from('')
 				}
 			});
 			const blockchainInfo = await channel.queryInfo(peer1);
-			expect(blockchainInfo.height).to.be.deep.equal(ledgerProto.BlockchainInfo.decode('').height);
-			expect(blockchainInfo.currentBlockHash).to.be.deep.equal(ledgerProto.BlockchainInfo.decode('').currentBlockHash);
-			expect(blockchainInfo.previousBlockHash).to.be.deep.equal(ledgerProto.BlockchainInfo.decode('').previousBlockHash);
+			expect(blockchainInfo).to.include({
+				height: ledgerProto.BlockchainInfo.decode('').height,
+				currentBlockHash: ledgerProto.BlockchainInfo.decode('').currentBlockHash,
+				previousBlockHash: ledgerProto.BlockchainInfo.decode('').previousBlockHash
+			});
 		});
 	});
 
@@ -2354,8 +2382,7 @@ describe('Channel', () => {
 		});
 
 		it('should throw if the response is an error', () => {
-			sinon.stub(peer1, 'waitForReady').resolves();
-			sinon.stub(peer1, 'sendProposal').resolves(new Error('forced error'));
+			sinon.stub(peer1, 'sendProposal').rejects(new Error('forced error'));
 			return expect(channel.queryBlockByTxID('tx_id', peer1)).to.be.rejectedWith('forced error');
 		});
 
@@ -2366,9 +2393,10 @@ describe('Channel', () => {
 		});
 
 		it('should throw if the payload results are missing', async () => {
-			sinon.stub(peer1, 'waitForReady').resolves();
-			sinon.stub(peer1, 'sendProposal').resolves({});
-			return expect(channel.queryBlockByTxID('tx_id', peer1)).to.be.rejectedWith('Payload results are missing from the query');
+			sinon.stub(peer1, 'sendProposal').resolves({
+				response: {status: 200}
+			});
+			return expect(channel.queryBlockByTxID('tx_id', peer1)).to.be.rejectedWith('No valid responses received');
 		});
 
 		it('should return decoded block', async () => {
@@ -2407,7 +2435,7 @@ describe('Channel', () => {
 	});
 
 	describe('#queryBlockByHash', () => {
-		const blockhashBytes = new Buffer('hash');
+		const blockhashBytes = Buffer.from('hash');
 		it('should throw if a blockHash is not given', () => {
 			return expect(channel.queryBlockByHash(null, peer1)).to.be.rejectedWith('Blockhash bytes are required');
 		});
@@ -2421,21 +2449,20 @@ describe('Channel', () => {
 		});
 
 		it('should throw if the response is an error', () => {
-			sinon.stub(peer1, 'waitForReady').resolves();
-			sinon.stub(peer1, 'sendProposal').resolves(new Error('forced error'));
+			sinon.stub(peer1, 'sendProposal').rejects(new Error('forced error'));
 			return expect(channel.queryBlockByHash(blockhashBytes, peer1)).to.be.rejectedWith('forced error');
 		});
 
 		it('should throw if we dont get a status 200', () => {
-			sinon.stub(peer1, 'waitForReady').resolves();
 			sinon.stub(peer1, 'sendProposal').resolves({response: {status: 500, message: 'forced error'}});
 			return expect(channel.queryBlockByHash(blockhashBytes, peer1)).to.be.rejectedWith('forced error');
 		});
 
 		it('should throw if the payload results are missing', async () => {
-			sinon.stub(peer1, 'waitForReady').resolves();
-			sinon.stub(peer1, 'sendProposal').resolves({});
-			return expect(channel.queryBlockByHash(blockhashBytes, peer1)).to.be.rejectedWith('Payload results are missing from the query');
+			sinon.stub(peer1, 'sendProposal').resolves({
+				response: {status: 200}
+			});
+			return expect(channel.queryBlockByHash(blockhashBytes, peer1)).to.be.rejectedWith('No valid responses received');
 		});
 
 		it('should return decoded block', async () => {
@@ -2500,21 +2527,20 @@ describe('Channel', () => {
 		});
 
 		it('should throw if the response is an error', () => {
-			sinon.stub(peer1, 'waitForReady').resolves();
-			sinon.stub(peer1, 'sendProposal').resolves(new Error('forced error'));
+			sinon.stub(peer1, 'sendProposal').rejects(new Error('forced error'));
 			return expect(channel.queryBlock(blockNum, peer1)).to.be.rejectedWith('forced error');
 		});
 
 		it('should throw if we dont get a status 200', () => {
-			sinon.stub(peer1, 'waitForReady').resolves();
 			sinon.stub(peer1, 'sendProposal').resolves({response: {status: 500, message: 'forced error'}});
 			return expect(channel.queryBlock(blockNum, peer1)).to.be.rejectedWith('forced error');
 		});
 
 		it('should throw if the payload results are missing', async () => {
-			sinon.stub(peer1, 'waitForReady').resolves();
-			sinon.stub(peer1, 'sendProposal').resolves({});
-			return expect(channel.queryBlock(blockNum, peer1)).to.be.rejectedWith('Payload results are missing from the query');
+			sinon.stub(peer1, 'sendProposal').resolves({
+				response: {status: 200}
+			});
+			return expect(channel.queryBlock(blockNum, peer1)).to.be.rejectedWith('No valid responses received');
 		});
 
 		it('should return decoded block', async () => {
@@ -2568,7 +2594,7 @@ describe('Channel', () => {
 
 		it('should throw if the response is an error', () => {
 			sinon.stub(peer1, 'waitForReady').resolves();
-			sinon.stub(peer1, 'sendProposal').resolves(new Error('forced error'));
+			sinon.stub(peer1, 'sendProposal').rejects(new Error('forced error'));
 			return expect(channel.queryTransaction(txId, peer1)).to.be.rejectedWith('forced error');
 		});
 
@@ -2580,8 +2606,10 @@ describe('Channel', () => {
 
 		it('should throw if the payload results are missing', async () => {
 			sinon.stub(peer1, 'waitForReady').resolves();
-			sinon.stub(peer1, 'sendProposal').resolves({});
-			return expect(channel.queryTransaction(txId, peer1)).to.be.rejectedWith('Payload results are missing from the query');
+			sinon.stub(peer1, 'sendProposal').resolves({
+				response: {status: 200}
+			});
+			return expect(channel.queryTransaction(txId, peer1)).to.be.rejectedWith('No valid responses received');
 		});
 
 		it('should return decoded transaction', async () => {
@@ -2658,27 +2686,20 @@ describe('Channel', () => {
 
 	describe('#queryInstantiatedChaincodes', () => {
 		it('should throw if the response is an error', () => {
-			sinon.stub(peer1, 'waitForReady').resolves();
-			sinon.stub(peer1, 'sendProposal').resolves(new Error('forced error'));
+			sinon.stub(peer1, 'sendProposal').rejects(new Error('forced error'));
 			return expect(channel.queryInstantiatedChaincodes(peer1)).to.be.rejectedWith('forced error');
 		});
 
 		it('should throw if we dont get a status 200', () => {
-			sinon.stub(peer1, 'waitForReady').resolves();
 			sinon.stub(peer1, 'sendProposal').resolves({response: {status: 500, message: 'forced error'}});
 			return expect(channel.queryInstantiatedChaincodes(peer1)).to.be.rejectedWith('forced error');
 		});
 
-		it('should throw if we dont get a status 200 or a message', () => {
-			sinon.stub(peer1, 'waitForReady').resolves();
-			sinon.stub(peer1, 'sendProposal').resolves({response: {status: 500}});
-			return expect(channel.queryInstantiatedChaincodes(peer1)).to.be.rejectedWith('Payload results are missing from the query');
-		});
-
 		it('should throw if the payload results are missing', async () => {
-			sinon.stub(peer1, 'waitForReady').resolves();
-			sinon.stub(peer1, 'sendProposal').resolves({});
-			return expect(channel.queryInstantiatedChaincodes(peer1)).to.be.rejectedWith('Payload results are missing from the query');
+			sinon.stub(peer1, 'sendProposal').resolves({
+				response: {status: 200}
+			});
+			return expect(channel.queryInstantiatedChaincodes(peer1)).to.be.rejectedWith('No valid responses received');
 		});
 
 		it('should return decoded query response', async () => {
@@ -2726,12 +2747,15 @@ describe('Channel', () => {
 				sinon.createStubInstance(Peer),
 				sinon.createStubInstance(Peer)
 			];
+			mockPeers.forEach((peer) => {
+				peer.sendProposal.resolves(createProposalResponse('fake proposal response'));
+			});
 			sinon.stub(channel, '_getTargets').returns(mockPeers);
 			txId = client.newTransactionID();
 		});
 
 		it('should send an instantiate request with no function name and no arguments', async () => {
-			const [, proposal] = await channel.sendInstantiateProposal({
+			const {proposal} = await channel.sendInstantiateProposal({
 				chaincodeType: 'node',
 				chaincodeId: 'fabcar',
 				chaincodeVersion: '1.0.0',
@@ -2748,7 +2772,7 @@ describe('Channel', () => {
 		});
 
 		it('should send an instantiate request with a function name and no arguments', async () => {
-			const [, proposal] = await channel.sendInstantiateProposal({
+			const {proposal} = await channel.sendInstantiateProposal({
 				chaincodeType: 'node',
 				chaincodeId: 'fabcar',
 				chaincodeVersion: '1.0.0',
@@ -2767,7 +2791,7 @@ describe('Channel', () => {
 		});
 
 		it('should send an instantiate request with no function name and some arguments', async () => {
-			const [, proposal] = await channel.sendInstantiateProposal({
+			const {proposal} = await channel.sendInstantiateProposal({
 				chaincodeType: 'node',
 				chaincodeId: 'fabcar',
 				chaincodeVersion: '1.0.0',
@@ -2789,7 +2813,7 @@ describe('Channel', () => {
 		});
 
 		it('should send an instantiate request with a function name and some arguments', async () => {
-			const [, proposal] = await channel.sendInstantiateProposal({
+			const {proposal} = await channel.sendInstantiateProposal({
 				chaincodeType: 'node',
 				chaincodeId: 'fabcar',
 				chaincodeVersion: '1.0.0',
@@ -2966,8 +2990,13 @@ describe('Channel', () => {
 		let spySendTransactionProposal;
 
 		beforeEach(() => {
-			sinon.stub(peer1, 'sendProposal').resolves(createTransactionResponse(Buffer.from(peer1Result)));
-			sinon.stub(peer2, 'sendProposal').resolves(createTransactionResponse(Buffer.from(peer2Result)));
+			const response1 = createTransactionResponse(Buffer.from(peer1Result));
+			addPeerDetails(response1, peer1);
+			sinon.stub(peer1, 'sendProposal').resolves(response1);
+
+			const response2 = createTransactionResponse(Buffer.from(peer2Result));
+			addPeerDetails(response2, peer2);
+			sinon.stub(peer2, 'sendProposal').resolves(response2);
 
 			spySendTransactionProposal = sinon.spy(ChannelRewire, 'sendTransactionProposal');
 
@@ -3005,44 +3034,60 @@ describe('Channel', () => {
 			const results = await channel.queryByChaincode(request);
 
 			const resultStrings = results.map((buffer) => buffer.toString());
-			expect(resultStrings).to.have.members([peer1Result, peer2Result]);
+			expect(resultStrings).to.have.ordered.members([peer1Result, peer2Result]);
 		});
 
 		it('returns error peer response messages', async () => {
 			const errorMessage = 'ALL YOUR BASE ARE BELONG TO ME';
-			peer1.sendProposal.resolves(createErrorResponse(errorMessage));
+			const response = createErrorResponse(errorMessage);
+			addPeerDetails(response, peer1);
+			peer1.sendProposal.resolves(response);
 			request.targets = [peer1];
 
 			const results = await channel.queryByChaincode(request);
 
-			expect(results).to.have.lengthOf(1);
 			const result = results[0];
 			expect(result).to.be.an.instanceof(Error);
 			expect(result.message).to.equal(errorMessage);
 		});
 
 		it('returns error peer response without message', async () => {
-			peer1.sendProposal.resolves(createErrorResponse());
+			const response = createErrorResponse();
+			addPeerDetails(response, peer1);
+			peer1.sendProposal.resolves(response);
 			request.targets = [peer1];
 
 			const results = await channel.queryByChaincode(request);
 
-			expect(results).to.have.lengthOf(1);
 			const result = results[0];
 			expect(result).to.be.an.instanceof(Error);
 		});
 
 		it('returns peer invocation failures', async () => {
 			const peerError = new Error('peer invocation error');
+			peerError.peer = peer1.getCharacteristics();
 			peer1.sendProposal.rejects(peerError);
 			request.targets = [peer1];
 
 			const results = await channel.queryByChaincode(request);
 
-			expect(results).to.have.lengthOf(1);
 			const result = results[0];
 			expect(result).to.be.an.instanceof(Error);
 			expect(result.message).to.equal(peerError.message);
+		});
+
+		it('returns correctly ordered errors and responses', async () => {
+			const response = createErrorResponse();
+			addPeerDetails(response, peer2);
+			peer2.sendProposal.resolves(response);
+			request.targets = [peer1, peer2, peer1];
+
+			const results = await channel.queryByChaincode(request);
+
+			expect(results).to.be.an('Array').with.length(3);
+			expect(results[0].toString()).to.equal(peer1Result);
+			expect(results[1]).to.be.an.instanceof(Error);
+			expect(results[2].toString()).to.equal(peer1Result);
 		});
 
 		it('throws if no request supplied', async () => {
@@ -3836,9 +3881,7 @@ describe('ChannelPeer', () => {
 	let instance;
 	beforeEach(() => {
 		ChannelPeer = ChannelRewire.__get__('ChannelPeer');
-		peer = sinon.createStubInstance(Peer);
-		peer.getName.returns('peerName');
-		peer.getUrl.returns('http://someurl');
+		peer = new Peer('grpc://localhost:7051', {name: 'peerName'});
 		channel = sinon.createStubInstance(Channel);
 		eventHub = sinon.createStubInstance(ChannelEventHub);
 		instance = new ChannelPeer('mspId', channel, peer);
@@ -3857,33 +3900,13 @@ describe('ChannelPeer', () => {
 				new ChannelPeer('mspid', sinon.createStubInstance(Channel));
 			}).should.throw(Error, 'Missing Peer parameter');
 		});
-
-		it('should set the correct class properties', () => {
-			const channelStub = sinon.createStubInstance(Channel);
-			const peerStub = sinon.createStubInstance(Peer);
-			peerStub.getName.returns('peerName');
-			const channelPeer = new ChannelPeer('mspId', channelStub, peerStub);
-			channelPeer._mspid.should.equal('mspId');
-			channelPeer._name.should.equal('peerName');
-			channelPeer._channel.should.equal(channelStub);
-			channelPeer._peer.should.equal(peerStub);
-			channelPeer._roles.should.deep.equal({});
-		});
-
-		it('should set the correct roles', () => {
-			const channelStub = sinon.createStubInstance(Channel);
-			const peerStub = sinon.createStubInstance(Peer);
-			peerStub.getName.returns('peerName');
-			const channelPeer = new ChannelPeer('mspId', channelStub, peerStub, {'role1': 'role1'});
-			channelPeer._roles.should.deep.equal({role1: 'role1'});
-		});
 	});
 
 	describe('#close', () => {
 		it('should close the peer connection', () => {
-			instance._channel_event_hub = null;
+			const spy = sinon.spy(peer, 'close');
 			instance.close();
-			sinon.assert.called(peer.close);
+			sinon.assert.called(spy);
 		});
 
 		it('should close the connection to the event hub', () => {
@@ -3900,48 +3923,62 @@ describe('ChannelPeer', () => {
 
 	describe('#getName', () => {
 		it('should return the name', () => {
-			instance.getName().should.equal('peerName');
+			instance.getName().should.equal(peer.getName());
 		});
 	});
 
 	describe('#getUrl', () => {
 		it('should return the peer url', () => {
-			instance.getUrl().should.equal('http://someurl');
+			instance.getUrl().should.equal(peer.getUrl());
 		});
 	});
 
 	describe('#setRole', () => {
 		it('should set a role', () => {
-			instance.setRole('aSetRole', 'theRole');
-			instance._roles.should.deep.equal({aSetRole: 'theRole'});
+			instance.setRole('aSetRole', false);
+			const result = instance.isInRole('aSetRole');
+			expect(result).to.equal(false);
 		});
 	});
 
 	describe('#isInRole', () => {
 		it('should throw an error if no role is given', () => {
-			(() => {
-				instance.isInRole();
-			}).should.throw(Error, 'Missing "role" parameter');
+			const fn = () => instance.isInRole();
+			expect(fn).to.throw('Missing "role" parameter');
 		});
 
 		it('should return true if role not found', () => {
-			instance.isInRole('someRole').should.be.true;
+			const result = instance.isInRole('someRole');
+			expect(result).to.be.true;
 		});
 
 		it('should return the role if found', () => {
-			instance._roles = {someRole: 'theRole'};
-			instance.isInRole('someRole').should.equal('theRole');
+			const channelPeer = new ChannelPeer('mspId', channel, peer, {someRole: false});
+			const result = channelPeer.isInRole('someRole');
+			expect(result).to.equal(false);
 		});
 	});
 
 	describe('#isInOrg', () => {
-		it('should return true if no mspId is given', () => {
-			instance._mspid = null;
-			instance.isInOrg().should.be.true;
+		it('should return true is no mspId supplied', () => {
+			const result = instance.isInOrg();
+			expect(result).to.equal(true);
 		});
 
-		it('should check if the mspid matches', () => {
-			instance.isInOrg('mspId').should.be.true;
+		it('should return true if no mspId is set on channel peer', () => {
+			const channelPeer = new ChannelPeer(null, channel, peer);
+			const result = channelPeer.isInOrg('nope');
+			expect(result).to.equal(true);
+		});
+
+		it('should return true if the mspid matches', () => {
+			const result = instance.isInOrg('mspId');
+			expect(result).to.equal(true);
+		});
+
+		it('should return false if the mspid does not match', () => {
+			const result = instance.isInOrg('nope');
+			expect(result).to.equal(false);
 		});
 	});
 
@@ -3966,25 +4003,31 @@ describe('ChannelPeer', () => {
 	});
 
 	describe('#sendProposal', () => {
-		it('should return the proposal request', () => {
-			peer.sendProposal.returns('proposal');
-			instance.sendProposal('proposal', 'request').should.equal('proposal');
-			sinon.assert.calledWith(peer.sendProposal, 'proposal', 'request');
+		it('should return the peer proposal response', () => {
+			const expectedResponse = 'PROPOSAL_RESPONSE';
+			sinon.stub(peer, 'sendProposal').returns(expectedResponse);
+
+			const result = instance.sendProposal('proposal', 'request');
+
+			expect(result).to.equal(expectedResponse);
 		});
 	});
 
 	describe('#sendDiscovery', () => {
 		it('should return the discovery request', () => {
-			peer.sendDiscovery.returns('discovery');
-			instance.sendDiscovery('request', 'timeout').should.equal('discovery');
-			sinon.assert.calledWith(peer.sendDiscovery, 'request', 'timeout');
+			const expectedResponse = 'DISCOVERY_RESPONSE';
+			sinon.stub(peer, 'sendDiscovery').returns(expectedResponse);
+
+			const result = instance.sendDiscovery('request', 'timeout');
+
+			expect(result).to.equal(expectedResponse);
 		});
 	});
 
 	describe('#toString', () => {
 		it('should call peer.toString', () => {
-			instance.toString();
-			sinon.assert.called(peer.toString);
+			const result = instance.toString();
+			expect(result).to.equal(peer.toString());
 		});
 	});
 });

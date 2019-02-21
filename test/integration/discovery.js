@@ -14,6 +14,7 @@ const test = _test(tape);
 
 const fs = require('fs');
 const path = require('path');
+const util = require('util');
 
 const testUtil = require('../unit/util.js');
 
@@ -80,6 +81,7 @@ test('\n\n***** D I S C O V E R Y  *****\n\n', async (t) => {
 	let q_results = {};
 	try {
 		q_results = await channel_org1.queryInstantiatedChaincodes(peer_org1, true);
+		t.pass(util.format('Queried installed chaincodes: %j', q_results));
 	} catch (error) {
 		t.fail(error.toString());
 	}

@@ -25,34 +25,73 @@ describe('Transaction', () => {
 	const expectedResult = Buffer.from('42');
 
 	const fakeProposal = {proposal: 'I do'};
-	const fakeHeader = {header: 'gooooal'};
+	const peer = {
+		name: 'PeerName',
+		url: 'grpc://peer.url',
+		options: {}
+	};
 	const validProposalResponse = {
+		peer,
 		response: {
 			status: 200,
 			payload: expectedResult,
 			peer: {url: 'grpc://fakehost:9999'}
 		}
 	};
+	const invalidProposalResponse = {
+		peer,
+		response: {
+			status: 418,
+			payload: expectedResult,
+			peer: {url: 'grpc://fakehost:9999'}
+		}
+	};
 	const noPayloadProposalResponse = {
+		peer,
 		response: {
 			status: 200
 		}
 	};
-	const errorResponseMessage = 'I_AM_AN_ERROR_RESPONSE';
-	const errorProposalResponse = Object.assign(new Error(errorResponseMessage), {response: {status: 500, payload: 'error', peer: {url: 'grpc://fakehost:9999'}}});
 	const emptyStringProposalResponse = {
+		peer,
 		response: {
 			status: 200,
 			payload: Buffer.from('')
 		}
 	};
+	const proposalError = new Error('I_AM_AN_ERROR_RESPONSE');
+	proposalError.peer = peer;
 
-	const validProposalResponses = [[validProposalResponse], fakeProposal, fakeHeader];
-	const noPayloadProposalResponses = [[noPayloadProposalResponse], fakeProposal, fakeHeader];
-	const noProposalResponses = [[], fakeProposal, fakeHeader];
-	const errorProposalResponses = [[errorProposalResponse], fakeProposal, fakeHeader];
-	const mixedProposalResponses = [[validProposalResponse, errorProposalResponse], fakeProposal, fakeHeader];
-	const emptyStringProposalResponses = [[emptyStringProposalResponse], fakeProposal, fakeHeader];
+	const validProposalResponses = {
+		errors: [],
+		proposal: fakeProposal,
+		responses: [validProposalResponse]
+	};
+	const noPayloadProposalResponses = {
+		errors: [],
+		proposal: fakeProposal,
+		responses: [noPayloadProposalResponse]
+	};
+	const noProposalResponses = {
+		errors: [],
+		proposal: fakeProposal,
+		responses: []
+	};
+	const errorProposalResponses = {
+		errors: [proposalError],
+		proposal: fakeProposal,
+		responses: []
+	};
+	const mixedProposalResponses = {
+		errors: [proposalError],
+		proposal: fakeProposal,
+		responses: [validProposalResponse, invalidProposalResponse]
+	};
+	const emptyStringProposalResponses = {
+		errors: [],
+		proposal: fakeProposal,
+		responses: [emptyStringProposalResponse]
+	};
 
 	let stubContract;
 	let transaction;
@@ -164,19 +203,13 @@ describe('Transaction', () => {
 		it('throws if no peer responses are returned', () => {
 			channel.sendTransactionProposal.resolves(noProposalResponses);
 			const promise = transaction.submit();
-			return expect(promise).to.be.rejectedWith('No results were returned from the request');
+			return expect(promise).to.be.rejectedWith('No valid responses from any peers');
 		});
 
 		it('throws if proposal responses are all errors', () => {
 			channel.sendTransactionProposal.resolves(errorProposalResponses);
 			const promise = transaction.submit();
 			return expect(promise).to.be.rejectedWith('No valid responses from any peers');
-		});
-
-		it('throws with message including underlying error message', () => {
-			channel.sendTransactionProposal.resolves(errorProposalResponses);
-			const promise = transaction.submit();
-			return expect(promise).to.be.rejectedWith(errorResponseMessage);
 		});
 
 		it('succeeds if some proposal responses are valid', () => {

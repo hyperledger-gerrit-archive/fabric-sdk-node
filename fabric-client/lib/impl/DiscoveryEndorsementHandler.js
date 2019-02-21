@@ -115,13 +115,27 @@ class DiscoveryEndorsementHandler extends EndorsementHandler {
 			logger.error('%s - error getting discovery results  :: %s', method, error);
 		}
 
-		if (endorsement_plan) {
-
-			return this._endorse(endorsement_plan, request, params.signed_proposal, timeout);
-		} else {
+		if (!endorsement_plan) {
 			logger.error('%s - no endorsement plan found for %j', method, params.endorsement_hint);
 			throw Error('No endorsement plan available for ' + JSON.stringify(params.endorsement_hint));
 		}
+
+		const endorsements = this._endorse(endorsement_plan, request, params.signed_proposal, timeout);
+
+		const errors = [];
+		const responses = [];
+		endorsements.forEach((response) => {
+			if (response instanceof Error) {
+				errors.push(response);
+			} else {
+				responses.push(response);
+			}
+		});
+
+		return {
+			errors,
+			responses
+		};
 	}
 
 	async _endorse(endorsement_plan, request, proposal, timeout) {
@@ -266,8 +280,7 @@ class DiscoveryEndorsementHandler extends EndorsementHandler {
 				if (previous_endorsement && previous_endorsement.endorsement) {
 					if (previous_endorsement.success) {
 						logger.debug('%s - this peer has been previously endorsed successfully: %s', method, peer_info.name);
-						resolve(previous_endorsement.endorsement);
-						return;
+						return resolve(previous_endorsement.endorsement);
 					} else {
 						logger.debug('%s - this peer has been previously endorsed unsuccessfully: %s', method, peer_info.name);
 						error = previous_endorsement.endorsement;
@@ -277,27 +290,13 @@ class DiscoveryEndorsementHandler extends EndorsementHandler {
 					if (peer) {
 						logger.debug('%s - send endorsement to %s', method, peer_info.name);
 						peer_info.in_use = true;
-						try {
-							const endorsement = await peer.sendProposal(proposal, timeout);
-							// save this endorsement results in case we try this peer again
-							endorsement_plan.endorsements[peer_info.name] = {endorsement, success: true};
-							logger.debug('%s - endorsement completed to %s - %s', method, peer_info.name, endorsement.response.status);
-							resolve(endorsement);
-							return;
-						} catch (caught_error) {
-							if (!(caught_error instanceof Error)) {
-								error = new Error(caught_error.toString());
-								// if this peer failed to connect then close it
-								if (error.connectFailed) {
-									logger.warn('%s - connect fail to peer - %s', peer.getUrl());
-									peer.close();
-								}
-							} else {
-								error = caught_error;
-							}
-							// save this endorsement results in case we try this peer again
-							endorsement_plan.endorsements[peer_info.name] = {endorsement: error, success: false};
-							logger.warn('%s - endorsement failed - %s', method, error.toString());
+						const endorsementResult = await this._getEndorsementResult(peer, proposal, timeout);
+						// save this endorsement results in case we try this peer again
+						endorsement_plan.endorsements[peer_info.name] = endorsementResult;
+						if (endorsementResult.success) {
+							return resolve(endorsementResult.endorsement);
+						} else {
+							error = endorsementResult.endorsement;
 						}
 					} else {
 						logger.debug('%s - peer %s not assigned to this channel', method, peer_info.name);
@@ -308,13 +307,38 @@ class DiscoveryEndorsementHandler extends EndorsementHandler {
 			}
 
 			logger.debug('%s - not able to get a completed endorsement', method);
-			if (error) {
-				resolve(error);
-			} else {
-				resolve(new Error('No endorsement available'));
-			}
+			return resolve(error || new Error('No endorsement available'));
 		});
 	}
+
+	async _getEndorsementResult(peer, proposal, timeout) {
+		const method = '_getEndorsementResult';
+
+		let result;
+
+		try {
+			const endorsement = await peer.sendProposal(proposal, timeout);
+			if (endorsement.response.status < 400) {
+				logger.debug('%s - endorsement completed to %s - %s', method, peer.getName(), endorsement.response.status);
+				result = {endorsement, success: true};
+			} else {
+				logger.warn('%s - endorsement failed - %s', method, endorsement.response.message);
+				const error = new Error(endorsement.response.message);
+				result = {endorsement: error, success: false};
+			}
+		} catch (error) {
+			logger.warn('%s - endorsement failed - %s', method, error.toString());
+			// if this peer failed to connect then close it
+			if (error.connectFailed) {
+				logger.warn('%s - connect fail to peer - %s', peer.getUrl());
+				peer.close();
+			}
+			result = {endorsement: error, success: false};
+		}
+
+		return result;
+	}
+
 	/*
 	 * utility method that will take a group of peers and modify the order
 	 * of the peers within the group based on the user's requirements

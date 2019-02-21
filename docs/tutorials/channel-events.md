@@ -555,7 +555,7 @@ let event_monitor = new Promise((resolve, reject) => {
 		// `disconnect` is also not specified and will default to false
 	);
 });
-let send_trans = channel.sendTransaction({proposalResponses: results[0], proposal: results[1]});
+let send_trans = channel.sendTransaction({proposalResponses: results.responses, proposal: results.proposal});
 
 return Promise.all([event_monitor, send_trans]);
 }).then((results) => {
@@ -648,7 +648,7 @@ let event_monitor = new Promise((resolve, reject) => {
 });
 
 // build the promise to send the proposals to the orderer
-let send_trans = channel.sendTransaction({proposalResponses: results[0], proposal: results[1]});
+let send_trans = channel.sendTransaction({proposalResponses: results.responses, proposal: results.proposal});
 
 // now that we have two promises all set to go... execute them
 return Promise.all([event_monitor, send_trans]);

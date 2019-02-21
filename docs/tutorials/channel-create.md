@@ -305,7 +305,7 @@ channel.getGenesisBlock(g_request).then((block) =>{
   // send genesis block to the peer
   return channel.joinChannel(j_request);
 }).then((results) =>{
-  if(results && results.response && results.response.status == 200) {
+  if (results && results[0] && results[0].response && results[0].response.status == 200) {
     // join successful
   } else {
     // not good

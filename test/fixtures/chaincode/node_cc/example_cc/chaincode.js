@@ -230,7 +230,7 @@ const Chaincode = class {
 			logger.error('Failed to call chaincode ' + e);
 		}
 
-		if (results) {
+		if (results.responses.length > 0) {
 			return shim.success(Buffer.from('Success'));
 		}
 

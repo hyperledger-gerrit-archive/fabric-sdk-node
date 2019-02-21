@@ -422,10 +422,10 @@ test('  ---->>>>> Query Installed Chaincodes working <<<<<-----', (t) => {
 			t.end();
 		}
 	}, (err) => {
-		t.fail('Failed to send queryInstalledChaincodes due to error: ' + err.stack ? err.stack : err);
+		t.fail('Failed to send queryInstalledChaincodes due to error: ' + (err.stack || err));
 		t.end();
 	}).catch((err) => {
-		t.fail('Failed to queryInstalledChaincodes with error:' + err.stack ? err.stack : err);
+		t.fail('Failed to queryInstalledChaincodes with error:' + (err.stack || err));
 		t.end();
 	});
 });

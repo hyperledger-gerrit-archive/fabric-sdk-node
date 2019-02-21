@@ -130,20 +130,18 @@ function installChaincodeWithId(org, chaincode_id, chaincode_path, metadata_path
 			t.fail('Failed to enroll user \'admin\'. ' + err);
 			throw new Error('Failed to enroll user \'admin\'. ' + err);
 		}).then((results) => {
-			const proposalResponses = results[0];
+			const proposalResponses = results.responses;
 
-			let all_good = true;
-			const errors = [];
-			for (const i in proposalResponses) {
-				let one_good = false;
-				if (proposalResponses && proposalResponses[i].response && proposalResponses[i].response.status === 200) {
-					one_good = true;
+			let all_good = proposalResponses.length > 0;
+			const errors = Array.of(results.errors);
+			for (const response of proposalResponses) {
+				if (response.response.status === 200) {
 					logger.info('install proposal was good');
 				} else {
+					all_good = false;
 					logger.error('install proposal was bad');
-					errors.push(proposalResponses[i]);
+					errors.push(response);
 				}
-				all_good = all_good & one_good;
 			}
 			if (all_good) {
 				t.pass(util.format('Successfully sent install Proposal and received ProposalResponse: Status - %s', proposalResponses[0].response.status));
@@ -285,21 +283,12 @@ function instantiateChaincodeWithId(userOrg, chaincode_id, chaincode_path, versi
 				// x86 CI times out. set the per-request timeout to a super-long value
 				return channel.sendUpgradeProposal(request, 10 * 60 * 1000)
 					.then((results) => {
-						const proposalResponses = results[0];
-
 						if (version === 'v1') {
 							// expecting both peers to return an Error due to the bad transient map
-							let success = false;
-							if (proposalResponses && proposalResponses.length > 0) {
-								proposalResponses.forEach((response) => {
-									if (response && response instanceof Error &&
-                    response.message.includes('Did not find expected key "test" in the transient map of the proposal')) {
-										success = true;
-									} else {
-										success = false;
-									}
-								});
-							}
+							const responses = results.responses;
+							const success = responses.length > 0 && responses.every((response) => {
+								return response.response.message.includes('Did not find expected key "test" in the transient map of the proposal');
+							});
 
 							if (success) {
 								// successfully tested the negative conditions caused by
@@ -335,19 +324,15 @@ function instantiateChaincodeWithId(userOrg, chaincode_id, chaincode_path, versi
 			throw new Error('Failed to initialize the channel');
 
 		}).then((results) => {
+			const proposalResponses = results.responses;
+			const proposal = results.proposal;
 
-			const proposalResponses = results[0];
-
-			const proposal = results[1];
-			let all_good = true;
+			let all_good = proposalResponses.length > 0;
 			for (const response of proposalResponses) {
-				if (response instanceof Error) {
-					t.comment('Proposal failed to ' + chaincode_id + ' :: ' + response.toString());
-					all_good = false;
-				} else if (response.response && response.response.status === 200) {
+				if (response.response.status === 200) {
 					logger.info(type + ' proposal was good');
 				} else {
-					logger.error(type + ' proposal was bad for unknown reason');
+					t.comment(`${type} proposal failed to ${chaincode_id} :: ${util.inspect(response)}`);
 					all_good = false;
 				}
 			}
@@ -355,8 +340,8 @@ function instantiateChaincodeWithId(userOrg, chaincode_id, chaincode_path, versi
 				t.pass('Successfully sent Proposal and received ProposalResponse');
 				logger.debug(util.format('Successfully sent Proposal and received ProposalResponse: Status - %s, message - "%s", metadata - "%s", endorsement signature: %s', proposalResponses[0].response.status, proposalResponses[0].response.message, proposalResponses[0].response.payload, proposalResponses[0].endorsement.signature));
 				request = {
-					proposalResponses: proposalResponses,
-					proposal: proposal
+					proposalResponses,
+					proposal
 				};
 			} else {
 				logger.debug(JSON.stringify(proposalResponses));
@@ -579,20 +564,20 @@ function invokeChaincode(userOrg, version, chaincodeId, t, useStore, fcn, args, 
 			return exports.sleep(sleep_time);
 		}).then(async() => {
 
-			const proposalResponses = pass_results[0];
-			const proposal = pass_results[1];
+			const proposalResponses = pass_results.responses;
+			const proposal = pass_results.proposal;
 			let all_good = true;
 			for (const i in proposalResponses) {
 				let one_good = false;
 				const proposal_response = proposalResponses[i];
 
 				if (expectedResult instanceof Error) {
-					t.true((proposal_response instanceof Error), 'proposal response should be an instance of error');
-					t.pass('Error message::' + proposal_response.message);
-					t.true(proposal_response.message.includes(expectedResult.message), 'error should contain the correct message: ' + expectedResult.message);
+					t.true((proposal_response.response.status >= 400), 'proposal response should be an error');
+					t.pass('Error message::' + proposal_response.response.message);
+					t.true(proposal_response.response.message.includes(expectedResult.message), 'error should contain the correct message: ' + expectedResult.message);
 				} else {
 					logger.debug('invoke chaincode, proposal response: ' + util.inspect(proposal_response, {depth: null}));
-					if (proposal_response.response && proposal_response.response.status === 200) {
+					if (proposal_response.response.status === 200) {
 						t.pass('transaction proposal has response status of good');
 						one_good = await channel.verifyProposalResponse(proposal_response);
 						if (one_good) {
@@ -814,32 +799,32 @@ function queryChaincode(org, version, targets, fcn, args, value, chaincodeId, t,
 			t.fail('Failed to get submitter \'admin\'. Error: ' + err.stack ? err.stack : err);
 			throw new Error('Failed to get submitter');
 		}).then((response_payloads) => {
-			if (response_payloads) {
-				logger.debug('query chaincode, response_payloads: ' + util.inspect(response_payloads, {depth: null}));
-				for (let i = 0; i < response_payloads.length; i++) {
-					if (transientMap) {
-						t.equal(
-							response_payloads[i].toString(),
-							transientMap[Object.keys(transientMap)[0]].toString(),
-							'Checking the result has the transientMap value returned by the chaincode');
-					} else {
-						if (value instanceof Error) {
-							t.true((response_payloads[i] instanceof Error), 'query result should be an instance of error');
-							t.pass('Error message::' + response_payloads[i].message);
-							t.true(response_payloads[i].message.includes(value.message), 'error should contain the correct message: ' + value.message);
-						} else {
-							t.equal(
-								response_payloads[i].toString('utf8'),
-								value,
-								'checking query results are correct that value is ' + value);
-						}
-					}
-				}
-				return true;
-			} else {
+			if (!response_payloads) {
 				t.fail('response_payloads is null');
 				throw new Error('Failed to get response on query');
 			}
+
+			logger.debug('query chaincode, response_payloads: ' + util.inspect(response_payloads, {depth: null}));
+			response_payloads.forEach((payload) => {
+				if (transientMap) {
+					t.equal(
+						payload.toString('utf8'),
+						Object.values(transientMap)[0].toString(),
+						'Checking the result has the transientMap value returned by the chaincode');
+				} else {
+					if (value instanceof Error) {
+						t.true((payload instanceof Error), 'query result should be an instance of error');
+						t.pass('Error message::' + payload.message);
+						t.true(payload.message.includes(value.message), 'error should contain the correct message: ' + value.message);
+					} else {
+						t.equal(
+							payload.toString('utf8'),
+							value,
+							'checking query results are correct that value is ' + value);
+					}
+				}
+			});
+			return true;
 		},
 		(err) => {
 			t.fail('Failed to send query due to error: ' + err.stack ? err.stack : err);

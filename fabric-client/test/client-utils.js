@@ -8,19 +8,22 @@
 
 const rewire = require('rewire');
 const ClientUtils = rewire('../lib/client-utils');
+const ChannelRewire = rewire('../lib/Channel');
+
+const Peer = require('../lib/Peer');
+const Channel = require('../lib/Channel');
+const ChannelPeer = ChannelRewire.__get__('ChannelPeer');
 
 const chai = require('chai');
 const sinon = require('sinon');
 const should = chai.should();
 
 describe('client-utils', () => {
-	let sandbox;
 	let revert;
 	let FakeLogger;
 
 	beforeEach(() => {
 		revert = [];
-		sandbox = sinon.createSandbox();
 
 		FakeLogger = {
 			debug : () => {},
@@ -35,7 +38,7 @@ describe('client-utils', () => {
 		if (revert.length) {
 			revert.forEach(Function.prototype.call, Function.prototype.call);
 		}
-		sandbox.restore();
+		sinon.restore();
 	});
 
 	describe('#buildProposal', () => {
@@ -49,23 +52,23 @@ describe('client-utils', () => {
 		let setPayloadStub;
 
 		beforeEach(() => {
-			setChaincodeSpecStub = sandbox.stub();
-			ChaincodeInvocationSpecStub = sandbox.stub().returns({
+			setChaincodeSpecStub = sinon.stub();
+			ChaincodeInvocationSpecStub = sinon.stub().returns({
 				setChaincodeSpec: setChaincodeSpecStub,
 				toBuffer: () => 'chaincode-invocation-spec'
 			});
 			revert.push(ClientUtils.__set__('fabprotos.protos.ChaincodeInvocationSpec', ChaincodeInvocationSpecStub));
-			setInputStub = sandbox.stub();
-			setTransientMapStub = sandbox.stub();
-			ChaincodeProposalPayloadStub = sandbox.stub().returns({
+			setInputStub = sinon.stub();
+			setTransientMapStub = sinon.stub();
+			ChaincodeProposalPayloadStub = sinon.stub().returns({
 				setInput: setInputStub,
 				setTransientMap: setTransientMapStub,
 				toBuffer: () => 'payload'
 			});
 			revert.push(ClientUtils.__set__('fabprotos.protos.ChaincodeProposalPayload', ChaincodeProposalPayloadStub));
-			setHeaderStub = sandbox.stub();
-			setPayloadStub = sandbox.stub();
-			ProposalStub = sandbox.stub().returns({
+			setHeaderStub = sinon.stub();
+			setPayloadStub = sinon.stub();
+			ProposalStub = sinon.stub().returns({
 				setHeader: setHeaderStub,
 				setPayload: setPayloadStub
 			});
@@ -105,65 +108,67 @@ describe('client-utils', () => {
 	});
 
 	describe('#sendPeersProposal', () => {
-		let settleStub;
-		let sendProposalStub;
-		let mockPeer;
-		let mockResult;
+		let peer;
+		let channelPeer;
+
+		let validResponse;
+		let invalidResponse;
+		let errorResponse;
 
 		beforeEach(() => {
-			settleStub = sandbox.stub();
-			revert.push(ClientUtils.__set__('settle', settleStub));
+			const stubChannel = sinon.createStubInstance(Channel);
+			peer = new Peer('grpc://localhost:7051', {name: 'stubPeer'});
+			channelPeer = new ChannelPeer('mspId', stubChannel, peer);
 
-			sendProposalStub = sandbox.stub();
-			mockPeer = {sendProposal: sendProposalStub};
-			mockResult = {isFulfilled: sandbox.stub(), value: sandbox.stub(), reason: sandbox.stub()};
+			validResponse = {
+				response: {
+					status: 200
+				},
+				peer: peer.getCharacteristics()
+			};
+			invalidResponse = {
+				response: {
+					status: 418
+				},
+				peer: peer.getCharacteristics()
+			};
+			errorResponse = new Error('Fail');
+			errorResponse.peer = peer.getCharacteristics();
 		});
 
-		it ('should return valid responses for one peer where proposals are fulfilled', async () => {
-			sendProposalStub.returns(Promise.resolve('proposal'));
-			mockResult.isFulfilled.returns(true);
-			mockResult.value.returns('value');
-			settleStub.returns([mockResult]);
+		it('should return valid peer responses', async () => {
+			sinon.stub(peer, 'sendProposal').resolves(validResponse);
 
-			const responses = await ClientUtils.sendPeersProposal(mockPeer, 'proposal', 0);
-			sinon.assert.calledWith(sendProposalStub, 'proposal', 0);
-			sinon.assert.calledWith(settleStub, [sendProposalStub()]);
-			sinon.assert.called(mockResult.isFulfilled);
-			sinon.assert.calledTwice(mockResult.value);
-			responses.should.deep.equal(['value']);
-		});
+			const result = await ClientUtils.sendPeersProposal(channelPeer, 'proposal', 0);
 
-
-		it ('should return valid responses for one peer where proposals are not fulfilled', async () => {
-			sendProposalStub.returns(Promise.resolve('proposal'));
-			mockResult.isFulfilled.returns(false);
-			mockResult.reason.returns('reason');
-			settleStub.returns([mockResult]);
-
-			const responses = await ClientUtils.sendPeersProposal(mockPeer, 'proposal', 0);
-			sinon.assert.calledWith(sendProposalStub, 'proposal', 0);
-			sinon.assert.calledWith(settleStub, [sendProposalStub()]);
-			sinon.assert.called(mockResult.isFulfilled);
-			sinon.assert.calledTwice(mockResult.reason);
-			responses.should.deep.equal(['reason']);
+			result.should.deep.include({
+				errors: [],
+				responses: [validResponse]
+			});
 		});
 
 
-		it('should return valid responses for two peers where one proposal is fulfilled and one is not', async () => {
-			sendProposalStub.returns(Promise.resolve('proposal'));
-			mockResult.isFulfilled.onCall(0).returns(false);
-			mockResult.isFulfilled.onCall(1).returns(true);
-			mockResult.reason.returns('reason');
-			mockResult.value.returns('value');
-			settleStub.returns([mockResult, mockResult]);
+		it('should return error peer responses', async () => {
+			sinon.stub(peer, 'sendProposal').rejects(errorResponse);
 
-			const responses = await ClientUtils.sendPeersProposal([mockPeer, mockPeer], 'proposal', 0);
-			sinon.assert.calledWith(sendProposalStub, 'proposal', 0);
-			sinon.assert.called(settleStub);
-			sinon.assert.calledTwice(mockResult.isFulfilled);
-			sinon.assert.calledTwice(mockResult.reason);
-			sinon.assert.calledTwice(mockResult.value);
-			responses.should.deep.equal(['reason', 'value']);
+			const result = await ClientUtils.sendPeersProposal(channelPeer, 'proposal', 0);
+
+			result.should.deep.include({
+				responses: []
+			});
+			result.errors.should.be.an('Array').with.length(1);
+			result.errors[0].should.be.an('Error').that.deep.includes(errorResponse);
+		});
+
+		it('should return invalid peer responses', async () => {
+			sinon.stub(peer, 'sendProposal').resolves(invalidResponse);
+
+			const result = await ClientUtils.sendPeersProposal(channelPeer, 'proposal', 0);
+
+			result.should.deep.include({
+				errors: [],
+				responses: [invalidResponse]
+			});
 		});
 	});
 
@@ -172,8 +177,8 @@ describe('client-utils', () => {
 		let signStub;
 
 		beforeEach(() => {
-			toBufferStub = sandbox.stub();
-			signStub = sandbox.stub();
+			toBufferStub = sinon.stub();
+			signStub = sinon.stub();
 
 			revert.push(ClientUtils.__set__('Buffer.from', (value) => value));
 		});
@@ -205,29 +210,29 @@ describe('client-utils', () => {
 		let headerExtFunctionStub;
 
 		beforeEach(() => {
-			channelHeaderStub = sandbox.stub();
+			channelHeaderStub = sinon.stub();
 			channelHeaderFunctionStub = {
-				setType: sandbox.stub(),
-				setVersion: sandbox.stub(),
-				setChannelId: sandbox.stub(),
-				setTxId: sandbox.stub(),
-				setEpoch: sandbox.stub(),
-				setExtension: sandbox.stub(),
-				setTimestamp: sandbox.stub(),
-				setTlsCertHash: sandbox.stub()
+				setType: sinon.stub(),
+				setVersion: sinon.stub(),
+				setChannelId: sinon.stub(),
+				setTxId: sinon.stub(),
+				setEpoch: sinon.stub(),
+				setExtension: sinon.stub(),
+				setTimestamp: sinon.stub(),
+				setTlsCertHash: sinon.stub()
 			};
 			channelHeaderStub.returns(channelHeaderFunctionStub);
 			revert.push(ClientUtils.__set__('fabprotos.common.ChannelHeader', channelHeaderStub));
-			sandbox.stub(ClientUtils, 'buildCurrentTimestamp').returns(null);
-			chaincodeIDFunctionsStub = {setName: sandbox.stub()};
-			chaincodeIDStub = sandbox.stub().returns(chaincodeIDFunctionsStub);
+			sinon.stub(ClientUtils, 'buildCurrentTimestamp').returns(null);
+			chaincodeIDFunctionsStub = {setName: sinon.stub()};
+			chaincodeIDStub = sinon.stub().returns(chaincodeIDFunctionsStub);
 			revert.push(ClientUtils.__set__('fabprotos.protos.ChaincodeID', chaincodeIDStub));
 
 			headerExtFunctionStub = {
-				setChaincodeId: sandbox.stub(),
-				toBuffer: sandbox.stub()
+				setChaincodeId: sinon.stub(),
+				toBuffer: sinon.stub()
 			};
-			headerExtStub = sandbox.stub().returns(headerExtFunctionStub);
+			headerExtStub = sinon.stub().returns(headerExtFunctionStub);
 			revert.push(ClientUtils.__set__('fabprotos.protos.ChaincodeHeaderExtension', headerExtStub));
 		});
 
@@ -266,20 +271,20 @@ describe('client-utils', () => {
 		let mockChannelHeader;
 
 		beforeEach(() => {
-			signatureHeaderFunctionStub = {setCreator: sandbox.stub(), setNonce: sandbox.stub(), toBuffer: sandbox.stub()};
-			signatureHeaderStub = sandbox.stub().returns(signatureHeaderFunctionStub);
+			signatureHeaderFunctionStub = {setCreator: sinon.stub(), setNonce: sinon.stub(), toBuffer: sinon.stub()};
+			signatureHeaderStub = sinon.stub().returns(signatureHeaderFunctionStub);
 			revert.push(ClientUtils.__set__('fabprotos.common.SignatureHeader', signatureHeaderStub));
 
 			headerFunctionStub = {setSignatureHeader: () => {}, setChannelHeader: () => {}};
-			sandbox.stub(headerFunctionStub);
-			headerStub = sandbox.stub().returns(headerFunctionStub);
+			sinon.stub(headerFunctionStub);
+			headerStub = sinon.stub().returns(headerFunctionStub);
 			revert.push(ClientUtils.__set__('fabprotos.common.Header', headerStub));
 
 
 			mockCreator = {serialize: () => {}};
-			sandbox.stub(mockCreator);
+			sinon.stub(mockCreator);
 			mockChannelHeader = {toBuffer: () => {}};
-			sandbox.stub(mockChannelHeader);
+			sinon.stub(mockChannelHeader);
 		});
 
 		it('should return a valid header', () => {
@@ -367,11 +372,11 @@ describe('client-utils', () => {
 		let getTimeStub;
 
 		beforeEach(() => {
-			setSecondsStub = sandbox.stub();
-			setNanosStub = sandbox.stub();
-			getTimeStub = sandbox.stub();
-			dateStub = sandbox.stub().returns({getTime: getTimeStub});
-			timestampStub = sandbox.stub().returns({setSeconds: setSecondsStub, setNanos: setNanosStub});
+			setSecondsStub = sinon.stub();
+			setNanosStub = sinon.stub();
+			getTimeStub = sinon.stub();
+			dateStub = sinon.stub().returns({getTime: getTimeStub});
+			timestampStub = sinon.stub().returns({setSeconds: setSecondsStub, setNanos: setNanosStub});
 			revert.push(ClientUtils.__set__('fabprotos.google.protobuf.Timestamp', timestampStub));
 			revert.push(ClientUtils.__set__('Date', dateStub));
 		});

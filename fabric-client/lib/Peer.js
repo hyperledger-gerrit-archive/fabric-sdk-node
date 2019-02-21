@@ -105,7 +105,8 @@ class Peer extends Remote {
 	 */
 	async sendProposal(proposal, timeout) {
 		const method = 'sendProposal';
-		logger.debug('%s - Start ----%s %s', method, this.getName(), this.getUrl());
+		const peerUrl = this.getUrl();
+		logger.debug('%s - Start ----%s %s', method, this.getName(), peerUrl);
 		const self = this;
 		let rto = self._request_timeout;
 
@@ -113,7 +114,9 @@ class Peer extends Remote {
 			rto = timeout;
 		}
 		if (!proposal) {
-			throw new Error('Missing proposal to send to peer');
+			const error = new Error('Missing proposal to send to peer');
+			error.peer = self.getCharacteristics();
+			throw error;
 		}
 
 		this._createClients();
@@ -121,46 +124,35 @@ class Peer extends Remote {
 		await this.waitForReady(this._endorserClient);
 
 		return new Promise((resolve, reject) => {
-			const send_timeout = setTimeout(() => {
-				clearTimeout(send_timeout);
-				logger.error('%s - timed out after:%s', method, rto);
-				return reject(new Error('REQUEST_TIMEOUT'));
+			const sendTimeout = setTimeout(() => {
+				logger.error('%s - timeout waiting for proposal response from peer "%s" after %s', method, peerUrl, rto);
+				const error = new Error('Timeout waiting for proposal response from peer "%s"', peerUrl);
+				error.name = 'RequestTimeout';
+				error.peer = self.getCharacteristics();
+				return reject(error);
 			}, rto);
 
 			self._endorserClient.processProposal(proposal, (err, proposalResponse) => {
-				clearTimeout(send_timeout);
+				clearTimeout(sendTimeout);
 				if (err) {
-					logger.debug('%s - Received proposal response from: %s status: %s', method, self._url, err);
-					if (err instanceof Error) {
-						reject(err);
-					} else {
-						reject(new Error(err));
+					logger.error('%s - Received error from peer "%s": %s', method, peerUrl, err);
+					if (!(err instanceof Error)) {
+						err = new Error(err);
 					}
-				} else {
-					if (proposalResponse) {
-						logger.debug('%s - Received proposal response from peer "%s": status - %s', method, self._url, (proposalResponse.response &&  proposalResponse.response.status) ? proposalResponse.response.status : 'undefined');
-						// 400 is the error threshold level, anything below that the endorser will endorse it.
-						if (proposalResponse.response && proposalResponse.response.status < 400) {
-							proposalResponse.peer = self.getCharacteristics();
-							resolve(proposalResponse);
-						} else if (proposalResponse.response && proposalResponse.response.message) {
-							const error = Object.assign(new Error(proposalResponse.response.message), proposalResponse.response);
-							error.peer = self.getCharacteristics();
-							error.isProposalResponse = true;
-							reject(error);
-						} else {
-							const return_error = new Error(util.format('GRPC client failed to get a proper response from the peer "%s".', self._url));
-							return_error.peer = self.getCharacteristics();
-							logger.error('%s - rejecting with:%s', method, return_error);
-							reject(return_error);
-						}
-					} else {
-						const return_error = new Error(util.format('GRPC client got a null or undefined response from the peer "%s".', self._url));
-						return_error.peer = self.getCharacteristics();
-						logger.error('%s - rejecting with:%s', method, return_error);
-						reject(return_error);
-					}
+					err.peer = self.getCharacteristics();
+					return reject(err);
 				}
+
+				if (!proposalResponse || !proposalResponse.response || typeof proposalResponse.response.status !== 'number') {
+					logger.error('%s - Received invalid proposal response from peer "%s": %j', method, peerUrl, proposalResponse);
+					const badResponseError = new Error(`GRPC client failed to get a proper response from peer "${peerUrl}"`);
+					badResponseError.peer = self.getCharacteristics();
+					return reject(badResponseError);
+				}
+
+				logger.debug('%s - Received proposal response from peer "%s" with status %s', method, peerUrl, proposalResponse.response.status);
+				proposalResponse.peer = self.getCharacteristics();
+				return resolve(proposalResponse);
 			});
 		});
 	}

@@ -293,23 +293,19 @@ module.exports.checkResults = function(results, error_snip, t) {
 };
 
 module.exports.checkGoodResults = function(t, results) {
-	let result = true;
-	const proposalResponses = results[0];
-	for (const i in proposalResponses) {
-		const proposal_response = proposalResponses[i];
-		if (proposal_response instanceof Error) {
-			t.fail('Failed with error ' + proposal_response.toString());
-			result = result & false;
-		} else if (proposal_response && proposal_response.response && proposal_response.response.status === 200) {
-			t.pass('transaction proposal has response status of good');
-			result = result & true;
-		} else {
-			t.fail(' Unknown results ');
-			result = result & false;
-		}
+	const badResponses = results.responses.filter((response) => response.response.status !== 200);
+	if (badResponses.length > 0 || results.errors.length > 0) {
+		t.fail(util.format('Not all responses were good. Bad responses: %j, Errors: %j', badResponses, results.errors));
+		return false;
 	}
 
-	return result;
+	if (results.responses.length < 1) {
+		t.fail('No responses');
+		return false;
+	}
+
+	t.pass('All responses were good');
+	return true;
 };
 
 module.exports.getClientForOrg = async function(t, org) {
@@ -499,7 +495,7 @@ module.exports.setupChannel = async function(t, client_org1, client_org2, channe
 
 		// send install request as admin of org1
 		let install_results = await client_org1.installChaincode(request);
-		if (install_results && install_results[0] && install_results[0][0].response && install_results[0][0].response.status === 200) {
+		if (install_results.responses[0].response.status === 200) {
 			t.pass('Successfully installed chain code on org1');
 		} else {
 			t.fail(' Failed to install chaincode on org1');
@@ -517,7 +513,7 @@ module.exports.setupChannel = async function(t, client_org1, client_org2, channe
 
 		// send install as org2 admin
 		install_results = await client_org2.installChaincode(request);
-		if (install_results && install_results[0] && install_results[0][0].response && install_results[0][0].response.status === 200) {
+		if (install_results.responses[0].response.status === 200) {
 			t.pass('Successfully installed chain code on org2');
 		} else {
 			t.fail(' Failed to install chaincode');
@@ -541,8 +537,8 @@ module.exports.setupChannel = async function(t, client_org1, client_org2, channe
 
 		// send proposal
 		const instan_results = await channel_org1.sendInstantiateProposal(request);
-		const proposalResponses = instan_results[0];
-		const proposal = instan_results[1];
+		const proposalResponses = instan_results.responses;
+		const proposal = instan_results.proposal;
 		if (proposalResponses && proposalResponses[0].response && proposalResponses[0].response.status === 200) {
 			t.pass('Successfully sent Proposal and received ProposalResponse');
 		} else {
@@ -601,8 +597,8 @@ module.exports.invokeAsAdmin = async function(t, client, channel, additional_req
 		logger.info('request:%j', request);
 
 		const results = await channel.sendTransactionProposal(request);
-		const proposalResponses = results[0];
-		const proposal = results[1];
+		const proposalResponses = results.responses;
+		const proposal = results.proposal;
 		let all_good = true;
 		for (const i in proposalResponses) {
 			let one_good = false;

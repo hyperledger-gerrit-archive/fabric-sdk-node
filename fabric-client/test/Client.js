@@ -20,8 +20,9 @@ const Client = rewire('../lib/Client');
 const Channel = require('../lib/Channel');
 const NetworkConfig = require('../lib/impl/NetworkConfig_1_0');
 const fs = require('fs');
-const {Identity} = require('fabric-common');
+const {Identity, SigningIdentity} = require('fabric-common');
 const Package = require('../lib/Package');
+const Peer = require('../lib/Peer');
 const path = require('path');
 const User = require('../lib/User');
 
@@ -37,10 +38,9 @@ describe('Client', () => {
 	let connectionProfile;
 	const userMspId = 'UserMspId';
 	let fakeUser;
-
-	beforeEach(() => {
-	});
-
+	let stubPeer;
+	let validResponse;
+	let invalidResponse;
 
 	beforeEach(() => {
 		revert = [];
@@ -97,6 +97,26 @@ describe('Client', () => {
 				}
 			}
 		};
+
+		stubPeer = new Peer('grpc://localhost', {name: 'stubPeer'});
+
+		validResponse = {
+			response: {
+				status: 200,
+				payload: {},
+				message: 'message'
+			},
+			peer: stubPeer.getCharacteristics()
+		};
+		invalidResponse = {
+			response: {
+				status: 418,
+				payload: {},
+				message: 'PEER_ERROR_MESSAGE'
+			},
+			peer: stubPeer.getCharacteristics()
+		};
+		sinon.stub(stubPeer, 'sendProposal').resolves(validResponse);
 	});
 
 	afterEach(() => {
@@ -429,13 +449,15 @@ describe('Client', () => {
 
 	describe('#newPeer', () => {
 		it('should create and return a new peer instance', () => {
-			const peerStub = sinon.stub();
-			revert.push(Client.__set__('Peer', peerStub));
+			const url = 'grpc://localhost';
+			const name = 'bob';
+
 			const client = new Client();
-			client._buildConnectionOptions = (value) => value;
-			const peer = client.newPeer('url', 'opts');
-			sinon.assert.calledWith(peerStub, 'url', 'opts');
-			peer.should.deep.equal(new peerStub());
+			const result = client.newPeer(url, {name});
+
+			result.should.be.an.instanceof(Peer);
+			result.getUrl().should.equal(url);
+			result.getName().should.equal(name);
 		});
 	});
 
@@ -1214,326 +1236,87 @@ describe('Client', () => {
 	});
 
 	describe('#queryChannels', () => {
-		let _getSigningIdentityStub;
-		let getTargetPeersStub;
-		let transactionIDStub;
-		let sendTransactionProposalStub;
-		let ChannelQueryResponseDecodeStub;
-
 		let client;
+
 		beforeEach(() => {
-			_getSigningIdentityStub = sinon.stub();
-			getTargetPeersStub = sinon.stub();
-			getTargetPeersStub.returns(['peer']);
-			transactionIDStub = sinon.stub();
-			sendTransactionProposalStub = sinon.stub();
-			ChannelQueryResponseDecodeStub = sinon.stub();
-			ChannelQueryResponseDecodeStub.returns({channels: [{channel_id: 1}]});
+			const stubIdentity = sinon.createStubInstance(SigningIdentity);
+			stubIdentity.serialize.returns(Buffer.from('signer'));
+			stubIdentity.sign.returns('signed');
 
-			revert.push(Client.__set__('fabprotos.protos.ChannelQueryResponse.decode', ChannelQueryResponseDecodeStub));
-			revert.push(Client.__set__('Channel.sendTransactionProposal', sendTransactionProposalStub));
-			revert.push(Client.__set__('TransactionID', transactionIDStub));
+			const channelQueryResponseDecodeStub = sinon.stub();
+			channelQueryResponseDecodeStub.returns({channels: [{channel_id: 1}]});
+
+			revert.push(Client.__set__('fabprotos.protos.ChannelQueryResponse.decode', channelQueryResponseDecodeStub));
 			client = new Client();
-			client.getTargetPeers = getTargetPeersStub;
-			client._getSigningIdentity = _getSigningIdentityStub;
+			sinon.stub(client, '_getSigningIdentity').returns(stubIdentity);
 		});
 
-		it('should throw an error if peer is not given', async () => {
-			try {
-				await client.queryChannels();
-				should.fail();
-			} catch (err) {
-				err.message.should.equal('Peer is required');
-				sinon.assert.calledWith(FakeLogger.debug, 'queryChannels - start');
-			}
+		it('should throw an error if peer is not given', () => {
+			return client.queryChannels().should.be.rejectedWith('Peer is required');
 		});
 
-		it('should throw an error if the response is an instance of error', async () => {
-			_getSigningIdentityStub.returns('signer');
-			sendTransactionProposalStub.returns(Promise.resolve([[new Error('an error')]]));
-			try {
-				await client.queryChannels({});
-				should.fail();
-			} catch (err) {
-				const request = {
-					targets: ['peer'],
-					chaincodeId: 'cscc',
-					txId: new transactionIDStub(),
-					signer: 'signer',
-					fcn: 'GetChannels',
-					args: []
-				};
+		it('should throw an error if the response is an error', () => {
+			stubPeer.sendProposal.resolves(invalidResponse);
 
-				err.message.should.equal('an error');
-				sinon.assert.calledWith(FakeLogger.debug, 'queryChannels - start');
-				sinon.assert.calledWith(getTargetPeersStub, {});
-				sinon.assert.calledWith(transactionIDStub, 'signer', undefined);
-				sinon.assert.calledWith(sendTransactionProposalStub, request, '', client);
-			}
+			return client.queryChannels(stubPeer).should.be.rejectedWith(invalidResponse.response.message);
 		});
 
-		it('should throw an error if the transaction proposal is not found', async () => {
-			_getSigningIdentityStub.returns('signer');
-			sendTransactionProposalStub.returns(Promise.resolve([[{}, {}]]));
-			try {
-				await client.queryChannels({});
-				should.fail();
-			} catch (err) {
-				const request = {
-					targets: ['peer'],
-					chaincodeId: 'cscc',
-					txId: new transactionIDStub(),
-					signer: 'signer',
-					fcn: 'GetChannels',
-					args: []
-				};
+		it('should throw an error if the peer invocation failed', () => {
+			const errorMessage = 'PEER_CONNECTION_FAILED';
+			stubPeer.sendProposal.rejects(new Error(errorMessage));
 
-				err.message.should.equal('Too many results returned');
-				sinon.assert.calledWith(FakeLogger.debug, 'queryChannels - start');
-				sinon.assert.calledWith(getTargetPeersStub, {});
-				sinon.assert.calledWith(transactionIDStub, 'signer', undefined);
-				sinon.assert.calledWith(sendTransactionProposalStub, request, '', client);
-			}
-		});
-
-		it('should throw an error if we are unsure what is happening', async () => {
-			_getSigningIdentityStub.returns('signer');
-			sendTransactionProposalStub.returns(Promise.resolve([['unknown error']]));
-			try {
-				await client.queryChannels({});
-				should.fail();
-			} catch (err) {
-				const request = {
-					targets: ['peer'],
-					chaincodeId: 'cscc',
-					txId: new transactionIDStub(),
-					signer: 'signer',
-					fcn: 'GetChannels',
-					args: []
-				};
-
-				err.message.should.equal('unknown error');
-				sinon.assert.calledWith(FakeLogger.debug, 'queryChannels - start');
-				sinon.assert.calledWith(getTargetPeersStub, {});
-				sinon.assert.calledWith(transactionIDStub, 'signer', undefined);
-				sinon.assert.calledWith(sendTransactionProposalStub, request, '', client);
-			}
-		});
-
-		it('should throw an error if transaction proposal results are not arrays', async () => {
-			_getSigningIdentityStub.returns('signer');
-			sendTransactionProposalStub.returns(Promise.resolve(['test']));
-			try {
-				await client.queryChannels({});
-				should.fail();
-			} catch (err) {
-				const request = {
-					targets: ['peer'],
-					chaincodeId: 'cscc',
-					txId: new transactionIDStub(),
-					signer: 'signer',
-					fcn: 'GetChannels',
-					args: []
-				};
-
-				err.message.should.equal('Payload results are missing from the query');
-				sinon.assert.calledWith(FakeLogger.debug, 'queryChannels - start');
-				sinon.assert.calledWith(getTargetPeersStub, {});
-				sinon.assert.calledWith(transactionIDStub, 'signer', undefined);
-				sinon.assert.calledWith(sendTransactionProposalStub, request, '', client);
-			}
+			return client.queryChannels(stubPeer).should.be.rejectedWith(errorMessage);
 		});
 
 		it('should return the query trans for a channel', async () => {
-			_getSigningIdentityStub.returns('signer');
-			sendTransactionProposalStub.returns(Promise.resolve([[{response: {status: 'status', payload: 'payload'}}]]));
-			const queryTrans = await client.queryChannels('peer');
-			sinon.assert.calledWith(FakeLogger.debug, 'queryChannels - start');
-			sinon.assert.calledWith(getTargetPeersStub, 'peer');
-			sinon.assert.calledWith(_getSigningIdentityStub, undefined);
-			sinon.assert.calledWith(transactionIDStub, 'signer', undefined);
-			const request = {
-				targets: ['peer'],
-				chaincodeId: 'cscc',
-				txId: new transactionIDStub(),
-				signer: 'signer',
-				fcn: 'GetChannels',
-				args: []
-			};
-			sinon.assert.calledWith(sendTransactionProposalStub, request, '', client);
-			sinon.assert.calledWith(FakeLogger.debug, 'queryChannels - got response');
-			sinon.assert.calledWith(FakeLogger.debug, 'queryChannels - response status :: %d', 'status');
-			sinon.assert.calledWith(ChannelQueryResponseDecodeStub, 'payload');
-			sinon.assert.calledWith(FakeLogger.debug, 'queryChannels - ProcessedTransaction.channelInfo.length :: %s', 1);
-			sinon.assert.calledWith(FakeLogger.debug, '>>> channel id %s ', 1);
+			const queryTrans = await client.queryChannels(stubPeer);
 			queryTrans.should.deep.equal({channels: [{channel_id: 1}]});
 		});
 	});
 
 	describe('#queryInstalledChaincodes', () => {
-		let _getSigningIdentityStub;
-		let getTargetPeersStub;
-		let transactionIDStub;
-		let sendTransactionProposalStub;
-		let ChaincodeQueryResponseDecodeStub;
-
 		let client;
+
 		beforeEach(() => {
-			_getSigningIdentityStub = sinon.stub();
-			getTargetPeersStub = sinon.stub();
-			getTargetPeersStub.returns(['peer']);
-			transactionIDStub = sinon.stub();
-			sendTransactionProposalStub = sinon.stub();
-			ChaincodeQueryResponseDecodeStub = sinon.stub();
-			ChaincodeQueryResponseDecodeStub.returns({chaincodes: [{name: 'chaincode1', version: 1, path: 'path'}]});
+			const stubIdentity = sinon.createStubInstance(SigningIdentity);
+			stubIdentity.serialize.returns(Buffer.from('signer'));
+			stubIdentity.sign.returns('signed');
 
-			revert.push(Client.__set__('fabprotos.protos.ChaincodeQueryResponse.decode', ChaincodeQueryResponseDecodeStub));
-			revert.push(Client.__set__('Channel.sendTransactionProposal', sendTransactionProposalStub));
-			revert.push(Client.__set__('TransactionID', transactionIDStub));
+			const chaincodeQueryResponseDecodeStub = sinon.stub();
+			chaincodeQueryResponseDecodeStub.returns({chaincodes: [{name: 'chaincode1', version: 1, path: 'path'}]});
+
+			revert.push(Client.__set__('fabprotos.protos.ChaincodeQueryResponse.decode', chaincodeQueryResponseDecodeStub));
 			client = new Client();
-			client.getTargetPeers = getTargetPeersStub;
-			client._getSigningIdentity = _getSigningIdentityStub;
+			sinon.stub(client, '_getSigningIdentity').returns(stubIdentity);
 		});
 
-		it('should throw an error if peer is not given', async () => {
-			try {
-				await client.queryInstalledChaincodes();
-				should.fail();
-			} catch (err) {
-				err.message.should.equal('Peer is required');
-				sinon.assert.calledWith(FakeLogger.debug, 'queryInstalledChaincodes - start peer %s', undefined);
-			}
+		it('should throw an error if peer is not given', () => {
+			return client.queryInstalledChaincodes().should.be.rejectedWith('Peer is required');
 		});
 
+		it('should throw an error if the response is an error', () => {
+			stubPeer.sendProposal.resolves(invalidResponse);
 
-
-		it('should throw an error if we are unsure what is happening', async () => {
-			_getSigningIdentityStub.returns('signer');
-			sendTransactionProposalStub.returns(Promise.resolve([[new Error('unknown error')]]));
-			try {
-				await client.queryInstalledChaincodes({});
-				should.fail();
-			} catch (err) {
-				const request = {
-					targets: ['peer'],
-					chaincodeId: 'lscc',
-					txId: new transactionIDStub(),
-					signer: 'signer',
-					fcn: 'getinstalledchaincodes',
-					args: []
-				};
-
-				err.message.should.equal('unknown error');
-				sinon.assert.calledWith(getTargetPeersStub, {});
-				sinon.assert.calledWith(transactionIDStub, 'signer', undefined);
-				sinon.assert.calledWith(sendTransactionProposalStub, request, '', client);
-			}
+			return client.queryInstalledChaincodes(stubPeer).should.be.rejectedWith(invalidResponse.response.message);
 		});
 
-		it('should throw an error if the response is not an array', async () => {
-			_getSigningIdentityStub.returns('signer');
-			sendTransactionProposalStub.returns(Promise.resolve(['response']));
-			try {
-				await client.queryInstalledChaincodes({});
-				should.fail();
-			} catch (err) {
-				const request = {
-					targets: ['peer'],
-					chaincodeId: 'lscc',
-					txId: new transactionIDStub(),
-					signer: 'signer',
-					fcn: 'getinstalledchaincodes',
-					args: []
-				};
+		it('should throw an error if the peer invocation failed', () => {
+			const errorMessage = 'PEER_CONNECTION_FAILED';
+			stubPeer.sendProposal.rejects(new Error(errorMessage));
 
-				err.message.should.equal('Payload results are missing from the query');
-				sinon.assert.calledWith(FakeLogger.debug, 'queryInstalledChaincodes - start peer %s', {});
-				sinon.assert.calledWith(getTargetPeersStub, {});
-				sinon.assert.calledWith(transactionIDStub, 'signer', undefined);
-				sinon.assert.calledWith(sendTransactionProposalStub, request, '', client);
-			}
-		});
-
-		it('should throw an error if the response has no response property', async () => {
-			_getSigningIdentityStub.returns('signer');
-			sendTransactionProposalStub.returns(Promise.resolve([[{}]]));
-			try {
-				await client.queryInstalledChaincodes({});
-				should.fail();
-			} catch (err) {
-				const request = {
-					targets: ['peer'],
-					chaincodeId: 'lscc',
-					txId: new transactionIDStub(),
-					signer: 'signer',
-					fcn: 'getinstalledchaincodes',
-					args: []
-				};
-
-				err.should.deep.equal({});
-				sinon.assert.calledWith(FakeLogger.debug, 'queryInstalledChaincodes - start peer %s', {});
-				sinon.assert.calledWith(getTargetPeersStub, {});
-				sinon.assert.calledWith(transactionIDStub, 'signer', undefined);
-				sinon.assert.calledWith(sendTransactionProposalStub, request, '', client);
-			}
-		});
-
-		it('should throw an error if the transaction proposal is not found', async () => {
-			_getSigningIdentityStub.returns('signer');
-			sendTransactionProposalStub.returns(Promise.resolve([[{}, {}]]));
-			try {
-				await client.queryInstalledChaincodes({});
-				should.fail();
-			} catch (err) {
-				const request = {
-					targets: ['peer'],
-					chaincodeId: 'lscc',
-					txId: new transactionIDStub(),
-					signer: 'signer',
-					fcn: 'getinstalledchaincodes',
-					args: []
-				};
-
-				err.message.should.equal('Too many results returned');
-				sinon.assert.calledWith(FakeLogger.debug, 'queryInstalledChaincodes - start peer %s', {});
-				sinon.assert.calledWith(getTargetPeersStub, {});
-				sinon.assert.calledWith(transactionIDStub, 'signer', undefined);
-				sinon.assert.calledWith(sendTransactionProposalStub, request, '', client);
-			}
+			return client.queryInstalledChaincodes(stubPeer).should.be.rejectedWith(errorMessage);
 		});
 
 		it('should return the query trans for a channel', async () => {
-			_getSigningIdentityStub.returns('signer');
-			sendTransactionProposalStub.returns(Promise.resolve([[{response: {status: 'status', payload: 'payload'}}]]));
-			const queryTrans = await client.queryInstalledChaincodes('peer');
-			sinon.assert.calledWith(FakeLogger.debug, 'queryInstalledChaincodes - start peer %s', 'peer');
-			sinon.assert.calledWith(getTargetPeersStub, 'peer');
-			sinon.assert.calledWith(_getSigningIdentityStub, undefined);
-			sinon.assert.calledWith(transactionIDStub, 'signer', undefined);
-			const request = {
-				targets: ['peer'],
-				chaincodeId: 'lscc',
-				txId: new transactionIDStub(),
-				signer: 'signer',
-				fcn: 'getinstalledchaincodes',
-				args: []
-			};
-			sinon.assert.calledWith(sendTransactionProposalStub, request, '', client);
-			sinon.assert.calledWith(FakeLogger.debug, 'queryInstalledChaincodes - got response');
-			sinon.assert.calledWith(FakeLogger.debug, 'queryInstalledChaincodes - response status :: %d', 'status');
-			sinon.assert.calledWith(ChaincodeQueryResponseDecodeStub, 'payload');
-			sinon.assert.calledWith(FakeLogger.debug, 'queryInstalledChaincodes - ProcessedTransaction.chaincodeInfo.length :: %s', 1);
-			sinon.assert.calledWith(FakeLogger.debug, '>>> name %s, version %s, path %s', 'chaincode1', 1, 'path');
+			const queryTrans = await client.queryInstalledChaincodes(stubPeer);
 			queryTrans.should.deep.equal({chaincodes: [{name: 'chaincode1', version: 1, path: 'path'}]});
 		});
 	});
 
 	describe('#installChaincode', () => {
-
 		const smartContractPackageBytes = fs.readFileSync(path.resolve(__dirname, 'data', 'golang-contract.cds'));
 		let smartContractPackage;
 
-		let getTargetPeersStub;
 		let getPeersForOrgOnChannelStub;
 		let _getSigningIdentityStub;
 		let TransactionIDStub;
@@ -1544,14 +1327,13 @@ describe('Client', () => {
 		let getNonceStub;
 		let buildProposalStub;
 		let signProposalStub;
-		let sendPeersProposalStub;
 		let translateCCTypeStub;
+		let expectedResult;
 
 		let client;
 		beforeEach(async () => {
 			smartContractPackage = await Package.fromBuffer(smartContractPackageBytes);
 			getPeersForOrgOnChannelStub = sinon.stub();
-			getTargetPeersStub = sinon.stub();
 			_getSigningIdentityStub = sinon.stub().returns('signer');
 			getNonceStub = sinon.stub().returns('nonce');
 			isAdminStub = sinon.stub().returns(true);
@@ -1566,16 +1348,20 @@ describe('Client', () => {
 			revert.push(Client.__set__('clientUtils.buildProposal', buildProposalStub));
 			signProposalStub = sinon.stub().returns('signed-proposal');
 			revert.push(Client.__set__('clientUtils.signProposal', signProposalStub));
-			sendPeersProposalStub = sinon.stub().returns(Promise.resolve(['response']));
-			revert.push(Client.__set__('clientUtils.sendPeersProposal', sendPeersProposalStub));
 			translateCCTypeStub = sinon.stub().returns('go');
 			revert.push(Client.__set__('clientUtils.translateCCType', translateCCTypeStub));
 			revert.push(Client.__set__('fabprotos.common.HeaderType.ENDORSER_TRANSACTION', 'ENDORSER_TRANSACITON'));
 
 			client = new Client();
-			client.getTargetPeers = getTargetPeersStub;
+			sinon.stub(client, 'getTargetPeers').returns([stubPeer]);
 			client.getPeersForOrgOnChannel = getPeersForOrgOnChannelStub;
 			client._getSigningIdentity = _getSigningIdentityStub;
+
+			expectedResult = {
+				errors: [],
+				responses: [validResponse],
+				proposal: 'proposal'
+			};
 		});
 
 		it('should throw error if not request given', async () => {
@@ -1600,6 +1386,7 @@ describe('Client', () => {
 		});
 
 		it('should throw error if no peers found', async () => {
+			client.getTargetPeers.returns([]);
 			await client.installChaincode({chaincodeId: 'mycc', chaincodeVersion: '0.0.1', chaincodePath: 'mycc'})
 				.should.be.rejectedWith(/Missing peer objects in install chaincode request/);
 		});
@@ -1612,10 +1399,8 @@ describe('Client', () => {
 				type: undefined,
 				metadataPath: undefined
 			}).resolves(smartContractPackage);
-			getTargetPeersStub.withArgs(['peer']).returns(['peer']);
 			const request = {chaincodeId: 'mycc', chaincodeVersion: '0.0.1', chaincodePath: 'mycc', targets: ['peer']};
 			const response = await client.installChaincode(request);
-			sinon.assert.calledWith(getTargetPeersStub, ['peer']);
 			sinon.assert.calledOnce(fromDirectoryStub);
 			sinon.assert.calledWith(translateCCTypeStub, undefined);
 			sinon.assert.calledWith(_getSigningIdentityStub, true);
@@ -1627,8 +1412,7 @@ describe('Client', () => {
 				type: 'go'
 			}, 'header');
 			sinon.assert.calledWith(signProposalStub, 'signer', 'proposal');
-			sinon.assert.calledWith(sendPeersProposalStub, ['peer'], 'signed-proposal', undefined);
-			response.should.deep.equal([['response'], 'proposal']);
+			response.should.deep.equal(expectedResult);
 		});
 
 		it('should install using chaincode ID, chaincode version, chaincode path, and chaincode type', async () => {
@@ -1639,10 +1423,8 @@ describe('Client', () => {
 				type: 'java',
 				metadataPath: undefined
 			}).resolves(smartContractPackage);
-			getTargetPeersStub.withArgs(['peer']).returns(['peer']);
 			const request = {chaincodeId: 'mycc', chaincodeVersion: '0.0.1', chaincodePath: 'mycc', chaincodeType: 'java', targets: ['peer']};
 			const response = await client.installChaincode(request);
-			sinon.assert.calledWith(getTargetPeersStub, ['peer']);
 			sinon.assert.calledOnce(fromDirectoryStub);
 			sinon.assert.calledWith(translateCCTypeStub, 'java');
 			sinon.assert.calledWith(_getSigningIdentityStub, true);
@@ -1654,8 +1436,7 @@ describe('Client', () => {
 				type: 'go'
 			}, 'header');
 			sinon.assert.calledWith(signProposalStub, 'signer', 'proposal');
-			sinon.assert.calledWith(sendPeersProposalStub, ['peer'], 'signed-proposal', undefined);
-			response.should.deep.equal([['response'], 'proposal']);
+			response.should.deep.equal(expectedResult);
 		});
 
 		it('should install using chaincode ID, chaincode version, chaincode path, chaincode type, and metadata path', async () => {
@@ -1666,10 +1447,8 @@ describe('Client', () => {
 				type: 'java',
 				metadataPath: 'mycc/META-INF'
 			}).resolves(smartContractPackage);
-			getTargetPeersStub.withArgs(['peer']).returns(['peer']);
 			const request = {chaincodeId: 'mycc', chaincodeVersion: '0.0.1', chaincodePath: 'mycc', chaincodeType: 'java', metadataPath: 'mycc/META-INF', targets: ['peer']};
 			const response = await client.installChaincode(request);
-			sinon.assert.calledWith(getTargetPeersStub, ['peer']);
 			sinon.assert.calledOnce(fromDirectoryStub);
 			sinon.assert.calledWith(translateCCTypeStub, 'java');
 			sinon.assert.calledWith(_getSigningIdentityStub, true);
@@ -1681,17 +1460,14 @@ describe('Client', () => {
 				type: 'go'
 			}, 'header');
 			sinon.assert.calledWith(signProposalStub, 'signer', 'proposal');
-			sinon.assert.calledWith(sendPeersProposalStub, ['peer'], 'signed-proposal', undefined);
-			response.should.deep.equal([['response'], 'proposal']);
+			response.should.deep.equal(expectedResult);
 		});
 
 		it('should install, but not package, when dev mode is enabled', async () => {
 			client.setDevMode(true);
 			const fromDirectoryStub = sinon.stub(Package, 'fromDirectory').rejects(new Error('such error'));
-			getTargetPeersStub.withArgs(['peer']).returns(['peer']);
 			const request = {chaincodeId: 'mycc', chaincodeVersion: '0.0.1', chaincodePath: 'mycc', targets: ['peer']};
 			const response = await client.installChaincode(request);
-			sinon.assert.calledWith(getTargetPeersStub, ['peer']);
 			sinon.assert.notCalled(fromDirectoryStub);
 			sinon.assert.calledWith(translateCCTypeStub, undefined);
 			sinon.assert.calledWith(_getSigningIdentityStub, true);
@@ -1703,16 +1479,13 @@ describe('Client', () => {
 				type: 'go'
 			}, 'header');
 			sinon.assert.calledWith(signProposalStub, 'signer', 'proposal');
-			sinon.assert.calledWith(sendPeersProposalStub, ['peer'], 'signed-proposal', undefined);
-			response.should.deep.equal([['response'], 'proposal']);
+			response.should.deep.equal(expectedResult);
 		});
 
 		it('should install using a chaincode package', async () => {
 			const fromDirectoryStub = sinon.stub(Package, 'fromDirectory').rejects(new Error('such error'));
-			getTargetPeersStub.withArgs(['peer']).returns(['peer']);
 			const request = {chaincodePackage: smartContractPackageBytes, targets: ['peer']};
 			const response = await client.installChaincode(request);
-			sinon.assert.calledWith(getTargetPeersStub, ['peer']);
 			sinon.assert.notCalled(fromDirectoryStub);
 			sinon.assert.calledWith(translateCCTypeStub, undefined);
 			sinon.assert.calledWith(_getSigningIdentityStub, true);
@@ -1724,8 +1497,7 @@ describe('Client', () => {
 				type: 'go'
 			}, 'header');
 			sinon.assert.calledWith(signProposalStub, 'signer', 'proposal');
-			sinon.assert.calledWith(sendPeersProposalStub, ['peer'], 'signed-proposal', undefined);
-			response.should.deep.equal([['response'], 'proposal']);
+			response.should.deep.equal(expectedResult);
 		});
 
 		it('should install using an explicit transaction ID', async () => {
@@ -1736,10 +1508,8 @@ describe('Client', () => {
 				type: undefined,
 				metadataPath: undefined
 			}).resolves(smartContractPackage);
-			getTargetPeersStub.returns(['peer']);
 			const request = {chaincodeId: 'mycc', chaincodeVersion: '0.0.1', chaincodePath: 'mycc', targets: [], channelNames: [], txId: {isAdmin: isAdminStub, getNonce: getNonceStub, getTransactionID: getTransactionIDStub}};
 			const response = await client.installChaincode(request);
-			sinon.assert.calledWith(getTargetPeersStub, []);
 			sinon.assert.calledOnce(fromDirectoryStub);
 			sinon.assert.calledWith(_getSigningIdentityStub, true);
 			sinon.assert.calledWith(buildChannelHeaderStub, 'ENDORSER_TRANSACITON', '', 'txId', null, 'lscc');
@@ -1750,8 +1520,7 @@ describe('Client', () => {
 				type: 'go'
 			}, 'header');
 			sinon.assert.calledWith(signProposalStub, 'signer', 'proposal');
-			sinon.assert.calledWith(sendPeersProposalStub, ['peer'], 'signed-proposal', undefined);
-			response.should.deep.equal([['response'], 'proposal']);
+			response.should.deep.equal(expectedResult);
 		});
 
 		it('should install using the specified target peers', async () => {
@@ -1762,10 +1531,8 @@ describe('Client', () => {
 				type: undefined,
 				metadataPath: undefined
 			}).resolves(smartContractPackage);
-			getTargetPeersStub.returns(['peer']);
 			const request = {chaincodeId: 'mycc', chaincodeVersion: '0.0.1', chaincodePath: 'mycc', targets: [], channelNames: [], txId: {isAdmin: isAdminStub, getNonce: getNonceStub, getTransactionID: getTransactionIDStub}};
 			const response = await client.installChaincode(request);
-			sinon.assert.calledWith(getTargetPeersStub, []);
 			sinon.assert.calledOnce(fromDirectoryStub);
 			sinon.assert.calledWith(_getSigningIdentityStub, true);
 			sinon.assert.calledWith(buildChannelHeaderStub, 'ENDORSER_TRANSACITON', '', 'txId', null, 'lscc');
@@ -1776,8 +1543,7 @@ describe('Client', () => {
 				type: 'go'
 			}, 'header');
 			sinon.assert.calledWith(signProposalStub, 'signer', 'proposal');
-			sinon.assert.calledWith(sendPeersProposalStub, ['peer'], 'signed-proposal', undefined);
-			response.should.deep.equal([['response'], 'proposal']);
+			response.should.deep.equal(expectedResult);
 		});
 
 		it('should install using the peers discovered for the channel', async () => {
@@ -1788,11 +1554,10 @@ describe('Client', () => {
 				type: undefined,
 				metadataPath: undefined
 			}).resolves(smartContractPackage);
-			getTargetPeersStub.returns();
-			getPeersForOrgOnChannelStub.withArgs(['mychannel']).returns(['peer']);
+			client.getTargetPeers.returns();
+			getPeersForOrgOnChannelStub.withArgs(['mychannel']).returns([stubPeer]);
 			const request = {chaincodeId: 'mycc', chaincodeVersion: '0.0.1', chaincodePath: 'mycc', channelNames: ['mychannel']};
 			const response = await client.installChaincode(request);
-			sinon.assert.calledWith(getTargetPeersStub, undefined);
 			sinon.assert.calledOnce(fromDirectoryStub);
 			sinon.assert.calledWith(translateCCTypeStub, undefined);
 			sinon.assert.calledWith(_getSigningIdentityStub, true);
@@ -1804,8 +1569,7 @@ describe('Client', () => {
 				type: 'go'
 			}, 'header');
 			sinon.assert.calledWith(signProposalStub, 'signer', 'proposal');
-			sinon.assert.calledWith(sendPeersProposalStub, ['peer'], 'signed-proposal', undefined);
-			response.should.deep.equal([['response'], 'proposal']);
+			response.should.deep.equal(expectedResult);
 		});
 	});
 
@@ -2807,7 +2571,6 @@ describe('Client', () => {
 
 	describe('#getTargetPeers', () => {
 		let getPeerStub;
-		const Peer = class { };
 
 		let client;
 		beforeEach(() => {
@@ -2838,9 +2601,8 @@ describe('Client', () => {
 		});
 
 		it('should return the peer if list of peer objects passed in', () => {
-			const mockPeer = new Peer();
-			const peers = client.getTargetPeers([mockPeer]);
-			peers.should.deep.equal([mockPeer]);
+			const peers = client.getTargetPeers([stubPeer]);
+			peers.should.deep.equal([stubPeer]);
 			sinon.assert.calledWith(FakeLogger.debug, '%s - start', 'getTargetPeers');
 		});
 	});

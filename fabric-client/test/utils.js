@@ -297,7 +297,7 @@ describe('Utils', () => {
 
 	describe('#getBufferBit', () => {
 		it('should return error=true if bit to mask exceeds buffer length', () => {
-			const result = Utils.getBufferBit(new Buffer(1), 8);
+			const result = Utils.getBufferBit(Buffer.alloc(1), 8);
 			result.error.should.be.true;
 			result.invalid.should.equal(0);
 		});
@@ -309,7 +309,7 @@ describe('Utils', () => {
 		});
 
 		it('should return error=false invalid=0', () => {
-			const result = Utils.getBufferBit(new Buffer(10), 0);
+			const result = Utils.getBufferBit(Buffer.alloc(10), 0);
 			result.error.should.be.false;
 			result.invalid.should.equal(0);
 		});

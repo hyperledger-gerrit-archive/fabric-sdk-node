@@ -41,29 +41,34 @@ module.exports.buildProposal = (invokeSpec, header, transientMap) => {
 
 /*
  * This function will return one Promise when sending a proposal to many peers
+ * @returns {PeerResponseObject} Peer responses.
  */
 module.exports.sendPeersProposal = async (peers, proposal, timeout) => {
-	let targets = peers;
+	const result = {
+		errors: [],
+		responses: []
+	};
+
 	if (!Array.isArray(peers)) {
-		targets = [peers];
+		peers = [peers];
 	}
-	// create array of promises mapping peers array to peer parameter
-	// settle all the promises and return array of responses
-	const promises = targets.map(async (peer) => {
-		return peer.sendProposal(proposal, timeout);
-	});
-	const responses = [];
-	const results = await settle(promises);
-	results.forEach((result) => {
-		if (result.isFulfilled()) {
-			logger.debug(`sendPeersProposal - Promise is fulfilled: ${result.value()}`);
-			responses.push(result.value());
+
+	const promises = peers.map((peer) => peer.sendProposal(proposal, timeout));
+	const promiseResults = await settle(promises);
+
+	promiseResults.forEach((promiseResult, index) => {
+		if (promiseResult.isFulfilled()) {
+			const proposalResponse = promiseResult.value();
+			logger.debug('sendPeersProposal - Promise is fulfilled:', proposalResponse);
+			result.responses.push(proposalResponse);
 		} else {
-			logger.debug(`sendPeersProposal - Promise is rejected: ${result.reason()}`);
-			responses.push(result.reason());
+			const error = promiseResult.reason();
+			logger.debug('sendPeersProposal - Promise is rejected:', error);
+			result.errors.push(error);
 		}
 	});
-	return responses;
+
+	return result;
 };
 
 /*
