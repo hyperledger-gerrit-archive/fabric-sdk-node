@@ -988,7 +988,7 @@ describe('Channel', () => {
 		});
 
 		it('throws if request.discover is not a boolean', () => {
-			return expect(channel.initialize({discover: 'true'})).to.be.rejectedWith('Request parameter "discover" must be boolean');
+			return expect(channel.initialize({discover: 'true'})).to.be.rejectedWith('Request parameter "discover" or config parameter "initialize-with-discovery" must be boolean');
 		});
 
 		it('set channel._use_discovery if request.asLocalHost is given', async () => {
@@ -998,7 +998,7 @@ describe('Channel', () => {
 		});
 
 		it('throws if request.asLocalHost is not a boolean', () => {
-			return expect(channel.initialize({asLocalhost: 'true'})).to.be.rejectedWith('Request parameter "asLocalhost" must be boolean');
+			return expect(channel.initialize({asLocalhost: 'true'})).to.be.rejectedWith('Request parameter "asLocalhost" or config parameter "discovery-as-localhost" must be boolean');
 		});
 
 		it('set channel._as_localhost if request.asLocalHost is given', async () => {
@@ -1095,10 +1095,10 @@ describe('Channel', () => {
 						config_result: {msps: {[mspId]: stubMsp}},
 						members: {peers_by_org: {[mspId]: {peers: [peer2]}}},
 						cc_query_res: {content: [{
-							chaincode: {name: 'mynewcc'},
-							endorsers_by_groups: {group1: {peers: [peer2]}},
-							layouts: [{quantities_by_group: ['layout']}]
-						}]}
+								chaincode: {name: 'mynewcc'},
+								endorsers_by_groups: {group1: {peers: [peer2]}},
+								layouts: [{quantities_by_group: ['layout']}]
+							}]}
 					}
 				],
 			};
@@ -1171,6 +1171,39 @@ describe('Channel', () => {
 
 		it('should log an error if _getTargetDiscovery throws an error', () => {
 			return expect(channel.initialize({discover: true})).to.be.rejectedWith('"target" parameter not specified and no peers are set on this Channel instance or specfied for this channel in the network');
+		});
+
+		it('Successfully applying configSetting parameter "initialize-with-discovery"', async () => {
+			sinon.stub(channel, '_initialize');
+			sdk_utils.setConfigSetting('initialize-with-discovery', true);
+
+			const request = {
+				target: 'peer0'
+			};
+			await channel.initialize(request);
+			channel._use_discovery.should.equal(true);
+		});
+
+		it('Successfully applying configSetting parameter "initialize-with-discovery"', async () => {
+			sinon.stub(channel, '_initialize');
+			sdk_utils.setConfigSetting('discovery-as-localhost', false);
+
+			const request = {
+				target: 'peer0'
+			};
+			await channel.initialize(request);
+			channel._as_localhost.should.equal(false);
+		});
+
+		it('Successfully applying configSetting parameter "discovery-cache-life"', async () => {
+			sinon.stub(channel, '_initialize');
+			sdk_utils.setConfigSetting('discovery-cache-life', 70000);
+
+			const request = {
+				target: 'peer0'
+			};
+			await channel.initialize(request);
+			channel._discovery_cache_life.should.equal(70000);
 		});
 	});
 
@@ -1264,7 +1297,7 @@ describe('Channel', () => {
 
 	describe('#addPeer', () => {});
 
-	describe('#remoePeer', () => {});
+	describe('#removePeer', () => {});
 
 	describe('#gePeer', () => {});
 
@@ -1505,9 +1538,7 @@ describe('Channel', () => {
 		it('should throw if anything errors whilst building the discovery config', () => {
 			const discoveryResponse = {
 				peer: peer1,
-				results: [{config_result: {
-					msps: {[mspId]: {}}
-				}}],
+				results: [{config_result: {msps: {[mspId]: {}}}}],
 			};
 			debugStub.withArgs('%s - found organization %s', '_processDiscoveryConfigResults', 'org1').callsFake(() => {
 				throw new Error('forced error');
