@@ -191,8 +191,8 @@ const Channel = class {
 
 				return true;
 			} else {
-				const use_discovery = request.discover || sdk_utils.getConfigSetting('initialize-with-discovery');
-				const as_localhost = request.asLocalhost || sdk_utils.getConfigSetting('discovery-as-localhost');
+				const use_discovery = (typeof request.discover !== 'undefined') ? request.discover : sdk_utils.getConfigSetting('initialize-with-discovery');
+				const as_localhost = (typeof request.asLocalhost !== 'undefined') ? request.asLocalhost : sdk_utils.getConfigSetting('discovery-as-localhost');
 				const cache_life_time = sdk_utils.getConfigSetting('discovery-cache-life');
 
 				if (typeof use_discovery !== 'undefined') {

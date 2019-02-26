@@ -1173,7 +1173,6 @@ describe('Channel', () => {
 			return expect(channel.initialize({discover: true})).to.be.rejectedWith('"target" parameter not specified and no peers are set on this Channel instance or specfied for this channel in the network');
 		});
 
-
 		it('Successfully applying configSetting parameter "initialize-with-discovery"', async () => {
 			sinon.stub(channel, '_initialize');
 			sdk_utils.setConfigSetting('initialize-with-discovery', true);
@@ -1183,6 +1182,18 @@ describe('Channel', () => {
 			};
 			await channel.initialize(request);
 			channel._use_discovery.should.equal(true);
+		});
+
+		it('Successfully applying request.discover parameter', async () => {
+			sinon.stub(channel, '_initialize');
+			sdk_utils.setConfigSetting('initialize-with-discovery', true);
+
+			const request = {
+				target: 'peer0',
+				discover: false
+			};
+			await channel.initialize(request);
+			channel._use_discovery.should.equal(false);
 		});
 
 		it('Successfully applying configSetting parameter "initialize-with-discovery"', async () => {
@@ -1223,7 +1234,7 @@ describe('Channel', () => {
 
 	describe('#getDiscoveryResults', () => {
 		it('should throw discovery is not turned on', async () => {
-			sinon.stub(channel, '_initialize');	
+			sinon.stub(channel, '_initialize');
 			await channel.initialize();
 			return expect(channel.getDiscoveryResults({})).to.be.rejectedWith('This Channel has not been initialized or not initialized with discovery support');
 		});
