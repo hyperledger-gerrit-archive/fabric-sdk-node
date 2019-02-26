@@ -57,8 +57,14 @@ organizations active on the network at the time of the query. see {@link Client#
 channel to be initialized, service discovery will be used. (default false)
 * `discovery-cache-life` - integer (time in milliseconds) - The amount of time the
 service discovery results are considered valid. (default 300000 - 5 minutes)
-* `discovery-protocol` - string - The protocol to use when building URL's for the
-discovered endpoints. The Discover Service only provides host:port. (default 'grpcs').
+* `override-discovery-protocol` - string - Override the protocol to use when
+building URL's for the discovered endpoints. The Discover Service only provides
+host:port. By default, if you connect to the Discover Service without TLS (grpc://),
+then all discovered endpoints will be connected to without TLS. If you connect to
+the Discover Service with TLS (grpcs://), then all discovered endpoints will be
+connected to with TLS. You can use this configuration setting to force either grpc
+or grpcs for all discovered endpoints, regardless of how you connected to the
+Discover Service.
 * `endorsement-handler` - string - The path to the endorsement handler. Allows for a
 custom handler to be used. This handler is used in the `sendTransactionProposal`
 method to determine the target peers and how to send the proposal.
