@@ -8,10 +8,12 @@
 const sinon = require('sinon');
 
 const Channel = require('fabric-client/lib/Channel');
+const ChannelEventHub = require('fabric-client/lib/ChannelEventHub');
 const Client = require('fabric-client');
 const TransactionID = require('fabric-client/lib/TransactionID.js');
 
 const chai = require('chai');
+const expect = chai.expect;
 chai.use(require('chai-as-promised'));
 chai.should();
 
@@ -20,6 +22,12 @@ const Gateway = require('../lib/gateway');
 const Network = require('fabric-network/lib/network');
 const Transaction = require('../lib/transaction');
 const TransactionEventHandler = require('../lib/impl/event/transactioneventhandler');
+const BaseCheckpointer = require('./../lib/impl/event/basecheckpointer');
+const AbstractEventListener = require('./../lib/impl/event/abstracteventlistener');
+const ContractEventListener = require('./../lib/impl/event/contracteventlistener');
+const TransactionEventListener = require('./../lib/impl/event/transactioneventlistener');
+const BlockEventListener = require('./../lib/impl/event/blockeventlistener');
+const EventHubManager = require('./../lib/impl/event/eventhubmanager');
 
 describe('Contract', () => {
 	const chaincodeId = 'CHAINCODE_ID';
@@ -29,12 +37,18 @@ describe('Contract', () => {
 	let mockChannel, mockClient, mockGateway;
 	let contract;
 	let mockTransactionID;
+	let mockCheckpointer;
+	let mockEventHubManager;
+	let mockEventHub;
 
 	beforeEach(() => {
+		mockEventHub = sinon.createStubInstance(ChannelEventHub);
 		mockChannel = sinon.createStubInstance(Channel);
 		mockClient = sinon.createStubInstance(Client);
 
 		mockGateway = sinon.createStubInstance(Gateway);
+		mockCheckpointer = sinon.createStubInstance(BaseCheckpointer);
+		mockEventHubManager = sinon.createStubInstance(EventHubManager);
 		mockGateway.getClient.returns(mockClient);
 		mockGateway.getOptions.returns({
 			eventHandlerOptions: {
@@ -46,15 +60,17 @@ describe('Contract', () => {
 				}
 			}
 		});
-
 		network = new Network(mockGateway, mockChannel);
+		mockEventHubManager.getEventHub.returns(mockEventHub);
+		mockEventHubManager.getReplayEventHub.returns(mockEventHub);
+		network.eventHubManager = mockEventHubManager;
 
 		mockTransactionID = sinon.createStubInstance(TransactionID);
 		mockTransactionID.getTransactionID.returns('00000000-0000-0000-0000-000000000000');
 		mockClient.newTransactionID.returns(mockTransactionID);
 		mockChannel.getName.returns('testchainid');
 
-		contract = new Contract(network, chaincodeId, mockGateway);
+		contract = new Contract(network, chaincodeId, mockGateway, mockCheckpointer);
 	});
 
 	afterEach(() => {
@@ -63,7 +79,7 @@ describe('Contract', () => {
 
 	describe('#constructor', () => {
 		it('throws if namespace is not a string', () => {
-			(() => new Contract(network, chaincodeId, mockGateway, 123))
+			(() => new Contract(network, chaincodeId, mockGateway, mockCheckpointer, 123))
 				.should.throw(/namespace/i);
 		});
 	});
@@ -89,6 +105,43 @@ describe('Contract', () => {
 		});
 	});
 
+	describe('#getCheckpointer', () => {
+		it('should return the global checkpointer if it is undefined in options', () => {
+			const checkpointer = contract.getCheckpointer();
+			expect(checkpointer).to.equal(mockCheckpointer);
+		});
+
+		it('should return the global checkpointer if it is undefined in options object', () => {
+			const checkpointer = contract.getCheckpointer({});
+			expect(checkpointer).to.equal(mockCheckpointer);
+		});
+
+		it('should return the global checkpointer if it is true in options', () => {
+			const checkpointer = contract.getCheckpointer({checkpointer: 'LOL'});
+			expect(checkpointer).to.equal(mockCheckpointer);
+		});
+
+		it('should return the checkpointer passed as an option', () => {
+			const newCheckpointer = sinon.createStubInstance(BaseCheckpointer);
+			const checkpointer = contract.getCheckpointer({checkpointer: newCheckpointer});
+			expect(checkpointer).to.equal(newCheckpointer);
+			expect(checkpointer).to.not.equal(mockCheckpointer);
+		});
+
+		it('should return null if checkpointer is false', () => {
+			const checkpointer = contract.getCheckpointer({checkpointer: false});
+			expect(checkpointer).to.be.null;
+		});
+	});
+
+	describe('#getEventHubSelectionStrategy', () => {
+		it('should return the eventhub selection strategy', () => {
+			network.eventHubSelectionStrategy = 'selection-strategy';
+			const strategy = contract.getEventHubSelectionStrategy();
+			expect(strategy).to.equal('selection-strategy');
+		});
+	});
+
 	describe('#getEventHandlerOptions', () => {
 		it('returns event handler options from the gateway', () => {
 			const result = contract.getEventHandlerOptions();
@@ -109,7 +162,7 @@ describe('Contract', () => {
 			const name = 'name';
 			const expected = `${namespace}:${name}`;
 
-			contract = new Contract(network, chaincodeId, mockGateway, namespace);
+			contract = new Contract(network, chaincodeId, mockGateway, mockCheckpointer, namespace);
 			const result = contract.createTransaction(name);
 
 			result.getName().should.equal(expected);
@@ -161,6 +214,86 @@ describe('Contract', () => {
 			const result = await contract.evaluateTransaction('name', ...args);
 
 			result.should.equal(expected);
+		});
+	});
+
+	describe('#dispose', () => {
+		it ('should dispose of all of the event listeners', () => {
+			const listener1 = sinon.createStubInstance(AbstractEventListener);
+			const listener2 = sinon.createStubInstance(AbstractEventListener);
+			contract.listeners.set('listener1', listener1);
+			contract.listeners.set('listener2', listener2);
+			contract.dispose();
+			sinon.assert.called(listener1.unregister);
+			sinon.assert.called(listener2.unregister);
+		});
+	});
+
+	describe('#addContractListener', () => {
+		let listenerName;
+		let testEventName;
+		let callback;
+		beforeEach(() => {
+			listenerName = 'testBlockListener';
+			testEventName = 'testEvent';
+			callback = () => {};
+		});
+		it('should create options if the options param is undefined', () => {
+			const listener = contract.addContractListener(listenerName, testEventName, callback);
+			expect(listener).to.be.instanceof(ContractEventListener);
+			expect(contract.listeners.get(listenerName)).to.equal(listener);
+		});
+
+		it('should create an instance of ContractEventListener and add it to the list of listeners', () => {
+			const listener = contract.addContractListener(listenerName, testEventName, callback, {});
+			expect(listener).to.be.instanceof(ContractEventListener);
+			expect(contract.listeners.get(listenerName)).to.equal(listener);
+		});
+	});
+
+	describe('#addBlockListener', () => {
+		let listenerName;
+		let callback;
+		beforeEach(() => {
+			listenerName = 'testBlockListener';
+			callback = () => {};
+		});
+
+		it('should create options if the options param is undefined', () => {
+			const listener = contract.addBlockListener(listenerName, callback);
+			expect(listener).to.be.instanceof(BlockEventListener);
+			expect(contract.listeners.get(listenerName)).to.equal(listener);
+		});
+
+		it('should create an instance of BlockEventListener and add it to the list of listeners', () => {
+			const listener = contract.addBlockListener(listenerName, callback, {});
+			expect(listener).to.be.instanceof(BlockEventListener);
+			expect(contract.listeners.get(listenerName)).to.equal(listener);
+		});
+	});
+
+	describe('#addTransactionListener', () => {
+		let listenerName;
+		let callback;
+		beforeEach(() => {
+			listenerName = '00000000-0000-0000-0000-000000000000';
+			callback = () => {};
+			mockEventHub._transactionRegistrations = {};
+			mockEventHub._transactionRegistrations[listenerName] = {}; // Preregister listener with eh
+		});
+
+		it('should create options if the options param is undefined', () => {
+			const listener = contract.addTransactionListener(listenerName, callback, null, mockEventHub);
+			expect(listener).to.be.instanceof(TransactionEventListener);
+			expect(listener.eventHub).to.equal(mockEventHub);
+			expect(contract.listeners.get(listenerName)).to.equal(listener);
+		});
+
+		it('should create an instance of BlockEventListener and add it to the list of listeners', () => {
+			const listener = contract.addTransactionListener(listenerName, callback, {}, mockEventHub);
+			expect(listener).to.be.instanceof(TransactionEventListener);
+			expect(listener.eventHub).to.equal(mockEventHub);
+			expect(contract.listeners.get(listenerName)).to.equal(listener);
 		});
 	});
 });
