@@ -31,7 +31,7 @@ describe('BlockDecoder', () => {
 	let FakeLogger;
 
 	before(() => {
-		data = fs.readFileSync(path.join(__dirname, '../../test/fixtures/channel/twoorgs.genesis.block'));
+		data = fs.readFileSync(path.join(__dirname, '../../test/fixtures/crypto-config/twoorgs.genesis.block'));
 	});
 
 	beforeEach(() => {
