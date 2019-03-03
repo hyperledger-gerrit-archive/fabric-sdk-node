@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 //
+timeout(40) {
 node('hyp-z') {
   timestamps {
     try {
@@ -9,30 +10,44 @@ node('hyp-z') {
      env.PROJECT_DIR = "gopath/src/github.com/hyperledger"
      env.GOPATH = "$WORKSPACE/gopath"
      env.NODE_VER = "6.9.5"
-     env.GO_VER = "1.7.4"
      env.PATH = "$GOPATH/bin:/usr/local/bin:/usr/bin:/usr/local/sbin:/usr/sbin:~/npm/bin:/home/jenkins/.nvm/versions/node/v${NODE_VER}/bin:$PATH"
-     env.GOROOT = "/opt/go/go${GO_VER}.linux.s390x"
-     env.PATH = "$GOROOT/bin:$PATH"
+     def jobname = sh(returnStdout: true, script: 'echo ${JOB_NAME} | grep -q "verify" && echo patchset || echo merge').trim()
      def failure_stage = "none"
 // delete working directory
      deleteDir()
       stage("Fetch Patchset") { // fetch gerrit refspec on latest commit
-         wrap([$class: 'AnsiColorBuildWrapper', 'colorMapName': 'xterm']) {
           try {
-              dir("${ROOTDIR}"){
+             if (jobname == "patchset")  {
+                   println "$GERRIT_REFSPEC"
+                   println "$GERRIT_BRANCH"
+                   checkout([
+                       $class: 'GitSCM',
+                       branches: [[name: '$GERRIT_REFSPEC']],
+                       extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: 'gopath/src/github.com/hyperledger/$PROJECT'], [$class: 'CheckoutOption', timeout: 10]],
+                       userRemoteConfigs: [[credentialsId: 'hyperledger-jobbuilder', name: 'origin', refspec: '$GERRIT_REFSPEC:$GERRIT_REFSPEC', url: '$GIT_BASE']]])
+              } else {
+                   // Clone fabric-sdk-node on merge
+                   println "Clone $PROJECT repository"
+                   checkout([
+                       $class: 'GitSCM',
+                       branches: [[name: 'refs/heads/$GERRIT_BRANCH']],
+                       extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: 'gopath/src/github.com/hyperledger/$PROJECT']],
+                       userRemoteConfigs: [[credentialsId: 'hyperledger-jobbuilder', name: 'origin', refspec: '+refs/heads/$GERRIT_BRANCH:refs/remotes/origin/$GERRIT_BRANCH', url: '$GIT_BASE']]])
+              }
+              dir("${ROOTDIR}/$PROJECT_DIR/$PROJECT") {
               sh '''
-                 [ -e gopath/src/github.com/hyperledger/fabric-sdk-node ] || mkdir -p $PROJECT_DIR
-                 cd $PROJECT_DIR
-                 git clone git://cloud.hyperledger.org/mirror/fabric-sdk-node && cd fabric-sdk-node
-                 git checkout $GERRIT_BRANCH && git fetch origin "$GERRIT_REFSPEC" && git checkout FETCH_HEAD
+                 # Print last two commit details
+                 echo
+                 git log -n2 --pretty=oneline --abbrev-commit
+                 echo
               '''
               }
           }
           catch (err) {
                  failure_stage = "Fetch patchset"
+                 currentBuild.result = 'FAILURE'
                  throw err
-           }
-         }
+          }
       }
 // clean environment and get env data
       stage("Clean Environment - Get Env Info") {
@@ -48,29 +63,33 @@ node('hyp-z') {
            }
          }
       }
-
 // Run gulp tests (headless and e2e tests)
-      stage("Run gulp_Tests") {
+      stage("Run Headless & Integration Tests") {
          wrap([$class: 'AnsiColorBuildWrapper', 'colorMapName': 'xterm']) {
            try {
                  dir("${ROOTDIR}/$PROJECT_DIR/fabric-sdk-node/scripts/Jenkins_Scripts") {
+                 // Get the testFabricVersion and thirdpartyVersion from package.json
+                 // and Pull the DockerImages from dockerhub and run the Integration Tests
                  sh './CI_Script.sh --sdk_E2e_Tests'
                  }
                }
            catch (err) {
                  failure_stage = "sdk_E2e_Tests"
+                 currentBuild.result = 'FAILURE'
                  throw err
            }
          }
       }
-      stage("Archive Build artifacts") {
-          archiveArtifacts artifacts: '**/*.log'
-      }
     } finally {
-             junit '**/cobertura-coverage.xml'
-             step([$class: 'CoberturaPublisher', autoUpdateHealth: false, autoUpdateStability: false, coberturaReportFile: '**/cobertura-coverage.xml', failUnhealthy: false, failUnstable: false, maxNumberOfBuilds: 0, onlyStable: false, sourceEncoding: 'ASCII', zoomCoverageChart: false])
-              // Sends notification to Rocket.Chat
-             rocketSend channel: 'jenkins-robot', message: "Build Notification - Branch: ${env.GERRIT_BRANCH} - Commit: ${env.GIT_COMMIT} - (<${env.BUILD_URL}|Open>)"
+             step([$class: 'CoberturaPublisher', autoUpdateHealth: false, autoUpdateStability: false, coberturaReportFile: '**/cobertura-coverage.xml', failUnhealthy: false, failUnstable: false,
+             failNoReports: false, maxNumberOfBuilds: 0, onlyStable: false, sourceEncoding: 'ASCII', zoomCoverageChart: false])
+           archiveArtifacts allowEmptyArchive: true, artifacts: '**/*.log'
+           if (env.JOB_NAME == "fabric-sdk-node-merge-s390x") {
+              if (currentBuild.result == 'FAILURE') { // Other values: SUCCESS, UNSTABLE
+               rocketSend message: "Build Notification - STATUS: *${currentBuild.result}* - BRANCH: *${env.GERRIT_BRANCH}* - PROJECT: *${env.PROJECT}* - BUILD_URL:  (<${env.BUILD_URL}|Open>)"
+              }
+           }
        } // finally block end here
    } // timestamps block end here
 } // node block end here
+} // timeout block end here
