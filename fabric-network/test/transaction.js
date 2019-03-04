@@ -204,11 +204,10 @@ describe('Transaction', () => {
 
 		it('uses a supplied event handler strategy', async () => {
 			const stubEventHandler = sinon.createStubInstance(TransactionEventHandler);
-			const txId = transaction.getTransactionID().getTransactionID();
 			const network = stubContract.getNetwork();
 			const options = stubContract.getEventHandlerOptions();
 			const stubEventHandlerFactoryFn = sinon.stub();
-			stubEventHandlerFactoryFn.withArgs(txId, network, options).returns(stubEventHandler);
+			stubEventHandlerFactoryFn.withArgs(transaction, network, options).returns(stubEventHandler);
 
 			await transaction.setEventHandlerStrategy(stubEventHandlerFactoryFn).submit();
 
@@ -314,6 +313,16 @@ describe('Transaction', () => {
 			await transaction.submit();
 			const promise = transaction.evaluate();
 			return expect(promise).to.be.rejectedWith('Transaction has already been invoked');
+		});
+	});
+
+	describe('#addCommitListener', () => {
+		it('should call Contract.addTransactionlistner', () => {
+			stubContract.addTransactionListener.returns('listener');
+			const callback = (err, transationId, status, blockNumber) => {};
+			const listener = transaction.addCommitListener(callback, {}, 'eventHub');
+			expect(listener).to.equal('listener');
+			sinon.assert.calledWith(stubContract.addTransactionListener, 'TRANSACTION_ID', callback, {}, 'eventHub');
 		});
 	});
 });

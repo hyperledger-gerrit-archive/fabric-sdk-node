@@ -12,7 +12,7 @@ const InternalChannel = rewire('fabric-client/lib/Channel');
 const Peer = InternalChannel.__get__('ChannelPeer');
 const Client = require('fabric-client');
 const ChannelEventHub = Client.ChannelEventHub;
-const EventHubFactory = require('fabric-network/lib/impl/event/eventhubfactory');
+// const EventHubFactory = require('fabric-network/lib/impl/event/eventhubfactory');
 const TransactionID = require('fabric-client/lib/TransactionID.js');
 const FABRIC_CONSTANTS = require('fabric-client/lib/Constants');
 
@@ -25,6 +25,8 @@ const Network = require('../lib/network');
 const Gateway = require('../lib/gateway');
 const Contract = require('../lib/contract');
 const EventStrategies = require('fabric-network/lib/impl/event/defaulteventhandlerstrategies');
+const BaseEventHubSelectionStrategy = require('fabric-network/lib/impl/event/baseeventhubselectionstrategy');
+const EventHubManager = require('fabric-network/lib/impl/event/eventhubmanager');
 
 describe('Network', () => {
 	let mockChannel, mockClient;
@@ -33,6 +35,8 @@ describe('Network', () => {
 	let network;
 	let mockTransactionID, mockGateway;
 	let stubQueryHandler;
+	let stubEventHubSelectionStrategy;
+	let mockEventHubManager;
 
 	beforeEach(() => {
 		mockChannel = sinon.createStubInstance(InternalChannel);
@@ -73,6 +77,8 @@ describe('Network', () => {
 
 		stubQueryHandler = {};
 
+		stubEventHubSelectionStrategy = sinon.createStubInstance(BaseEventHubSelectionStrategy);
+
 		mockGateway = sinon.createStubInstance(Gateway);
 		mockGateway.getOptions.returns({
 			useDiscovery: false,
@@ -85,14 +91,22 @@ describe('Network', () => {
 					stubQueryHandler.network = theNetwork;
 					return stubQueryHandler;
 				}
+			},
+			eventHubSelectionOptions: {
+				strategy: (theNetwork) => {
+					stubEventHubSelectionStrategy.network = theNetwork;
+					return stubEventHubSelectionStrategy;
+				}
 			}
 		});
 
 		mockGateway.getClient.returns(mockClient);
 		mockClient.getPeersForOrg.returns([mockPeer1, mockPeer2]);
 
-		network = new Network(mockGateway, mockChannel);
+		mockEventHubManager = sinon.createStubInstance(EventHubManager);
 
+		network = new Network(mockGateway, mockChannel);
+		network.eventHubManager = mockEventHubManager;
 	});
 
 	afterEach(() => {
@@ -231,16 +245,9 @@ describe('Network', () => {
 		});
 
 		it('calls dispose() on the event hub factory', () => {
-			const spy = sinon.spy(network.getEventHubFactory(), 'dispose');
+			const spy = network.getEventHubManager().dispose;
 			network._dispose();
 			sinon.assert.called(spy);
-		});
-	});
-
-	describe('#getEventHubFactory', () => {
-		it('Returns an EventHubFactory', () => {
-			const result = network.getEventHubFactory();
-			result.should.be.an.instanceOf(EventHubFactory);
 		});
 	});
 

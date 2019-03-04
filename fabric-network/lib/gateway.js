@@ -11,6 +11,8 @@ const Client = require('fabric-client');
 const Network = require('./network');
 const EventStrategies = require('fabric-network/lib/impl/event/defaulteventhandlerstrategies');
 const QueryStrategies = require('fabric-network/lib/impl/query/defaultqueryhandlerstrategies');
+const EventHubSelectionStrategies = require('fabric-network/lib/impl/event/defaulteventhubselectionstrategies');
+const FileSystemCheckpointer = require('fabric-network/lib/impl/event/filesystemcheckpointer');
 
 const logger = require('./logger').getLogger('Gateway');
 
@@ -129,6 +131,10 @@ class Gateway {
 			},
 			discovery: {
 				enabled: Client.getConfigSetting('initialize-with-discovery', true)
+			},
+			checkpointer: new FileSystemCheckpointer(),
+			eventHubSelectionOptions: {
+				strategy: EventHubSelectionStrategies.MSPID_SCOPE_ROUND_ROBIN,
 			}
 		};
 	}
