@@ -7,7 +7,9 @@
 'use strict';
 const FabricConstants = require('fabric-client/lib/Constants');
 const Contract = require('./contract');
-const EventHubFactory = require('fabric-network/lib/impl/event/eventhubfactory');
+const EventHubManager = require('fabric-network/lib/impl/event/eventhubmanager');
+const BlockEventListener = require('fabric-network/lib/impl/event/blockeventlistener');
+const TransactionEventListener = require('fabric-network/lib/impl/event/transactioneventlistener');
 
 const logger = require('./logger').getLogger('Network');
 const util = require('util');
@@ -31,8 +33,8 @@ class Network {
 		this.gateway = gateway;
 		this.channel = channel;
 		this.contracts = new Map();
-		this.eventHubFactory = new EventHubFactory(channel);
 		this.initialized = false;
+		this.listeners = new Map();
 	}
 
 	/**
@@ -106,6 +108,12 @@ class Network {
 		// Must be created after channel initialization to ensure discovery has located peers
 		const queryHandlerOptions = this.gateway.getOptions().queryHandlerOptions;
 		this.queryHandler = queryHandlerOptions.strategy(this, queryHandlerOptions);
+
+		this.checkpointer = this.gateway.getOptions().checkpointer;
+
+		const eventHubSelectionOptions = this.gateway.getOptions().eventHubSelectionOptions;
+		this.eventHubSelectionStrategy = eventHubSelectionOptions.strategy(this);
+		this.eventHubManager = new EventHubManager(this);
 	}
 
 	/**
@@ -134,6 +142,7 @@ class Network {
 				this,
 				chaincodeId,
 				this.gateway,
+				this.getCheckpointer(),
 				name
 			);
 			this.contracts.set(key, contract);
@@ -144,24 +153,16 @@ class Network {
 	_dispose() {
 		logger.debug('in _dispose');
 
+		this.listeners.forEach(listener => listener.unregister());
 		// Danger as this cached in gateway, and also async so how would
 		// network._dispose() followed by network.initialize() be safe ?
 		// make this private is the safest option.
 		this.contracts.clear();
 
-		this.eventHubFactory.dispose();
+		this.eventHubManager.dispose();
 		this.channel.close();
 
 		this.initialized = false;
-	}
-
-	/**
-	 * Get the event hub factory for this network.
-	 * @private
-	 * @returns {EventHubFactory} An event hub factory.
-	 */
-	getEventHubFactory() {
-		return this.eventHubFactory;
 	}
 
 	/**
@@ -171,6 +172,41 @@ class Network {
 	 */
 	getQueryHandler() {
 		return this.queryHandler;
+	}
+
+	getCheckpointer() {
+		return this.checkpointer;
+	}
+
+	getEventHubManager() {
+		return this.eventHubManager;
+	}
+
+	getEventHubSelectionStrategy() {
+		return this.eventHubSelectionStrategy;
+	}
+
+	addBlockListener(listenerName, callback, options) {
+		if (!options) {
+			options = {};
+		}
+		options.checkpointer = this.getCheckpointer(options);
+		const listener = new BlockEventListener(this, listenerName, callback, options);
+		this.listeners.set(listenerName, listener);
+		listener.register();
+		return listener;
+	}
+
+	addCommitListener(transactionId, callback, options, eventHub) {
+		if (!options) {
+			options = {};
+		}
+		options.checkpointer = null;
+		const listener = new TransactionEventListener(this, transactionId, callback, options);
+		listener.setEventHub(eventHub);
+		this.listeners.set(transactionId, listener);
+		listener.register();
+		return listener;
 	}
 }
 

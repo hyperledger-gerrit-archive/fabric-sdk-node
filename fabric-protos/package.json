@@ -32,6 +32,7 @@
   ],
   "dependencies": {
     "grpc": "1.14.2",
+    "pbjs": "0.0.5",
     "protobufjs": "5.0.3"
   },
   "devDependencies": {

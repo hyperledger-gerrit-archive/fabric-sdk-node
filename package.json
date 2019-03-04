@@ -90,5 +90,9 @@
       "url": "https://github.com/hyperledger/fabric/blob/master/LICENSE"
     }
   ],
-  "dependencies": {}
+  "dependencies": {
+    "bufferfromfile": "^0.4.28",
+    "mmap-kit": "^1.0.0",
+    "mmap-object": "^1.4.1"
+  }
 }

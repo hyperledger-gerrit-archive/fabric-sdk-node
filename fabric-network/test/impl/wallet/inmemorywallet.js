@@ -210,9 +210,12 @@ mb3MM6J+V7kciO3hSyP5OJSBPWGlsjxQj2m55aFutmlleVfr6YiaLnYd
 
 	});
 
-	describe('InMemoryKVS', async () => {
-		const wallet = new InMemoryWallet();
-		const store = await wallet.getStateStore('test');
+	describe('InMemoryKVS', () => {
+		let store;
+		beforeEach(async () => {
+			const wallet = new InMemoryWallet();
+			store = await wallet.getStateStore('test');
+		});
 
 		it('#getValue', async () => {
 			await store.setValue('user1', 'val1');

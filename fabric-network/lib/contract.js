@@ -7,6 +7,8 @@
 'use strict';
 
 const Transaction = require('fabric-network/lib/transaction');
+const ContractEventListener = require('./impl/event/contracteventlistener');
+const BaseCheckpointer = require('./impl/event/basecheckpointer');
 
 const logger = require('./logger').getLogger('Contract');
 const util = require('util');
@@ -47,7 +49,7 @@ function verifyNamespace(namespace) {
  * @hideconstructor
  */
 class Contract {
-	constructor(network, chaincodeId, gateway, namespace) {
+	constructor(network, chaincodeId, gateway, checkpointer, namespace) {
 		logger.debug('in Contract constructor');
 
 		verifyNamespace(namespace);
@@ -57,6 +59,7 @@ class Contract {
 		this.chaincodeId = chaincodeId;
 		this.gateway = gateway;
 		this.namespace = namespace;
+		this.checkpointer = checkpointer;
 	}
 
 	/**
@@ -84,6 +87,23 @@ class Contract {
 	 */
 	getChaincodeId() {
 		return this.chaincodeId;
+	}
+
+	getCheckpointer(options) {
+		if (options) {
+			if (typeof options.checkpointer === 'undefined') {
+				return this.checkpointer;
+			} else if (options.checkpointer instanceof BaseCheckpointer) {
+				return options.checkpointer;
+			} else if (options.checkpointer === false) {
+				return null;
+			}
+		}
+		return this.checkpointer;
+	}
+
+	getEventHubSelectionStrategy() {
+		return this.network.eventHubSelectionStrategy;
 	}
 
 	/**
@@ -152,6 +172,19 @@ class Contract {
 	async evaluateTransaction(name, ...args) {
 		return this.createTransaction(name).evaluate(...args);
 	}
+
+	addContractListener(listenerName, eventName, callback, options) {
+		if (!options) {
+			options = {};
+		}
+		options.checkpointer = this.getCheckpointer(options);
+		const listener = new ContractEventListener(this, listenerName, eventName, callback, options);
+		const network = this.getNetwork();
+		network.listeners.set(listenerName, listener);
+		listener.register();
+		return listener;
+	}
+
 }
 
 module.exports = Contract;
