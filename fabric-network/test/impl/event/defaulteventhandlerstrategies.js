@@ -10,7 +10,7 @@ const sinon = require('sinon');
 const chai = require('chai');
 const expect = chai.expect;
 
-const EventHubFactory = require('fabric-network/lib/impl/event/eventhubfactory');
+const EventHubManager = require('fabric-network/lib/impl/event/eventhubmanager');
 const ChannelEventHub = require('fabric-client').ChannelEventHub;
 const Network = require('fabric-network/lib/network');
 const Channel = require('fabric-client').Channel;
@@ -49,8 +49,8 @@ describe('DefaultEventHandlerStrategies', () => {
 		const stubEventHub = sinon.createStubInstance(ChannelEventHub);
 		stubEventHub.isconnected.returns(true);
 
-		const stubEventHubFactory = sinon.createStubInstance(EventHubFactory);
-		stubEventHubFactory.getEventHubs.withArgs([stubPeer]).resolves([stubEventHub]);
+		const stubEventHubManager = sinon.createStubInstance(EventHubManager);
+		stubEventHubManager.getEventHubs.withArgs([stubPeer]).resolves([stubEventHub]);
 
 		const channel = sinon.createStubInstance(Channel);
 		channel.getPeers.returns([stubPeer]);
@@ -58,7 +58,7 @@ describe('DefaultEventHandlerStrategies', () => {
 
 		stubNetwork = sinon.createStubInstance(Network);
 		stubNetwork.getChannel.returns(channel);
-		stubNetwork.getEventHubFactory.returns(stubEventHubFactory);
+		stubNetwork.getEventHubManager.returns(stubEventHubManager);
 	});
 
 	afterEach(() => {

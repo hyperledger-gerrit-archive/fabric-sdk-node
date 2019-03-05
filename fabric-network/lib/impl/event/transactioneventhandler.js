@@ -34,7 +34,10 @@ class TransactionEventHandler {
 	 * @param {TransactionEventHandlerOptions} [options] Additional options.
 	 */
 	constructor(transactionId, strategy, options) {
-		this.transactionId = transactionId;
+		if (typeof transactionId === 'object') {
+			this.transaction = transactionId;
+		}
+		this.transactionId = this.transaction ? this.transaction.getTransactionID().getTransactionID() : transactionId;
 		this.strategy = strategy;
 
 		const defaultOptions = {
@@ -86,13 +89,22 @@ class TransactionEventHandler {
 			return new Promise((resolve) => {
 				logger.debug('_registerTxEventListeners:', `registerTxEvent(${this.transactionId}) for event hub:`, eventHub.getName());
 
-				eventHub.registerTxEvent(
-					this.transactionId,
-					(txId, code) => this._onEvent(eventHub, txId, code),
-					(err) => this._onError(eventHub, err),
-					registrationOptions
-				);
-				eventHub.connect();
+				if (this.transaction) {
+					this.transaction.addCommitListener((err, txId, code) => {
+						if (err) {
+							return this._onError(eventHub, err);
+						}
+						return this._onEvent(eventHub, txId, code);
+					}, registrationOptions, eventHub);
+				} else {
+					eventHub.registerTxEvent(
+						this.transactionId,
+						(txId, code) => this._onEvent(eventHub, txId, code),
+						(err) => this._onError(eventHub, err),
+						registrationOptions
+					);
+					eventHub.connect();
+				}
 				resolve();
 			});
 		});
