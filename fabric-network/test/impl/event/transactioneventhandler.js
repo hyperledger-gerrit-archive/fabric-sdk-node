@@ -13,15 +13,21 @@ const sinon = require('sinon');
 
 const ChannelEventHub = require('fabric-client').ChannelEventHub;
 
+const Transaction = require('fabric-network/lib/transaction');
 const TransactionEventHandler = require('fabric-network/lib/impl/event/transactioneventhandler');
 const TimeoutError = require('fabric-network/lib/errors/timeouterror');
 
 describe('TransactionEventHandler', () => {
 	let stubEventHub;
 	let stubStrategy;
+	let transactionStub;
 	const transactionId = 'TRANSACTION_ID';
 	beforeEach(() => {
 		// Include _stubInfo property on stubs to enable easier equality comparison in tests
+		transactionStub = sinon.createStubInstance(Transaction);
+		transactionStub.getTransactionID.returns({getTransactionID() {
+			return transactionId;
+		}});
 
 		stubEventHub = sinon.createStubInstance(ChannelEventHub);
 		stubEventHub._stubInfo = 'eventHub';
@@ -56,6 +62,12 @@ describe('TransactionEventHandler', () => {
 			const handler = new TransactionEventHandler(transactionId, stubStrategy, options);
 			expect(handler.options.commitTimeout).to.equal(options.commitTimeout);
 		});
+
+		it('should set transactionID and transaction', () => {
+			const handler = new TransactionEventHandler(transactionStub, stubStrategy);
+			expect(handler.transactionId).to.equal(transactionId);
+			expect(handler.transaction).to.equal(transactionStub);
+		});
 	});
 
 	describe('event handling:', () => {
@@ -89,6 +101,34 @@ describe('TransactionEventHandler', () => {
 			it('calls connect() on event hub', async () => {
 				await handler.startListening();
 				sinon.assert.called(stubEventHub.connect);
+			});
+
+			it('should call transaction.addCommitListener', () => {
+				handler = new TransactionEventHandler(transactionStub, stubStrategy);
+				handler.startListening();
+				sinon.assert.calledWith(
+					transactionStub.addCommitListener,
+					sinon.match.func,
+					sinon.match.has('unregister', true),
+					stubEventHub
+				);
+			});
+
+			it('should call _onError if err is set', () => {
+				handler = new TransactionEventHandler(transactionStub, stubStrategy);
+				sinon.spy(handler, '_onError');
+				handler.startListening();
+				const err = new Error('an error');
+				transactionStub.addCommitListener.callArgWith(0, err);
+				sinon.assert.calledWith(handler._onError, stubEventHub, err);
+			});
+
+			it('should call _onEvent if err is set', () => {
+				handler = new TransactionEventHandler(transactionStub, stubStrategy);
+				sinon.spy(handler, '_onEvent');
+				handler.startListening();
+				transactionStub.addCommitListener.callArgWith(0, null, transactionId, 'VALID');
+				sinon.assert.calledWith(handler._onEvent, stubEventHub, transactionId, 'VALID');
 			});
 		});
 
