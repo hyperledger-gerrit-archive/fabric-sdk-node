@@ -1702,4 +1702,8 @@ class EventRegistration {
 			logger.warn('Error notifacation callback failed', error);
 		}
 	}
+
+	isFiltered() {
+		return !!this._filtered_stream;
+	}
 }
