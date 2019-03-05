@@ -1383,6 +1383,10 @@ class ChannelEventHub {
 		}
 	}
 
+	isFiltered() {
+		return !!this._filtered_stream;
+	}
+
 	/*
 	 * private internal method for processing block events
 	 * @param {Object} block protobuf object
