@@ -1,9 +1,6 @@
 #/bin/bash
 # One generate file to rule them all
 
-cd ./config-base
-./generate.sh
-cd ../config-update
-./generate.sh
-
-
+BASEDIR=$(dirname $(realpath $0))
+${BASEDIR}/config-base/generate.sh
+${BASEDIR}/config-update/generate.sh
