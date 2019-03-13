@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 //
-timeout(40) {
+timeout(60) {
 node('hyp-z') {
   timestamps {
     try {
