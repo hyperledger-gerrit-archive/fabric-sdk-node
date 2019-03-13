@@ -117,7 +117,7 @@ class Transaction {
 		const network = this._contract.getNetwork();
 		const channel = network.getChannel();
 		const txId = this._transactionId.getTransactionID();
-		const eventHandler = this._createTxEventHandler(txId, network, this._contract.getEventHandlerOptions());
+		const eventHandler = this._createTxEventHandler(this, network, this._contract.getEventHandlerOptions());
 
 		const request = this._buildRequest(args);
 
@@ -236,6 +236,23 @@ class Transaction {
 		const query = new Query(channel, request);
 
 		return this._queryHandler.evaluate(query);
+	}
+
+	/**
+	 * Create a commit event listener for this transaction.
+	 * @param {Function} callback - This callback will be triggered when
+	 *		a transaction commit event is emitted. It takes parameters
+	 * 		of error, transactionId, transaction status and block number
+	 * @param {RegistrationOptions} options - Optional. Options on
+	 * 		registrations allowing start and end block numbers.
+	 * @param {ChannelEventHub} eventHub - Optional. Used to override the event hub selection
+	 * @returns {CommitEventListener}
+	 * @async
+	 */
+	async addCommitListener(callback, options, eventHub) {
+		const txid = this.getTransactionID().getTransactionID();
+		const network = this._contract.getNetwork();
+		return network.addCommitListener(txid, callback, options, eventHub);
 	}
 }
 
