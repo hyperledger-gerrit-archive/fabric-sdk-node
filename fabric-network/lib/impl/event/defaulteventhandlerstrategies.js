@@ -12,12 +12,12 @@ const TransactionEventHandler = require('fabric-network/lib/impl/event/transacti
 
 function getOrganizationEventHubs(network) {
 	const peers = network.getChannel().getPeersForOrg();
-	return network.getEventHubFactory().getEventHubs(peers);
+	return network.getEventHubManager().getEventHubs(peers);
 }
 
 function getNetworkEventHubs(network) {
 	const peers = network.getChannel().getPeers();
-	return network.getEventHubFactory().getEventHubs(peers);
+	return network.getEventHubManager().getEventHubs(peers);
 }
 
 function MSPID_SCOPE_ALLFORTX(transactionId, network, options) {

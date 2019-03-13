@@ -82,7 +82,7 @@ async function getInternalEventHubForOrg(gateway: Gateway, orgMSP: string): Prom
 	const orgPeer = channel.getPeersForOrg(orgMSP)[0]; // Only one peer per org in the test configuration
 
 	// Using private functions to get hold of an internal event hub. Don't try this at home, kids!
-	const eventHubFactory = (network as any).getEventHubFactory();
+	const eventHubFactory = (network as any).getEventHubManager().getEventHubFactory();
 	return eventHubFactory.getEventHub(orgPeer);
 }
 
