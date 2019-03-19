@@ -141,7 +141,7 @@ class TransactionEventHandler {
 	 * @private
 	 */
 	_strategySuccess() {
-		logger.info('_strategySuccess:', util.format('strategy success for transaction %j', this.transactionId));
+		logger.debug('_strategySuccess:', util.format('strategy success for transaction %j', this.transactionId));
 
 		this.cancelListening();
 		this._resolveNotificationPromise();
