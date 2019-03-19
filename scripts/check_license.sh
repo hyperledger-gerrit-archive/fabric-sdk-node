@@ -30,7 +30,8 @@ function filterExcludedFiles {
 		| grep -v "\.cds$" \
 		| grep -v "\.jar$" \
 		| grep -v "\.csr$" \
-		| sort -u`
+        | grep -v "\ci.properties$" \
+        | sort -u`
 }
 
 CHECK=$(git diff --name-only --diff-filter=ACMRTUXB HEAD)
