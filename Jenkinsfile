@@ -158,7 +158,7 @@ def buildStages() {
         }
       }
 // Publish npm modules only from amd64 merge jobs
-if ((env.JOB_TYPE == "merge") && (env.MARCH = "amd64")) {
+if (env.JOB_TYPE == "merge" && env.MARCH == "amd64") {
   publishNpm()
   apiDocs()
 } else {
