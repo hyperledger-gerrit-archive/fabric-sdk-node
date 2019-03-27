@@ -15,15 +15,14 @@
 'use strict';
 
 const util = require('util');
-const sdkUtils = require('./utils.js');
-const {CryptoAlgorithms, Identity, Signer, SigningIdentity} = require('fabric-common');
+const {CryptoAlgorithms, Identity, Signer, SigningIdentity, Utils: sdkUtils} = require('../index');
 const logger = sdkUtils.getLogger('User.js');
 
 /**
  * The User class represents users that have been enrolled and represented by
  * an enrollment certificate (ECert) and a signing key. The ECert must have
  * been signed by one of the CAs the blockchain network has been configured to trust.
- * An enrolled user (having a signing key and ECert) can conduct chaincode instantiate,
+ * An enrolled Admin user (having a signing key and ECert) can conduct chaincode instantiate,
  * transactions and queries with the Channel.
  *
  * User ECerts can be obtained from a CA beforehand as part of installing and instantiating
@@ -33,7 +32,7 @@ const logger = sdkUtils.getLogger('User.js');
  * Sometimes User identities are confused with Peer identities. User identities represent
  * signing capability because it has access to the private key, while Peer identities in
  * the context of the application/SDK only has the certificate for verifying signatures.
- * An application cannot use the Peer identity to sign things because the application doesn’t
+ * An application cannot use the Peer identity to sign things because the application does not
  * have access to the Peer identity’s private key.
  *
  * @class
@@ -43,18 +42,18 @@ const User = class {
 	/**
 	 * Constructor for a member.
 	 *
-	 * @param {string} cfg - The member name or an object with the following attributes:
+	 * @param {string|Object} cfg - The member name or an object with the following attributes:
 	 *   - enrollmentID {string}: user name
 	 *   - name {string}: user name, if "enrollmentID" is also specified, the "name" is ignored
 	 *   - roles {string[]}: optional. array of roles
 	 *   - affiliation {string}: optional. affiliation with a group or organization
 	 */
 	constructor(cfg) {
-		if (util.isString(cfg)) {
+		if (typeof cfg === 'string') {
 			this._name = cfg;
 			this._roles = null; // string[]
 			this._affiliation = '';
-		} else if (util.isObject(cfg)) {
+		} else if (cfg !== null && typeof cfg === 'object') {
 			const req = cfg;
 			this._name = req.enrollmentID || req.name;
 			this._roles = req.roles || ['fabric.user'];

@@ -17,7 +17,7 @@
 const rewire = require('rewire');
 const CertificateServiceRewire = rewire('../lib/CertificateService');
 const FabricCAClient = require('../lib/FabricCAClient');
-const User = require('../lib/User');
+const {User} = require('fabric-common');
 
 require('chai').should();
 const sinon = require('sinon');
@@ -51,8 +51,10 @@ describe('IdentityService', () => {
 			service = new CertificateServiceRewire(clientStub);
 
 			const FakeLogger = {
-				debug : () => {},
-				error: () => {}
+				debug: () => {
+				},
+				error: () => {
+				}
 			};
 
 			debugStub = sinon.stub(FakeLogger, 'debug');
@@ -104,7 +106,7 @@ describe('IdentityService', () => {
 			callArgs[1].should.deep.equal('myID');
 		});
 
-		it('should call get with the correctly mapped request', async() => {
+		it('should call get with the correctly mapped request', async () => {
 			const registrar = new User('bob');
 			registrar._signingIdentity = 'myID';
 
