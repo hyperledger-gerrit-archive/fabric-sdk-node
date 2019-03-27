@@ -14,7 +14,7 @@
 
 'use strict';
 
-const sdkUtils = require('./utils.js');
+const {Utils:sdkUtils} = require('fabric-common');
 
 /**
  * Base class for a client that can use a {@link CryptoSuite} to sign and hash.

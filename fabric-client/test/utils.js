@@ -15,8 +15,7 @@
 'use strict';
 
 const rewire = require('rewire');
-const Utils = rewire('../lib/utils');
-const Long = require('long');
+const Utils = rewire('../../fabric-common/lib/Utils');
 
 
 const should = require('chai').should();
@@ -499,34 +498,6 @@ describe('Utils', () => {
 		});
 	});
 
-	describe('#convertToLong', () => {
-		it('should throw an error if value is not set', () => {
-			(() => {
-				Utils.convertToLong();
-			}).should.throw(/value parameter is missing/);
-		});
-
-		it('should throw an error if value is not a number', () => {
-			(() => {
-				Utils.convertToLong('test');
-			}).should.throw(/value:test is not a valid number/);
-		});
-
-		it('should return the Long value', () => {
-			const result = Utils.convertToLong(Long.fromValue(1));
-			result.should.deep.equal(Long.fromValue(1));
-		});
-
-		it('should return the Long value', () => {
-			const result = Utils.convertToLong(1.0);
-			result.should.deep.equal(Long.fromValue(1));
-		});
-
-		it('should return the Long value', () => {
-			const result = Utils.convertToLong(0.0);
-			result.should.deep.equal(Long.fromValue(0));
-		});
-	});
 
 	describe('#checkIntegerConfig', () => {
 		it('should throw an error if config value is not an integer', () => {

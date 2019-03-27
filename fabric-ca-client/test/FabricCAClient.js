@@ -16,7 +16,7 @@
 
 const rewire = require('rewire');
 const FabricCAClientRewire = rewire('../lib/FabricCAClient.js');
-const CryptoSuite = require('../lib/impl/CryptoSuite_ECDSA_AES.js');
+const CryptoSuite = require('fabric-common/lib/impl/CryptoSuite_ECDSA_AES.js');
 
 const http = require('http');
 const https = require('https');

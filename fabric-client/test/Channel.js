@@ -29,13 +29,12 @@ const ChannelEventHub = require('fabric-client/lib/ChannelEventHub');
 const Chaincode = require('fabric-client/lib/Chaincode');
 const Client = require('fabric-client/lib/Client');
 const Constants = require('fabric-client/lib/Constants');
-const {Identity, SigningIdentity} = require('fabric-common');
+const {Identity, SigningIdentity, Utils:sdk_utils} = require('fabric-common');
 const MSP = require('fabric-client/lib/msp/msp');
 const MSPManager = require('fabric-client/lib/msp/msp-manager');
 const Orderer = require('fabric-client/lib/Orderer');
 const Peer = require('fabric-client/lib/Peer');
 const TransactionID = require('fabric-client/lib/TransactionID');
-const sdk_utils = require('fabric-client/lib/utils.js');
 
 const fabprotos = require('fabric-protos');
 const responseProto = fabprotos.protos;

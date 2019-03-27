@@ -8,8 +8,7 @@
 
 
 const MSP = require('../../lib/msp/msp');
-const {Config, CryptoAlgorithms, Identity, SigningIdentity} = require('fabric-common');
-const utils = require('../../lib/utils');
+const {Config, CryptoAlgorithms, Identity, SigningIdentity, Utils: utils} = require('fabric-common');
 const path = require('path');
 const fs = require('fs');
 
@@ -370,7 +369,10 @@ describe('MSP', () => {
 				cryptoSuite: cryptoUtils
 			});
 
-			const pubKey = cryptoUtils.importKey(certificateAsPEM, {algorithm: CryptoAlgorithms.X509Certificate, ephemeral: true});
+			const pubKey = cryptoUtils.importKey(certificateAsPEM, {
+				algorithm: CryptoAlgorithms.X509Certificate,
+				ephemeral: true
+			});
 			const identity = new Identity(certificateAsPEM, pubKey, msp.getId(), cryptoUtils);
 			const serializedID = identity.serialize();
 
