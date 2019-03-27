@@ -13,8 +13,8 @@ const Client = require('fabric-client');
 const copService = require('fabric-ca-client/lib/FabricCAServices.js');
 const User = require('fabric-client/lib/User.js');
 const Constants = require('./constants.js');
-
-const logger = require('fabric-client/lib/utils.js').getLogger('TestUtil');
+const {Utils:utils} = require('fabric-common');
+const logger = utils.getLogger('TestUtil');
 
 module.exports.CHAINCODE_PATH = 'github.com/example_cc';
 module.exports.CHAINCODE_UPGRADE_PATH = 'github.com/example_cc1';

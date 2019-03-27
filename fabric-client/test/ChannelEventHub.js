@@ -430,7 +430,6 @@ describe('ChannelEventHub', () => {
 		let hub;
 		beforeEach(() => {
 			convertToLongStub = sandbox.stub();
-			revert.push(ChannelEventHub.__set__('utils.convertToLong', convertToLongStub));
 			isStreamReadyStub = sandbox.stub();
 			revert.push(ChannelEventHub.__set__('isStreamReady', isStreamReadyStub));
 			_sendSignedRegistrationStub = sandbox.stub();
