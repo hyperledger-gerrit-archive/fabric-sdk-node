@@ -1,15 +1,5 @@
-/*
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+/**
+ * SPDX-License-Identifier: Apache-2.0
  */
 
 'use strict';
@@ -29,13 +19,12 @@ const ChannelEventHub = require('fabric-client/lib/ChannelEventHub');
 const Chaincode = require('fabric-client/lib/Chaincode');
 const Client = require('fabric-client/lib/Client');
 const Constants = require('fabric-client/lib/Constants');
-const {Identity, SigningIdentity} = require('fabric-common');
+const {Identity, SigningIdentity, Utils:sdk_utils} = require('fabric-common');
 const MSP = require('fabric-client/lib/msp/msp');
 const MSPManager = require('fabric-client/lib/msp/msp-manager');
 const Orderer = require('fabric-client/lib/Orderer');
 const Peer = require('fabric-client/lib/Peer');
 const TransactionID = require('fabric-client/lib/TransactionID');
-const sdk_utils = require('fabric-client/lib/utils.js');
 
 const fabprotos = require('fabric-protos');
 const responseProto = fabprotos.protos;
