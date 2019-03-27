@@ -17,7 +17,7 @@ const test = _test(tape);
 
 const util = require('util');
 const testutil = require('./util.js');
-const utils = require('fabric-client/lib/utils.js');
+const {Utils:utils} = require('fabric-common');
 const fs = require('fs-extra');
 const path = require('path');
 const os = require('os');
