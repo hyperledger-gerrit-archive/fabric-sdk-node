@@ -195,7 +195,7 @@ describe('CouchDBWalletKeyValueStore', () => {
 		getStub = sandbox.stub();
 		listStub = sandbox.stub();
 		const CouchDBWalletKeyValueStore = CouchDBWallet.CouchDBWalletKeyValueStore;
-		kvs = new CouchDBWalletKeyValueStore();
+		kvs = new CouchDBWalletKeyValueStore();// FIXME: this will throw error
 		kvs._database = {
 			destroy: destroyStub,
 			get: getStub,
