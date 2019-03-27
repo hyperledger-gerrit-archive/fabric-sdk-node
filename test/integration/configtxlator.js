@@ -15,7 +15,7 @@
  *        superagent
  *        superagent-promise
  */
-const utils = require('fabric-client/lib/utils.js');
+const {Utils:utils} = require('fabric-common');
 const logger = utils.getLogger('configinator');
 
 const tape = require('tape');

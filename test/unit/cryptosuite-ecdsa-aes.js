@@ -11,7 +11,7 @@ const _test = require('tape-promise').default;
 const test = _test(tape);
 
 const testutil = require('./util.js');
-const utils = require('fabric-client/lib/utils.js');
+const {Utils:utils} = require('fabric-common');
 const path = require('path');
 const fs = require('fs-extra');
 const util = require('util');

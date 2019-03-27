@@ -5,7 +5,7 @@
  */
 'use strict';
 
-const utils = require('fabric-client/lib/utils.js');
+const {Utils:utils} = require('fabric-common');
 
 
 const tape = require('tape');
