@@ -14,7 +14,7 @@ const path = require('path');
 const os = require('os');
 const Long = require('long');
 
-const {Config} = require('fabric-common');
+const Config = require('./Config');
 const sjcl = require('sjcl');
 
 //
@@ -28,9 +28,9 @@ const sjcl = require('sjcl');
  * - newCryptoSuite({keysize: 384})
  * - newCryptoSuite()
  * @param {Object} setting This optional parameter is an object with the following optional properties:
- * 	- software {boolean}: Whether to load a software-based implementation (true) or HSM implementation (false)
- *		default is true (for software based implementation), specific implementation module is specified
- *		in the setting 'crypto-suite-software'
+ *    - software {boolean}: Whether to load a software-based implementation (true) or HSM implementation (false)
+ *        default is true (for software based implementation), specific implementation module is specified
+ *        in the setting 'crypto-suite-software'
  *  - keysize {number}: The key size to use for the crypto suite instance. default is value of the setting 'crypto-keysize'
  *  - algorithm {string}: Digital signature algorithm, currently supporting ECDSA only with value "EC"
  *  - hash {string}: 'SHA2' or 'SHA3'
@@ -400,7 +400,7 @@ const CryptoKeyStore = function (KVSImplClass, opts) {
 			this.logger.debug(util.format('This class requires a CryptoKeyStore to save keys, using the store: %j', this._storeConfig));
 
 			try {
-				this._store  = await CKS(this._storeConfig.superClass, this._storeConfig.opts);
+				this._store = await CKS(this._storeConfig.superClass, this._storeConfig.opts);
 				await this._store.initialize();
 				return this._store;
 			} catch (err) {
