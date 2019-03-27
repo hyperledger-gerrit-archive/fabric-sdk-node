@@ -15,7 +15,8 @@
 'use strict';
 
 const util = require('util');
-const {CryptoAlgorithms, Identity, Signer, SigningIdentity, Utils: sdkUtils} = require('fabric-common');
+const sdkUtils = require('./utils.js');
+const {CryptoAlgorithms, Identity, Signer, SigningIdentity} = require('fabric-common');
 const logger = sdkUtils.getLogger('User.js');
 
 /**

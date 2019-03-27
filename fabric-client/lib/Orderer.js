@@ -7,7 +7,7 @@
 
 'use strict';
 
-const utils = require('./utils.js');
+const {Utils: utils} = require('fabric-common');
 const Remote = require('./Remote');
 
 const fabprotos = require('fabric-protos');
@@ -129,60 +129,60 @@ class Orderer extends Remote {
 		}
 
 		return this.waitForReady(this._ordererClient).then(() => {
-			// Send the envelope to the orderer via grpc
-			return new Promise((resolve, reject) => {
-				const broadcast = self._ordererClient.broadcast();
-				let error_msg = 'SYSTEM_TIMEOUT';
+				// Send the envelope to the orderer via grpc
+				return new Promise((resolve, reject) => {
+					const broadcast = self._ordererClient.broadcast();
+					let error_msg = 'SYSTEM_TIMEOUT';
 
-				const broadcast_timeout = setTimeout(() => {
-					logger.error('sendBroadcast - timed out after:%s', rto);
-					broadcast.end();
-					return reject(new Error(error_msg));
-				}, rto);
+					const broadcast_timeout = setTimeout(() => {
+						logger.error('sendBroadcast - timed out after:%s', rto);
+						broadcast.end();
+						return reject(new Error(error_msg));
+					}, rto);
 
-				broadcast.on('data', (response) => {
-					logger.debug('sendBroadcast - on data response: %j', response);
-					broadcast.end();
-					if (response && response.info) {
-						logger.debug('sendBroadcast - response info :: %s', response.info);
-					}
-					if (response && response.status) {
-						logger.debug('sendBroadcast - response status %s', response.status);
-						return resolve(response);
-					} else {
-						logger.error('sendBroadcast ERROR - reject with invalid response from the orderer');
-						return reject(new Error('SYSTEM_ERROR'));
-					}
-				});
-
-				broadcast.on('end', () => {
-					logger.debug('sendBroadcast - on end:');
-					clearTimeout(broadcast_timeout);
-					broadcast.cancel();
-				});
-
-				broadcast.on('error', (err) => {
-					clearTimeout(broadcast_timeout);
-					broadcast.end();
-					if (err && err.code) {
-						if (err.code === 14) {
-							logger.error('sendBroadcast - on error: %j', err.stack ? err.stack : err);
-							return reject(new Error('SERVICE_UNAVAILABLE'));
+					broadcast.on('data', (response) => {
+						logger.debug('sendBroadcast - on data response: %j', response);
+						broadcast.end();
+						if (response && response.info) {
+							logger.debug('sendBroadcast - response info :: %s', response.info);
 						}
-					}
-					logger.error('sendBroadcast - on error: %j', err.stack ? err.stack : err);
-					return reject(err);
-				});
+						if (response && response.status) {
+							logger.debug('sendBroadcast - response status %s', response.status);
+							return resolve(response);
+						} else {
+							logger.error('sendBroadcast ERROR - reject with invalid response from the orderer');
+							return reject(new Error('SYSTEM_ERROR'));
+						}
+					});
 
-				broadcast.write(envelope);
-				error_msg = 'REQUEST_TIMEOUT';
-				logger.debug('sendBroadcast - sent message');
+					broadcast.on('end', () => {
+						logger.debug('sendBroadcast - on end:');
+						clearTimeout(broadcast_timeout);
+						broadcast.cancel();
+					});
+
+					broadcast.on('error', (err) => {
+						clearTimeout(broadcast_timeout);
+						broadcast.end();
+						if (err && err.code) {
+							if (err.code === 14) {
+								logger.error('sendBroadcast - on error: %j', err.stack ? err.stack : err);
+								return reject(new Error('SERVICE_UNAVAILABLE'));
+							}
+						}
+						logger.error('sendBroadcast - on error: %j', err.stack ? err.stack : err);
+						return reject(err);
+					});
+
+					broadcast.write(envelope);
+					error_msg = 'REQUEST_TIMEOUT';
+					logger.debug('sendBroadcast - sent message');
+				});
+			},
+			(error) => {
+				logger.error('Orderer %s has an error %s ', self.getUrl(), error.toString());
+				return Promise.reject(error);
 			});
-		},
-		(error) => {
-			logger.error('Orderer %s has an error %s ', self.getUrl(), error.toString());
-			return Promise.reject(error);
-		});
 	}
 
 	/**
@@ -322,8 +322,8 @@ class Orderer extends Remote {
 	 */
 	toString() {
 		return 'Orderer:{' +
-            'url:' + this._url +
-            '}';
+			'url:' + this._url +
+			'}';
 	}
 }
 
