@@ -14,11 +14,10 @@
 
 'use strict';
 const Long = require('long');
-const utils = require('./utils.js');
+const {Utils: utils, Identity} = require('fabric-common');
 const clientUtils = require('./client-utils.js');
 const Constants = require('./Constants.js');
 const logger = utils.getLogger('ChannelEventHub.js');
-const {Identity} = require('fabric-common');
 const TransactionID = require('./TransactionID');
 const util = require('util');
 
@@ -368,7 +367,7 @@ class ChannelEventHub {
 			this._filtered_stream = !full_block;
 			logger.debug('%s - filtered block stream set to:%s', method, !full_block);
 		} else {
-			logger.debug('%s - using a filtered block stream by default',  method);
+			logger.debug('%s - using a filtered block stream by default', method);
 		}
 
 		logger.debug('%s - signed event:%s', method, !!signedEvent);
@@ -659,7 +658,7 @@ class ChannelEventHub {
 
 		const opt = {
 			identity: signer,
-			txId,
+			txId
 		};
 		const seekPayloadBytes = this.generateUnsignedRegistration(opt);
 
@@ -694,7 +693,7 @@ class ChannelEventHub {
 		logger.debug('%s - exit', method);
 		return {
 			signature: signedEvent.signature,
-			payload: signedEvent.payload,
+			payload: signedEvent.payload
 		};
 	}
 
@@ -927,6 +926,7 @@ class ChannelEventHub {
 
 		return _endBlock;
 	}
+
 	/*
 	 * Internal method
 	 * checks the startBlock/endBlock options
@@ -1667,7 +1667,8 @@ class EventRegistration {
 		this._onErrorFn = onError;
 		this.unregister = default_unregister;
 		this.disconnect = default_disconnect;
-		this.unregister_action = () => { }; // do nothing by default
+		this.unregister_action = () => {
+		}; // do nothing by default
 
 		if (options) {
 			if (typeof options.unregister === 'undefined' || options.unregister === null) {
