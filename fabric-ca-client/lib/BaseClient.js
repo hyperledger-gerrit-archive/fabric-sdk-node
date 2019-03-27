@@ -14,7 +14,7 @@
 
 'use strict';
 
-const {Utils:sdkUtils} = require('fabric-common');
+const {Utils: sdkUtils} = require('fabric-common');
 
 /**
  * Base class for a client that can use a {@link CryptoSuite} to sign and hash.
@@ -31,7 +31,7 @@ const BaseClient = class {
 	/**
 	 * @typedef {Object} CryptoSetting
 	 * @property {boolean} software Whether to load a software-based implementation (true) or HSM implementation (false)
-   	 *    default is true (for software based implementation), specific implementation module is specified
+	 *    default is true (for software based implementation), specific implementation module is specified
 	 *    in the setting 'crypto-suite-software'
 	 * @property {number} keysize The key size to use for the crypto suite instance. default is value of the setting 'crypto-keysize'
 	 * @property {string} algorithm Digital signature algorithm, currently supporting ECDSA only with value 'EC'
@@ -152,6 +152,7 @@ const BaseClient = class {
 
 		return sdkUtils.getConfigSetting(name, default_value);
 	}
+
 	// make available from the client instance
 	getConfigSetting(name, default_value) {
 
@@ -185,6 +186,7 @@ const BaseClient = class {
 	static setConfigSetting(name, value) {
 		sdkUtils.setConfigSetting(name, value);
 	}
+
 	// make available from the client instance
 	setConfigSetting(name, value) {
 		BaseClient.setConfigSetting(name, value);

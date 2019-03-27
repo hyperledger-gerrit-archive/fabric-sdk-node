@@ -7,7 +7,8 @@
 
 'use strict';
 
-const utils = require('./utils.js');
+const {Utils: utils} = require('fabric-common');
+
 const BaseClient = require('./BaseClient');
 const FabricCAClient = require('./FabricCAClient');
 
@@ -41,7 +42,7 @@ const FabricCAServices = class extends BaseClient {
 	 * constructor
 	 *
 	 * @param {string | object} url The endpoint URL for Fabric CA services of the form: "http://host:port" or "https://host:port"
-	 	When this parameter is an object then it must include the parameters listed as key value pairs.
+	 When this parameter is an object then it must include the parameters listed as key value pairs.
 	 * @param {TLSOptions} tlsOptions The TLS settings to use when the Fabric CA services endpoint uses "https"
 	 * @param {string} caName The optional name of the CA. Fabric-ca servers support multiple Certificate Authorities from
 	 *  a single server. If omitted or null or an empty string, then the default CA is the target of requests
@@ -92,6 +93,7 @@ const FabricCAServices = class extends BaseClient {
 		logger.debug('Successfully constructed Fabric CA service client: endpoint - %j', endpoint);
 
 	}
+
 	/**
 	 * Returns the name of the certificate authority.
 	 *
@@ -230,7 +232,7 @@ const FabricCAServices = class extends BaseClient {
 
 			const enrollment = {
 				certificate: enrollResponse.enrollmentCert,
-				rootCertificate: enrollResponse.caCertChain,
+				rootCertificate: enrollResponse.caCertChain
 			};
 			if (!req.csr) {
 				enrollment.key = privateKey;
@@ -422,8 +424,8 @@ const FabricCAServices = class extends BaseClient {
 	 */
 
 	/**
-	* return a printable representation of this object
-	*/
+	 * return a printable representation of this object
+	 */
 	toString() {
 		return 'FabricCAServices : {' +
 			'hostname: ' + this._fabricCAClient._hostname +

@@ -14,7 +14,7 @@
 
 'use strict';
 
-const utils = require('./utils.js');
+const {Utils: utils} = require('fabric-common');
 const config = utils.getConfig();
 const logger = utils.getLogger('FabricCAClient.js');
 const http = require('http');
@@ -54,7 +54,7 @@ const FabricCAClient = class {
 		}
 
 		this._caName = connect_opts.caname,
-		this._httpClient = (connect_opts.protocol === 'http') ? http : https;
+			this._httpClient = (connect_opts.protocol === 'http') ? http : https;
 		this._hostname = connect_opts.hostname;
 		if (connect_opts.port) {
 			this._port = connect_opts.port;

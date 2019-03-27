@@ -13,6 +13,8 @@ const Key = require('./lib/Key');
 const KeyValueStore = require('./lib/KeyValueStore');
 const Signer = require('./lib/Signer');
 const SigningIdentity = require('./lib/SigningIdentity');
+const Utils = require('./lib/Utils');
+const User = require('./lib/User');
 
 module.exports = {
 	Config,
@@ -23,5 +25,7 @@ module.exports = {
 	Key,
 	KeyValueStore,
 	Signer,
-	SigningIdentity
+	SigningIdentity,
+	Utils,
+	User
 };
