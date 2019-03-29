@@ -200,7 +200,7 @@ const Client = class extends BaseClient {
 	 * @returns {object} - The object holding both the application's options
 	 *          and this client's options.
 	 */
-	_buildConnectionOptions(options) {
+	buildConnectionOptions(options) {
 		const method = 'getConnectionOptions';
 		logger.debug('%s - start', method);
 		let return_options = Object.assign({}, Client.getConfigSetting('connection-options'));
@@ -431,7 +431,7 @@ const Client = class extends BaseClient {
 	 * @returns {Peer} The Peer instance.
 	 */
 	newPeer(url, opts) {
-		return new Peer(url, this._buildConnectionOptions(opts));
+		return new Peer(url, this.buildConnectionOptions(opts));
 	}
 
 	/**
@@ -492,7 +492,7 @@ const Client = class extends BaseClient {
 	 * @returns {Orderer} The Orderer instance.
 	 */
 	newOrderer(url, opts) {
-		return new Orderer(url, this._buildConnectionOptions(opts));
+		return new Orderer(url, this.buildConnectionOptions(opts));
 	}
 
 	/**
