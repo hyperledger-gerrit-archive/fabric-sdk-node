@@ -1,23 +1,33 @@
+<<<<<<< HEAD
 This tutorial illustrates how to handle the lifecycle of your chaincode.
 The installation, updating, and the starting of chaincode has been
 changed with Hyperledger Fabric 2.0 and fabric-client 2.0.
 
 ***** this doc is not done *****
+=======
+This tutorial describes how to use your application to install a chaincode on
+your peers and define it on a channel. This tutorial uses the Fabric chaincode
+lifecycle introduced in the Fabric V2.0 Alpha and the fabric-client 2.0. The
+api's for using the previous chaincode lifecycle will still be available in
+fabric-client, but will not be discussed in this tutorial.
+
+For more information on the new Fabric Chaincode lifecycle, visit the
+[Chaincode for Operators tutorial](https://hyperledger-fabric.readthedocs.io/en/latest/chaincode4noah.html) in the Hyperledger Fabric documentation.
+>>>>>>> b5da02c... [FABN-1198] update chaincode tutorial
 
 For more information on:
 * getting started with Hyperledger Fabric see
 [Building your first network](http://hyperledger-fabric.readthedocs.io/en/latest/build_network.html).
 * the configuration of a channel in Hyperledger Fabric and the internal
-process of creating and updating see
+process of creating and updating a channel, see
 [Hyperledger Fabric channel configuration](http://hyperledger-fabric.readthedocs.io/en/latest/configtx.html)
-* [Chaincode Lifecycle](https://hyperledger-fabric.readthedocs.io/en/latest/discovery-overview.html)
 
-The following assumes an understanding of the Hyperledger Fabric network
-(orderers and peers),
-and of Node application development, including the use of the
-Javascript `promise` and `async await`.
+The following tutorial assumes an understanding of the components of a
+Hyperledger Fabric network (orderers and peers) and of Node application
+development, including the use of the Javascript `promise` and `async await`.
 
 ### Overview
+<<<<<<< HEAD
 This discussion will focus on the steps that are required by an application
 program to managing the install, update and starting of chaincodes
 on your Hyperledger Fabric network. The existing api's for managing the lifecycle
@@ -34,6 +44,27 @@ The steps to manage chaincode:
 * `approve for organization` - each organization will approve a specific chaincode definition
 * `commit for the channel` - the channel members will agree (commit) to run a specific chaincode definition
 * `initialize` - (Optional) start the chaincode container and initialize the chaincode
+=======
+
+The Fabric 2.0 Alpha introduces decentralized governance for chaincode. The new
+Fabric chaincode lifecycle allows multiple organizations to come to agreement
+on the parameters of a chaincode, such as the chaincode endorsement policy,
+before it can be used to interact with the ledger. You will need to enable the
+new Fabric chaincode lifecycle on your network by setting the channel
+capabilities to `V2_0` to use the steps in this tutorial.
+
+Channel members need to complete the following steps before they can start
+using a chaincode:
+* `Setup`- create the necessary application objects
+* `Package` - create a chaincode package from your source code
+* `Install` - install the chaincode package on your peers
+* `Approve a definition for organization` - each organization needs to
+  approve a chaincode definition in order to use the chaincode
+* `Commit the definition to a channel` - After a sufficient number of
+  organizations have approved a chaincode definition, the definition can be
+  committed to a channel by one organization
+* `Initialize` - start the chaincode container and initialize the chaincode
+>>>>>>> b5da02c... [FABN-1198] update chaincode tutorial
 
 #### New Class
 A new class {@link Chaincode} has been added to the fabric-client to encapsulate
@@ -48,8 +79,8 @@ with the following methods.
 * {@link Chaincode#setPackage setPackage} - Provide the package when not packaging this chaincode locally.
 * {@link Chaincode#setPackage setPackageId} - Provide the package ID when not installing this chaincode package locally.
 
-The chaincode instance will allow for the packaging and installing of chaincode
-to a peer within your organization with the following methods.
+The chaincode instance will allow you to package a chaincode and install it on
+your peers with the following methods:
 * {@link Chaincode#package package} Package the files at the locations provided.
 * {@link Chaincode#install install} Install the package on the specified peers.
 
@@ -58,6 +89,7 @@ by a channel instance to be approved both for an organization and
 then committed for use on the channel.
 
 #### New methods on Channel
+<<<<<<< HEAD
 The {@link Channel} class has been enhanced to include new methods to approve
 a chaincode for an organization and to commit it for channel wide use.
 
@@ -80,11 +112,29 @@ the chaincode names committed (running) on this channel
 The {@link Client} class has been enhanced to include a new method to create
 a {@link Chaincode} instance. This is the object to use for managing a
 chaincode.
+=======
+
+The {@link Channel} class has been updated to include methods to approve a
+chaincode definition for your organization and commit the definition to a
+channel.
+
+* {@link Channel#defineChaincodeForOrg defineChaincodeForOrg} - Approve a
+  chaincode definition for your organization.
+the chaincode for an organization.
+* {@link Channel#defineChaincode defineChaincode} - commit the chaincode
+  definition to a channel.
+
+#### New method on Client
+
+The {@link Client} class has been enhanced to include new method to create
+a {@link Chaincode} instance.
+>>>>>>> b5da02c... [FABN-1198] update chaincode tutorial
 
 * {@link Client#newChaincode newChaincode} - Create a {@link Chaincode} instance.
 
 
 ### Step 1: Setup
+<<<<<<< HEAD
 In this step we will be building
 the application objects needed to perform the operational steps that follow.
 A fabric-client operational environment is required before any of the
@@ -92,6 +142,14 @@ following steps may be performed. A client instance is needed
 that has a user store, crypto suite, and a user assigned. The target peers,
 orderer, and channel instance objects will also be required prior to doing
 any of the following steps.
+=======
+
+In this step we will build the application objects needed to perform the
+operational steps that follow. You will first need to create a fabric-client
+operational environment. The client instance will need to have a user store,
+crypto suite, and a user assigned. The target peers, orderer, and channel
+instance objects will also be required prior to working with chaincode.
+>>>>>>> b5da02c... [FABN-1198] update chaincode tutorial
 
 The following sample code assumes that all of the normal fabric-client
 setup has been completed and only shows the new chaincode lifecycle
@@ -136,14 +194,27 @@ mychaincode.setSequence(1); // must increment for each definition change
 ```
 
 ### Step 2: Package
+<<<<<<< HEAD
 One organization will
 take the source artifacts, chaincode source code and metadata files, and have
 the fabric-client package them. This package may then be sent to other
 organizations or administrators of your fabric network to be installed on
 the network.
+=======
+>>>>>>> b5da02c... [FABN-1198] update chaincode tutorial
 
-The following example is for the organization that packages the code
-and then will send to other organizations to be installed.
+The chaincode needs to be packaged before it can be installed on your peers. You
+can use the package method to create a chaincode package in the format required
+by your peers.
+
+The method create a tar file from you chaincode source code, artifacts, and
+metadata files. This step can be done by one organization if you want to ensure
+that every channel member is using the same chaincode package. You will also need
+to create a package ID that your organization will use to identify the chaincode
+package after it is installed on your peers.
+
+The following example packages a golang chaincode. This package can then
+optionally be sent to other channel members out of band.
 
 ```
 // package the source code
@@ -156,9 +227,19 @@ const packge_request = {
 const package = await mychaincode.package(package_request);
 ```
 
+<<<<<<< HEAD
 The following example is for the organization that has not done the
 packaging, but will do the install. It uses the package that was
 produced above.
+=======
+You can find a sample metadata file below:
+```
+{"Path":"github.com/chaincode/fabcar/go","Type":"golang","Label":"fabcarv1"}
+```
+
+If you are given the channel package out of band by another organization, use
+the following method to import the chaincode package before it can be installed.
+>>>>>>> b5da02c... [FABN-1198] update chaincode tutorial
 
 ```
 // use an existing package
@@ -166,6 +247,7 @@ mychaincode.setPackage(package);
 ```
 
 ### Step 3: Install
+<<<<<<< HEAD
 This step will be only required by organizations that will be running the chaincode
 (executing transactions). The install will take the packaged source code artifacts
 and send it to a peer or peers in your organization. Installing chaincode requires
@@ -179,6 +261,17 @@ internally for the next step.
 
 The following sample assumes that the chaincode instance object (`mychaincode`) has
 been setup and packaged.
+=======
+
+Once the chaincode is packaged, it can be installed on our peers. This step will
+be required by all organizations that want to use the chaincode to query the
+ledger and endorse transactions. The install method will send the packaged
+chaincode to the target peers in your organization. This request will need to be
+sent by a peer administrator to be successful.
+
+The following sample assumes that the chaincode object being used has been setup
+and packaged or an error would be thrown.
+>>>>>>> b5da02c... [FABN-1198] update chaincode tutorial
 
 ```
 // install chaincode package on peers
@@ -192,6 +285,7 @@ const package_id = await mychaincode.install(install_request);
 const package_id = mychaincode.getPackageId();
 ```
 
+<<<<<<< HEAD
 For organizations that will not be running the chaincode and are
 required to approve the chaincode will not require an package ID.
 
@@ -218,6 +312,34 @@ transactions without having installed the package.
 
 The following sample assumes that the chaincode object being used (`mychaincode`)
 has been setup and installed.
+=======
+### Step 4: Approve for your organization
+{: #approve}
+
+Each organization that wants to use the chaincode needs to approve a chaincode
+definition for their organization. The transaction to approve a chaincode
+definition may be submitted at any time, but must be submitted before the
+commit transaction is submitted, or an organization can use the chaincode. Each
+organization needs to submit separate approval transactions.
+
+Approving a chaincode definition may also be thought of as a vote for a set of
+chaincode parameters by your organization. These approved definitions allow
+channel members to agree on a chaincode before it is used on a channel. As a
+result, the approved definition needs to be consistent across organizations. If
+the chaincode is already running and a definition has already been committed to
+the channel, an organization can use the chaincode by installing the chaincode
+package on their peers and approving the committed chaincode definition.
+
+The chaincode definition needs to contain the package identifier to associate
+the definition approved by your organization with the chaincode installed on
+your peers. If your organization does not plan on using a chaincode, you can
+approve a chaincode definition without a package ID. This may be helpful if you
+want to ensure that a definition has a sufficient number of approvals to be
+committed to the channel.
+
+The following sample assumes that the chaincode object being used has been setup
+and installed or an error will be thrown.
+>>>>>>> b5da02c... [FABN-1198] update chaincode tutorial
 ```
 // send a approve chaincode for organization transaction
 const tx_id = client.newTransactionID();
@@ -236,6 +358,7 @@ const orderer_request = {
 const results = await mychannel.sendTransaction(orderer_request);
 ```
 
+<<<<<<< HEAD
 ### Step 5: Commit for the channel
 This step will commit a chaincode for use on your channel.
 The committing action will
@@ -263,6 +386,23 @@ to enable the change for the chaincode.
 NOTE: Before submitting a new approve for a change to the chaincode definition,
 the sequence number must be incremented. All organizations must be approving
 the same chaincode definition settings before the commit step will succeed.
+=======
+### Step 5: Commit definition to the channel
+
+Once a sufficient number of channel members have approved a chaincode definition,
+one organization can commit the definition to the channel. In order for the
+chaincode definition to be committed successfully, a sufficient number of
+organizations need to approve the definition to meet the
+`Channel/Application/LifecycleEndorsement` policy. By default this policy is set
+to a majority of the organizations on the channel.
+
+You can find a sample commit transaction below. The commit transaction needs to
+target a sufficient number of peers in other organizations to collect their
+endorsements for the definition. Think of this as a tally of the votes for the
+chaincode. If the commit transaction can collect a sufficient number of votes
+to meet the LifecycleEndorsement policy, the definition can be committed to the
+channel and the chaincode used by channel members.
+>>>>>>> b5da02c... [FABN-1198] update chaincode tutorial
 
 ```
 // send a commit chaincode for channel transaction
@@ -313,12 +453,24 @@ const results = await mychannel.sendTransaction(orderer_request);
 ```
 
 ### Sample situations
-The following samples will show the important snippets needed to perform the
-different situations.
+
+In addition to being necessary to use a new chaincode, the chaincode definition
+provides you additional flexibility in updating a chaincode and managing
+chaincode policies. The following samples will provide code snippets for the
+following scenarios:
+- `New chaincode`
+- `Upgrading a chaincode`
+- `Modify an endorsement policy`
+- `Join a channel with a running chaincode`
 
 #### New chaincode
+<<<<<<< HEAD
 When installing chaincode for the first time, 5 steps must be run.
 The initialization step is optional.
+=======
+
+When installing chaincode for the first time, all 6 steps must be run.
+>>>>>>> b5da02c... [FABN-1198] update chaincode tutorial
 The following sample shows the code needed when the organization
 will be packaging the chaincode, installing it, and the organization
 to approve and commit it for the entire channel and initialize it.
@@ -393,8 +545,13 @@ const results = await mychannel.sendTransaction(orderer_request);
 ```
 
 #### Update the chaincode code
+<<<<<<< HEAD
 When updating the chaincode the 5 steps must be performed and maybe the
 initialization might have to be run. Care must be
+=======
+
+When updating the chaincode all 6 steps must be performed and care must be
+>>>>>>> b5da02c... [FABN-1198] update chaincode tutorial
 taken in setting the sequence number to be sure it reflects the current
 modification number of the chaincode definition. In this case no other
 changes have been made to the chaincode definition since it was first
@@ -514,7 +671,7 @@ const orderer_request = {
 const results = await mychannel.sendTransaction(orderer_request);
 ```
 
-#### New organization needs to run the chaincode
+#### Joining a channel with a running chaincode
 
 When a new organization wishes to run an existing chaincode it will have to
 perform all but the commit step. This sample does assume that the endorsement
@@ -577,4 +734,3 @@ QueryInstalledChaincodes
 QueryNamespaceDefinitions
 
 <a rel="license" href="http://creativecommons.org/licenses/by/4.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by/4.0/88x31.png" /></a><br />This work is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by/4.0/">Creative Commons Attribution 4.0 International License</a>.
-
