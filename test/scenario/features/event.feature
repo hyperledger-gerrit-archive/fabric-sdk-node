@@ -32,3 +32,8 @@ Feature: Listen to events using a fabric-network
 		When I use the transaction named transaction1 to create a commit listener called transaction1Listener
 		When I use the transaction named transaction1 to submit a transaction with args []
 		Then I receive 1 events from the listener transaction1Listener
+
+	Scenario: Using a Contract I can listen to contract events emmited by instantiated chaincodes
+		When I use the gateway named test_gateway to listen for unfiltered create events with listener createValueListener on chaincode events instantiated on channel mychannel
+		When I use the gateway named test_gateway to submit 5 transactions with args [createValue] for chaincode events instantiated on channel mychannel
+		Then I receive 5 events from the listener createValueListener
