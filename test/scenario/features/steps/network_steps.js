@@ -182,11 +182,11 @@ module.exports = function () {
 		}
 	});
 
-	this.Then(/^I can disconnect from the gateway named (.+?)$/, {timeout:testUtil.TIMEOUTS.SHORT_STEP}, async (gatewayName) => {
+	this.Then(/^I can disconnect from the gateway named (.+?)$/, {timeout:testUtil.TIMEOUTS.LONG_STEP}, async (gatewayName) => {
 		return await network_util.disconnectGateway(gatewayName);
 	});
 
-	this.Then(/^I have disconnected from all gateways$/, {timeout: testUtil.TIMEOUTS.SHORT_STEP}, async () => {
+	this.Then(/^I have disconnected from all gateways$/, {timeout: testUtil.TIMEOUTS.LONG_STEP}, async () => {
 		return await network_util.disconnectAllGateways();
 	});
 };
