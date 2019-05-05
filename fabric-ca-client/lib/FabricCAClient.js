@@ -398,11 +398,12 @@ const FabricCAClient = class {
 	 * @throws Will throw an error if all parameters are not provided
 	 * @throws Will throw an error if calling the enroll API fails for any reason
 	 */
+	
 	enroll(enrollmentID, enrollmentSecret, csr, profile, attr_reqs) {
 
 		const self = this;
 
-		// check for required args
+		// check for required  args 
 		if (arguments.length < 3) {
 			return Promise.reject('Missing required parameters.  \'enrollmentID\', \'enrollmentSecret\' and \'csr\' are all required.');
 		}
