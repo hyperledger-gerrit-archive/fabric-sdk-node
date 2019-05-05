@@ -14,8 +14,9 @@
 
 'use strict';
 
-const utils = require('./utils.js');
-import utils from './utils.js'; 
+const {Utils: utils} = require('fabric-common');
+const util = require('util');
+
 import http from 'http';
 import https from 'https';
 import IdentityService from './IdentityService';
@@ -355,7 +356,7 @@ const FabricCAClient = class {
 	/*
 	 * Generate authorization token required for accessing fabric-ca APIs
 	 */
-	generateAuthToken(reqBody, signingIdentity) {
+	generateAuthToken(reqBody, signingIdentity, path, method) {
 		// specific signing procedure is according to:
 		// https://github.com/hyperledger/fabric-ca/blob/master/util/util.go#L213
 		const cert = Buffer.from(signingIdentity._certificate).toString('base64');
@@ -365,6 +366,11 @@ const FabricCAClient = class {
 			bodyAndcert = body + '.' + cert;
 		} else {
 			bodyAndcert = '.' + cert;
+		}
+
+		if (path && method) {
+			const s = Buffer.from(path).toString('base64');
+			bodyAndcert = method + '.' + s + '.' + bodyAndcert;
 		}
 
 		const sig = signingIdentity.sign(bodyAndcert, {hashFunction: this._cryptoPrimitives.hash.bind(this._cryptoPrimitives)});
@@ -398,7 +404,7 @@ const FabricCAClient = class {
 	 * @throws Will throw an error if all parameters are not provided
 	 * @throws Will throw an error if calling the enroll API fails for any reason
 	 */
-	
+
 	enroll(enrollmentID, enrollmentSecret, csr, profile, attr_reqs) {
 
 		const self = this;
