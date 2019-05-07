@@ -34,8 +34,8 @@ test('\n\n***** Java-Chaincode End-to-end flow: invoke transaction to move money
 	}
 
 	try {
-		expectedResult = new Error('throwError: an error occurred');
-		const result = await e2eUtils.invokeChaincode('org2', version, chaincode_id, t, false/* useStore*/, 'throwError', args, expectedResult);
+		expectedResult = new Error('returnError: an error occurred');
+		const result = await e2eUtils.invokeChaincode('org2', version, chaincode_id, t, false/* useStore*/, 'returnError', [expectedResult.message], expectedResult);
 		if (result) {
 			t.pass('Successfully handled invocation errors from java chaincode');
 		} else {
