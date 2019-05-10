@@ -18,7 +18,9 @@ interface ProtoBufObject {
 declare class Remote {
 	constructor(url: string, opts?: Client.ConnectionOpts);
 	public getName(): string;
+
 	public setName(name: string): void;
+
 	public getUrl(): string;
 }
 
