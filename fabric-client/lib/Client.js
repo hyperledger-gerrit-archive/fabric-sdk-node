@@ -1528,9 +1528,9 @@ const Client = class extends BaseClient {
 	 *
 	 * @typedef {Object} UserNamePasswordObject
 	 * @property {string} username - Required. A string representing the user name of the user
-	 * @property {string} password - Optional. A string repsesenting the password of the user
-	 * @property {string} caName - Optional. A string repsesenting the name of the Certificate Authority.
-	 If not specified, will use the first Certifcate Authority on the list.
+	 * @property {string} [password] - Optional. A string representing the password of the user
+	 * @property {string} [caName] - Optional. A string representing the name of the Certificate Authority.
+	 If not specified, will use the first Certificate Authority on the list.
 	 */
 
 	/**

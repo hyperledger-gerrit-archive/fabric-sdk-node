@@ -20,7 +20,7 @@
     }
   },
   "files": [
-	  "client.d.ts",
+	  "base.d.ts",
 	  "index.d.ts"
   ],
   "formatCodeOptions": {

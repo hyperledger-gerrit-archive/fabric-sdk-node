@@ -7,16 +7,9 @@
 // Sample query handler that will use all queryable peers within the network to evaluate transactions, with preference
 // given to peers within the same organization.
 
-import {
-	Network,
-	Query,
-	QueryHandler,
-	QueryHandlerFactory,
-} from 'fabric-network';
+import {Network, Query, QueryHandler, QueryHandlerFactory} from 'fabric-network';
 
-import {
-	ChannelPeer,
-} from 'fabric-client';
+import {ChannelPeer} from 'fabric-client';
 
 import util = require('util');
 
