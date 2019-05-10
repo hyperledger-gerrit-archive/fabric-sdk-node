@@ -6,7 +6,6 @@
 
 // This is an end-to-end test that focuses on exercising all parts of the fabric APIs
 // in a happy-path scenario
-'use strict';
 
 import fs = require('fs-extra');
 import os = require('os');
@@ -21,10 +20,10 @@ import {
 	DefaultQueryHandlerStrategies,
 	FileSystemWallet,
 	Gateway,
-	TransientMap,
 	Wallet,
 	X509WalletMixin,
 } from 'fabric-network';
+import {TransientMap} from 'fabric-client';
 
 import sampleQueryStrategy = require('./sample-query-handler');
 

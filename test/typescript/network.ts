@@ -16,18 +16,14 @@ import {
 	InMemoryWallet,
 	Network,
 	Transaction,
-	TransientMap,
 	Wallet,
 	X509WalletMixin,
 } from 'fabric-network';
 
-import Client = require('fabric-client');
+import {TransientMap, Channel, TransactionId} from 'fabric-client';
 
-import {
-	Channel,
-	TransactionId,
-	User,
-} from 'fabric-client';
+import Client = require('fabric-client');
+import {User} from 'fabric-common';
 
 (async () => {
 
