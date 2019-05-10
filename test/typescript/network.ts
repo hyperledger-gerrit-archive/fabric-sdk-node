@@ -4,6 +4,7 @@
  SPDX-License-Identifier: Apache-2.0
 */
 
+import {User} from 'fabric-common';
 import {
 	Contract,
 	DefaultEventHandlerOptions,
@@ -16,18 +17,12 @@ import {
 	InMemoryWallet,
 	Network,
 	Transaction,
-	TransientMap,
 	Wallet,
 	X509WalletMixin,
 } from 'fabric-network';
 
-import Client = require('fabric-client');
-
-import {
-	Channel,
-	TransactionId,
-	User,
-} from 'fabric-client';
+import {Channel, TransactionId, TransientMap} from 'fabric-client';
+import {Client} from 'fabric-client/types/client';
 
 (async () => {
 
