@@ -4,45 +4,63 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-/* tslint:disable:max-classes-per-file */
-/* tslint:disable:ordered-imports */
-
-import { BaseClient } from './base';
-import FabricCAServices = require('fabric-ca-client');
-import { lstatSync } from 'fs';
+import {FabricCAServices} from 'fabric-ca-client';
+import {ICryptoSuite, IIdentity, IKeyValueStore, ISigningIdentity, User, UserOpts} from 'fabric-common';
+import {BaseClient} from 'fabric-common/types/base';
 
 interface ProtoBufObject {
 	toBuffer(): Buffer;
 }
 
 declare class Remote {
-	constructor(url: string, opts?: Client.ConnectionOpts);
+	constructor(url: string, opts?: ConnectionOpts);
+
 	public getName(): string;
+
 	public setName(name: string): void;
+
 	public getUrl(): string;
 }
 
-declare class Client extends BaseClient {
+export declare class Client extends BaseClient {
 	public static loadFromConfig(config: any): Client;
 
 	constructor();
+
 	public loadFromConfig(config: any): void;
+
 	public setTlsClientCertAndKey(clientCert: string, clientKey: string): void;
+
 	public addTlsClientCertAndKey(opts: any): void;
+
 	public isDevMode(): boolean;
+
 	public setDevMode(mode: boolean): void;
-	public newChannel(name: string): Client.Channel;
-	public getChannel(name?: string, throwError?: boolean): Client.Channel;
-	public newPeer(url: string, opts?: Client.ConnectionOpts): Client.Peer;
-	public getPeer(name: string): Client.Peer;
-	public getPeersForOrg(mspid?: string): Client.Peer[];
-	public newOrderer(url: string, opts?: Client.ConnectionOpts): Client.Orderer;
-	public getOrderer(name: string): Client.Orderer;
-	public getPeersForOrgOnChannel(channelNames: string | string[]): Client.ChannelPeer[];
+
+	public newChannel(name: string): Channel;
+
+	public getChannel(name?: string, throwError?: boolean): Channel;
+
+	public newPeer(url: string, opts?: ConnectionOpts): Peer;
+
+	public getPeer(name: string): Peer;
+
+	public getPeersForOrg(mspid?: string): Peer[];
+
+	public newOrderer(url: string, opts?: ConnectionOpts): Orderer;
+
+	public getOrderer(name: string): Orderer;
+
+	public getPeersForOrgOnChannel(channelNames: string | string[]): ChannelPeer[];
+
 	public getCertificateAuthority(): FabricCAServices;
+
 	public getClientConfig(): any;
+
 	public getMspid(): string;
-	public newTransactionID(admin?: boolean): Client.TransactionId;
+
+	public newTransactionID(admin?: boolean): TransactionId;
+
 	public extractChannelConfig(configEnvelope: Buffer): Buffer;
 	public signChannelConfig(config: Buffer): Client.ConfigSignature;
 	public createChannel(request: Client.ChannelRequest): Promise<Client.BroadcastResponse>;
@@ -52,17 +70,27 @@ declare class Client extends BaseClient {
 	public queryInstalledChaincodes(peer: Client.Peer | string, useAdmin?: boolean): Promise<Client.ChaincodeQueryResponse>;
 	public installChaincode(request: Client.ChaincodeInstallRequestv1, timeout?: number): Promise<Client.ProposalResponseObject>;
 	public initCredentialStores(): Promise<boolean>;
-	public setStateStore(store: Client.IKeyValueStore): void;
-	public setAdminSigningIdentity(privateKey: string, certificate: string, mspid: string): void;
-	public saveUserToStateStore(): Promise<Client.User>;
-	public setUserContext(user: Client.User | Client.UserContext, skipPersistence?: boolean): Promise<Client.User>;
-	public getUserContext(name: string, checkPersistence?: boolean): Promise<Client.User> | Client.User;
-	public loadUserFromStateStore(name: string): Promise<Client.User>;
-	public getStateStore(): Client.IKeyValueStore;
-	public createUser(opts: Client.UserOpts): Promise<Client.User>;
 
-	public getTargetPeers(requestTargets: string | string[] | Client.Peer | Client.Peer[]): Client.Peer[];
-	public getTargetOrderer(requestOrderer?: string | Client.Orderer, channelOrderers?: Client.Orderer[], channelName?: string): Client.Orderer;
+	public setStateStore(store: IKeyValueStore): void;
+
+	public setAdminSigningIdentity(privateKey: string, certificate: string, mspid: string): void;
+
+	public saveUserToStateStore(): Promise<User>;
+
+	public setUserContext(user: User | UserNamePasswordObject, skipPersistence?: boolean): Promise<User>;
+
+	public getUserContext(name: string, checkPersistence?: boolean): Promise<User> | User;
+
+	public loadUserFromStateStore(name: string): Promise<User>;
+
+	public getStateStore(): IKeyValueStore;
+
+	public createUser(opts: UserOpts): Promise<User>;
+
+	public getTargetPeers(requestTargets: string | string[] | Peer | Peer[]): Peer[];
+
+	public getTargetOrderer(requestOrderer?: string | Orderer, channelOrderers?: Orderer[], channelName?: string): Orderer;
+
 	public getClientCertHash(create: boolean): Buffer;
 }
 

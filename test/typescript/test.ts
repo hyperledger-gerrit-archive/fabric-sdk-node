@@ -4,18 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import * as fs from 'fs-extra';
-import * as path from 'path';
-import * as test from 'tape';
-import * as util from 'util';
-
-import FabricCAServices = require('fabric-ca-client');
-import Client = require('fabric-client');
-import FabricCommon = require('fabric-common');
-const {Utils: utils} = FabricCommon;
-const logger = utils.getLogger('connection profile');
-
-import { IEnrollmentRequest } from 'fabric-ca-client';
+import {FabricCAServices, IEnrollmentRequest, IEnrollResponse} from 'fabric-ca-client';
 import {
 	Block,
 	BlockchainInfo,
@@ -29,9 +18,8 @@ import {
 	ChannelEventHub,
 	ChannelQueryResponse,
 	ChannelRequest,
+	Client,
 	ConfigSignature,
-	ICryptoKeyStore,
-	ICryptoSuite,
 	JoinChannelRequest,
 	Orderer,
 	OrdererRequest,
@@ -41,9 +29,15 @@ import {
 	ProposalResponseObject,
 	TransactionId,
 	TransactionRequest,
-	User,
 } from 'fabric-client';
+import {ICryptoKeyStore, ICryptoSuite, User} from 'fabric-common';
+import utils = require('fabric-common/lib/Utils');
+import * as fs from 'fs-extra';
+import * as path from 'path';
+import * as test from 'tape';
+import * as util from 'util';
 
+const logger = utils.getLogger('connection profile');
 const configPath: string = path.join(__dirname, '../fixtures/profiles');
 const configNetwork: string = path.resolve(configPath, 'network-ts.yaml');
 const configOrg1: string = path.resolve(configPath, 'org1.yaml');
@@ -422,34 +416,34 @@ test('use the connection profile file', async (t: any) => {
 					t.comment(' response status:' + proposalResponse.response.status +
 						' message:' + proposalResponse.response.message);
 					allGood = false;
-				} else {
-					t.pass('transaction proposal has response status of good');
-				}
+			} else {
+				t.pass('transaction proposal has response status of good');
 			}
-			t.equals(endorsedResponses, 2, 'Checking that there are the correct number of endorsed responses');
-			if (!allGood) {
-				t.fail('Failed to send invoke Proposal or receive valid response. Response null or status is not 200. exiting...');
-				throw new Error('Failed to send invoke Proposal or receive valid response. Response null or status is not 200. exiting...');
-			}
-			const request: TransactionRequest = {
-				proposal,
-				proposalResponses: proposalResponses as ProposalResponse[],
-			};
+		}
+		t.equals(endorsedResponses, 2, 'Checking that there are the correct number of endorsed responses');
+		if (!allGood) {
+			t.fail('Failed to send invoke Proposal or receive valid response. Response null or status is not 200. exiting...');
+			throw new Error('Failed to send invoke Proposal or receive valid response. Response null or status is not 200. exiting...');
+		}
+		const request: TransactionRequest = {
+			proposal,
+			proposalResponses: proposalResponses as ProposalResponse[],
+		};
 
-			const promises = [];
+		const promises = [];
 
-			// be sure to get an channel event hub the current user is authorized to use
-			const eventhub = channel.newChannelEventHub('peer0.org1.example.com');
+		// be sure to get an channel event hub the current user is authorized to use
+		const eventhub = channel.newChannelEventHub('peer0.org1.example.com');
 
-			const txPromise = new Promise((resolve, reject) => {
-				const handle = setTimeout(() => {
-					eventhub.unregisterTxEvent(queryTxId);
-					eventhub.disconnect();
-					t.fail('REQUEST_TIMEOUT --- eventhub did not report back');
-					reject(new Error('REQUEST_TIMEOUT:' + eventhub.getPeerAddr()));
-				}, 30000);
+		const txPromise = new Promise((resolve, reject) => {
+			const handle = setTimeout(() => {
+				eventhub.unregisterTxEvent(queryTxId);
+				eventhub.disconnect();
+				t.fail('REQUEST_TIMEOUT --- eventhub did not report back');
+				reject(new Error('REQUEST_TIMEOUT:' + eventhub.getPeerAddr()));
+			}, 30000);
 
-				eventhub.registerTxEvent(queryTxId, (tx, code, blockNum) => {
+			eventhub.registerTxEvent(queryTxId, (tx, code, blockNum) => {
 					clearTimeout(handle);
 					if (code !== 'VALID') {
 						t.fail('transaction was invalid, code = ' + code);
@@ -463,263 +457,263 @@ test('use the connection profile file', async (t: any) => {
 					t.fail('transaction event failed:' + error);
 					reject(error);
 				},
-					{ disconnect: true }, //since this is a test and we will not be using later
-				);
-			});
-			// connect(true) to receive full blocks (user must have read rights to the channel)
-			// should connect after registrations so that there is an error callback
-			// to receive errors if there is a problem on the connect.
-			eventhub.connect(true);
-
-			promises.push(txPromise);
-			promises.push(channel.sendTransaction(request));
-
-			return Promise.all(promises);
-		}).then((results) => {
-			const eventResults = results[0]; // Promise all will return the results in order of the of Array
-			const sendTransactionResults = results[1] as Client.BroadcastResponse;
-			if (sendTransactionResults instanceof Error) {
-				t.fail('Failed to order the transaction: ' + sendTransactionResults);
-				throw sendTransactionResults;
-			} else if (sendTransactionResults.status === 'SUCCESS') {
-				t.pass('Successfully sent transaction to invoke the chaincode to the orderer.');
-			} else {
-				t.fail('Failed to order the transaction to invoke the chaincode. Error code: ' + sendTransactionResults.status);
-				throw new Error('Failed to order the transaction to invoke the chaincode. Error code: ' + sendTransactionResults.status);
-			}
-
-			return new Promise((resolve, reject) => {
-				// get a new ChannelEventHub when registering a listener
-				// with startBlock or endBlock when doing a replay
-				// The ChannelEventHub must not have been connected or have other
-				// listeners.
-				const channelEventHub: ChannelEventHub = channel.newChannelEventHub('peer0.org1.example.com');
-
-				const handle = setTimeout(() => {
-					t.fail('Timeout - Failed to receive replay the event for event1');
-					channelEventHub.unregisterTxEvent(queryTxId);
-					channelEventHub.disconnect(); //shutdown down since we are done
-				}, 10000);
-
-				channelEventHub.registerTxEvent(queryTxId, (txnid, code, blockNum) => {
-					clearTimeout(handle);
-					t.pass('Event has been replayed with transaction code:' + code + ' for transaction id:' + txnid + ' for block_num:' + blockNum);
-					resolve('Got the replayed transaction');
-				}, (error) => {
-					clearTimeout(handle);
-					t.fail('Failed to receive event replay for Event for transaction id ::' + queryTxId);
-					throw (error);
-				},
-					// a real application would have remembered the last block number
-					// received and used that value to start the replay
-					// Setting the disconnect to true as we do not want to use this
-					// ChannelEventHub after the event we are looking for comes in
-					{ startBlock: 0, disconnect: true },
-				);
-				t.pass('Successfully registered transaction replay for ' + queryTxId);
-
-				channelEventHub.connect(); //connect to receive filtered blocks
-				t.pass('Successfully called connect on the transaction replay event hub for filtered blocks');
-			});
-		}).then((results) => {
-			t.pass('Successfully checked channel event hub replay');
-
-			return new Promise((resolve, reject) => {
-				// Get the list of channel event hubs for the current organization.
-				// These will be peers with the "eventSource" role setting of true
-				// and not the peers that have an "eventURL" defined. Peers with the
-				// eventURL defined are peers with the legacy Event Hub that is on
-				// a different port than the peer services. The peers with the
-				// "eventSource" tag are running the channel-based event service
-				// on the same port as the other peer services.
-				const channelEventHubs: ChannelEventHub[] = channel.getChannelEventHubsForOrg();
-				// we should have the an channel event hub defined on the "peer0.org1.example.com"
-				t.equals(channelEventHubs.length, 1, 'Checking that the channel event hubs has one');
-
-				const channelEventHub = channelEventHubs[0];
-				t.equals(channelEventHub.getPeerAddr(), 'localhost:7051', ' channel event hub address ');
-
-				const handle = setTimeout(() => {
-					t.fail('Timeout - Failed to receive replay the event for event1');
-					channelEventHub.unregisterTxEvent(queryTxId);
-					channelEventHub.disconnect(); //shutdown down since we are done
-				}, 10000);
-
-				channelEventHub.registerTxEvent(queryTxId, (txnid, code, blockNum) => {
-					clearTimeout(handle);
-					t.pass('Event has been replayed with transaction code:' + code + ' for transaction id:' + txnid + ' for block_num:' + blockNum);
-					resolve('Got the replayed transaction');
-				}, (error) => {
-					clearTimeout(handle);
-					t.fail('Failed to receive event replay for Event for transaction id ::' + queryTxId);
-					throw (error);
-				},
-					// a real application would have remembered the last block number
-					// received and used that value to start the replay
-					// Setting the disconnect to true as we do not want to use this
-					// ChannelEventHub after the event we are looking for comes in
-					{ startBlock: 0, disconnect: true },
-				);
-				t.pass('Successfully registered transaction replay for ' + queryTxId);
-
-				channelEventHub.connect(); //connect to receive filtered blocks
-				t.pass('Successfully called connect on the transaction replay event hub for filtered blocks');
-			});
-		}).then((results) => {
-			t.pass('Successfully checked replay');
-			// check that we can get the user again without password
-			// also verifies that we can get a complete user properly stored
-			// when using a connection profile
-			return client.setUserContext({ username: 'admin' });
-		}).then((admin: User) => {
-			t.pass('Successfully loaded user \'admin\' from store for org1');
-
-			const request: ChaincodeQueryRequest = {
-				args: ['b'],
-				chaincodeId: 'examplets',
-				fcn: 'query',
-			};
-
-			return channel.queryByChaincode(request); //logged in as user on org1
-		}).then((responsePayloads) => {
-			// should only be one response ...as only one peer is defined as CHAINCODE_QUERY_ROLE
-			let queryResponses = 0;
-			if (responsePayloads) {
-				for (const responsePayload of responsePayloads) {
-					queryResponses++;
-					t.equal(
-						responsePayload.toString('utf8'),
-						'300',
-						'checking query results are correct that user b has 300 now after the move');
-				}
-			} else {
-				t.fail('response_payloads is null');
-				throw new Error('Failed to get response on query');
-			}
-			t.equals(queryResponses, 1, 'Checking that only one response was seen');
-
-			return client.queryChannels('peer0.org1.example.com');
-		}).then((results: ChannelQueryResponse) => {
-			logger.debug(' queryChannels ::%j', results);
-			let found = false;
-			for (const resultChannel of results.channels) {
-				logger.debug(' queryChannels has found %s', resultChannel.channel_id);
-				if (resultChannel.channel_id === channelName) {
-					found = true;
-				}
-			}
-			if (found) {
-				t.pass('Successfully found our channel in the result list');
-			} else {
-				t.fail('Failed to find our channel in the result list');
-			}
-
-			return client.queryInstalledChaincodes('peer0.org1.example.com', true); // use admin
-		}).then((results: ChaincodeQueryResponse) => {
-			logger.debug(' queryInstalledChaincodes ::%j', results);
-			let found = false;
-			for (const resultChaincode of results.chaincodes) {
-				logger.debug(' queryInstalledChaincodes has found %s', resultChaincode.name);
-				if (resultChaincode.name === 'examplets') {
-					found = true;
-				}
-			}
-			if (found) {
-				t.pass('Successfully found our chaincode in the result list');
-			} else {
-				t.fail('Failed to find our chaincode in the result list');
-			}
-
-			return channel.queryBlock(1);
-		}).then((results: Block) => {
-			logger.debug(' queryBlock ::%j', results);
-			t.equals('1', results.header.number, 'Should be able to find our block number');
-
-			return channel.queryInfo();
-		}).then((results: BlockchainInfo) => {
-			logger.debug(' queryInfo ::%j', results);
-			t.equals(3, results.height.low, 'Should be able to find our block height');
-
-			return channel.queryBlockByHash(results.previousBlockHash);
-		}).then((results: Block) => {
-			logger.debug(' queryBlockHash ::%j', results);
-			t.equals('1', results.header.number, 'Should be able to find our block number by hash');
-
-			return channel.queryTransaction(queryTxId);
-		}).then((results) => {
-			logger.debug(' queryTransaction ::%j', results);
-			t.equals(0, results.validationCode, 'Should be able to find our transaction validationCode');
-
-			return channel.queryBlock(1, 'peer0.org1.example.com');
-		}).then((results: Block) => {
-			logger.debug(' queryBlock ::%j', results);
-			t.equals('1', results.header.number, 'Should be able to find our block number with string peer name');
-
-			return channel.queryInfo('peer0.org1.example.com');
-		}).then((results: BlockchainInfo) => {
-			logger.debug(' queryInfo ::%j', results);
-			t.equals(3, results.height.low, 'Should be able to find our block height with string peer name');
-
-			return channel.queryBlockByHash(results.previousBlockHash, 'peer0.org1.example.com');
-		}).then((results: Block) => {
-			logger.debug(' queryBlockHash ::%j', results);
-			t.equals('1', results.header.number, 'Should be able to find our block number by hash with string peer name');
-
-			return channel.queryTransaction(queryTxId, 'peer0.org1.example.com');
-		}).then((results) => {
-			logger.debug(' queryTransaction ::%j', results);
-			t.equals(0, results.validationCode, 'Should be able to find our transaction validationCode with string peer name');
-
-			return channel.queryBlock(1, 'peer0.org1.example.com', true);
-		}).then((results: Block) => {
-			logger.debug(' queryBlock ::%j', results);
-			t.equals('1', results.header.number, 'Should be able to find our block number by admin');
-
-			return channel.queryInfo('peer0.org1.example.com', true);
-		}).then((results: BlockchainInfo) => {
-			logger.debug(' queryInfo ::%j', results);
-			t.equals(3, results.height.low, 'Should be able to find our block height by admin');
-
-			return channel.queryBlockByHash(results.previousBlockHash, 'peer0.org1.example.com', true);
-		}).then((results: Block) => {
-			logger.debug(' queryBlockHash ::%j', results);
-			t.equals('1', results.header.number, 'Should be able to find our block number by hash by admin');
-
-			return channel.queryTransaction(queryTxId, 'peer0.org1.example.com', true);
-		}).then((results) => {
-			logger.debug(' queryTransaction ::%j', results);
-			t.equals(0, results.validationCode, 'Should be able to find our transaction validationCode by admin');
-
-			const txId = client.newTransactionID(); // get a non admin transaction ID
-			const request: ChaincodeInvokeRequest = {
-				args: ['a', 'b', '100'],
-				chaincodeId: 'examplets',
-				fcn: 'move',
-				txId,
-				//targets - Letting default to all endorsing peers defined on the channel in the connection profile
-			};
-
-			// put in a very small timeout to force a failure, thereby checking that the timeout value was being used
-			return channel.sendTransactionProposal(request, 1); //logged in as org1 user
-		}).then((results: ProposalResponseObject) => {
-			const proposalResponses = results[0];
-			for (const proposalResponse of proposalResponses) {
-				if (proposalResponse instanceof Error && proposalResponse.toString().indexOf('REQUEST_TIMEOUT') > 0) {
-					t.pass('Successfully cause a timeout error by setting the timeout setting to 1');
-				} else {
-					t.fail('Failed to get the timeout error');
-				}
-			}
-
-			return true;
-		}).then(() => {
-			t.pass('Testing has completed successfully');
-			t.end();
-		}).catch((err: Error) => {
-			t.fail(err.message);
-			t.end();
-			throw err;
+				{disconnect: true}, //since this is a test and we will not be using later
+			);
 		});
+		// connect(true) to receive full blocks (user must have read rights to the channel)
+		// should connect after registrations so that there is an error callback
+		// to receive errors if there is a problem on the connect.
+		eventhub.connect(true);
+
+		promises.push(txPromise);
+		promises.push(channel.sendTransaction(request));
+
+		return Promise.all(promises);
+	}).then((results) => {
+		const eventResults = results[0]; // Promise all will return the results in order of the of Array
+		const sendTransactionResults = results[1] as BroadcastResponse;
+		if (sendTransactionResults instanceof Error) {
+			t.fail('Failed to order the transaction: ' + sendTransactionResults);
+			throw sendTransactionResults;
+		} else if (sendTransactionResults.status === 'SUCCESS') {
+			t.pass('Successfully sent transaction to invoke the chaincode to the orderer.');
+		} else {
+			t.fail('Failed to order the transaction to invoke the chaincode. Error code: ' + sendTransactionResults.status);
+			throw new Error('Failed to order the transaction to invoke the chaincode. Error code: ' + sendTransactionResults.status);
+		}
+
+		return new Promise((resolve, reject) => {
+			// get a new ChannelEventHub when registering a listener
+			// with startBlock or endBlock when doing a replay
+			// The ChannelEventHub must not have been connected or have other
+			// listeners.
+			const channelEventHub: ChannelEventHub = channel.newChannelEventHub('peer0.org1.example.com');
+
+			const handle = setTimeout(() => {
+				t.fail('Timeout - Failed to receive replay the event for event1');
+				channelEventHub.unregisterTxEvent(queryTxId);
+				channelEventHub.disconnect(); //shutdown down since we are done
+			}, 10000);
+
+			channelEventHub.registerTxEvent(queryTxId, (txnid, code, blockNum) => {
+					clearTimeout(handle);
+					t.pass('Event has been replayed with transaction code:' + code + ' for transaction id:' + txnid + ' for block_num:' + blockNum);
+					resolve('Got the replayed transaction');
+				}, (error) => {
+					clearTimeout(handle);
+					t.fail('Failed to receive event replay for Event for transaction id ::' + queryTxId);
+					throw (error);
+				},
+				// a real application would have remembered the last block number
+				// received and used that value to start the replay
+				// Setting the disconnect to true as we do not want to use this
+				// ChannelEventHub after the event we are looking for comes in
+				{startBlock: 0, disconnect: true},
+			);
+			t.pass('Successfully registered transaction replay for ' + queryTxId);
+
+			channelEventHub.connect(); //connect to receive filtered blocks
+			t.pass('Successfully called connect on the transaction replay event hub for filtered blocks');
+		});
+	}).then((results) => {
+		t.pass('Successfully checked channel event hub replay');
+
+		return new Promise((resolve, reject) => {
+			// Get the list of channel event hubs for the current organization.
+			// These will be peers with the "eventSource" role setting of true
+			// and not the peers that have an "eventURL" defined. Peers with the
+			// eventURL defined are peers with the legacy Event Hub that is on
+			// a different port than the peer services. The peers with the
+			// "eventSource" tag are running the channel-based event service
+			// on the same port as the other peer services.
+			const channelEventHubs: ChannelEventHub[] = channel.getChannelEventHubsForOrg();
+			// we should have the an channel event hub defined on the "peer0.org1.example.com"
+			t.equals(channelEventHubs.length, 1, 'Checking that the channel event hubs has one');
+
+			const channelEventHub = channelEventHubs[0];
+			t.equals(channelEventHub.getPeerAddr(), 'localhost:7051', ' channel event hub address ');
+
+			const handle = setTimeout(() => {
+				t.fail('Timeout - Failed to receive replay the event for event1');
+				channelEventHub.unregisterTxEvent(queryTxId);
+				channelEventHub.disconnect(); //shutdown down since we are done
+			}, 10000);
+
+			channelEventHub.registerTxEvent(queryTxId, (txnid, code, blockNum) => {
+					clearTimeout(handle);
+					t.pass('Event has been replayed with transaction code:' + code + ' for transaction id:' + txnid + ' for block_num:' + blockNum);
+					resolve('Got the replayed transaction');
+				}, (error) => {
+					clearTimeout(handle);
+					t.fail('Failed to receive event replay for Event for transaction id ::' + queryTxId);
+					throw (error);
+				},
+				// a real application would have remembered the last block number
+				// received and used that value to start the replay
+				// Setting the disconnect to true as we do not want to use this
+				// ChannelEventHub after the event we are looking for comes in
+				{startBlock: 0, disconnect: true},
+			);
+			t.pass('Successfully registered transaction replay for ' + queryTxId);
+
+			channelEventHub.connect(); //connect to receive filtered blocks
+			t.pass('Successfully called connect on the transaction replay event hub for filtered blocks');
+		});
+	}).then((results) => {
+		t.pass('Successfully checked replay');
+		// check that we can get the user again without password
+		// also verifies that we can get a complete user properly stored
+		// when using a connection profile
+		return client.setUserContext({username: 'admin'});
+	}).then((admin: User) => {
+		t.pass('Successfully loaded user \'admin\' from store for org1');
+
+		const request: ChaincodeQueryRequest = {
+			args: ['b'],
+			chaincodeId: 'examplets',
+			fcn: 'query',
+		};
+
+		return channel.queryByChaincode(request); //logged in as user on org1
+	}).then((responsePayloads) => {
+		// should only be one response ...as only one peer is defined as CHAINCODE_QUERY_ROLE
+		let queryResponses = 0;
+		if (responsePayloads) {
+			for (const responsePayload of responsePayloads) {
+				queryResponses++;
+				t.equal(
+					responsePayload.toString('utf8'),
+					'300',
+					'checking query results are correct that user b has 300 now after the move');
+			}
+		} else {
+			t.fail('response_payloads is null');
+			throw new Error('Failed to get response on query');
+		}
+		t.equals(queryResponses, 1, 'Checking that only one response was seen');
+
+		return client.queryChannels('peer0.org1.example.com');
+	}).then((results: ChannelQueryResponse) => {
+		logger.debug(' queryChannels ::%j', results);
+		let found = false;
+		for (const resultChannel of results.channels) {
+			logger.debug(' queryChannels has found %s', resultChannel.channel_id);
+			if (resultChannel.channel_id === channelName) {
+				found = true;
+			}
+		}
+		if (found) {
+			t.pass('Successfully found our channel in the result list');
+		} else {
+			t.fail('Failed to find our channel in the result list');
+		}
+
+		return client.queryInstalledChaincodes('peer0.org1.example.com', true); // use admin
+	}).then((results: ChaincodeQueryResponse) => {
+		logger.debug(' queryInstalledChaincodes ::%j', results);
+		let found = false;
+		for (const resultChaincode of results.chaincodes) {
+			logger.debug(' queryInstalledChaincodes has found %s', resultChaincode.name);
+			if (resultChaincode.name === 'examplets') {
+				found = true;
+			}
+		}
+		if (found) {
+			t.pass('Successfully found our chaincode in the result list');
+		} else {
+			t.fail('Failed to find our chaincode in the result list');
+		}
+
+		return channel.queryBlock(1);
+	}).then((results: Block) => {
+		logger.debug(' queryBlock ::%j', results);
+		t.equals('1', results.header.number, 'Should be able to find our block number');
+
+		return channel.queryInfo();
+	}).then((results: BlockchainInfo) => {
+		logger.debug(' queryInfo ::%j', results);
+		t.equals(3, results.height.low, 'Should be able to find our block height');
+
+		return channel.queryBlockByHash(results.previousBlockHash);
+	}).then((results: Block) => {
+		logger.debug(' queryBlockHash ::%j', results);
+		t.equals('1', results.header.number, 'Should be able to find our block number by hash');
+
+		return channel.queryTransaction(queryTxId);
+	}).then((results) => {
+		logger.debug(' queryTransaction ::%j', results);
+		t.equals(0, results.validationCode, 'Should be able to find our transaction validationCode');
+
+		return channel.queryBlock(1, 'peer0.org1.example.com');
+	}).then((results: Block) => {
+		logger.debug(' queryBlock ::%j', results);
+		t.equals('1', results.header.number, 'Should be able to find our block number with string peer name');
+
+		return channel.queryInfo('peer0.org1.example.com');
+	}).then((results: BlockchainInfo) => {
+		logger.debug(' queryInfo ::%j', results);
+		t.equals(3, results.height.low, 'Should be able to find our block height with string peer name');
+
+		return channel.queryBlockByHash(results.previousBlockHash, 'peer0.org1.example.com');
+	}).then((results: Block) => {
+		logger.debug(' queryBlockHash ::%j', results);
+		t.equals('1', results.header.number, 'Should be able to find our block number by hash with string peer name');
+
+		return channel.queryTransaction(queryTxId, 'peer0.org1.example.com');
+	}).then((results) => {
+		logger.debug(' queryTransaction ::%j', results);
+		t.equals(0, results.validationCode, 'Should be able to find our transaction validationCode with string peer name');
+
+		return channel.queryBlock(1, 'peer0.org1.example.com', true);
+	}).then((results: Block) => {
+		logger.debug(' queryBlock ::%j', results);
+		t.equals('1', results.header.number, 'Should be able to find our block number by admin');
+
+		return channel.queryInfo('peer0.org1.example.com', true);
+	}).then((results: BlockchainInfo) => {
+		logger.debug(' queryInfo ::%j', results);
+		t.equals(3, results.height.low, 'Should be able to find our block height by admin');
+
+		return channel.queryBlockByHash(results.previousBlockHash, 'peer0.org1.example.com', true);
+	}).then((results: Block) => {
+		logger.debug(' queryBlockHash ::%j', results);
+		t.equals('1', results.header.number, 'Should be able to find our block number by hash by admin');
+
+		return channel.queryTransaction(queryTxId, 'peer0.org1.example.com', true);
+	}).then((results) => {
+		logger.debug(' queryTransaction ::%j', results);
+		t.equals(0, results.validationCode, 'Should be able to find our transaction validationCode by admin');
+
+		const txId = client.newTransactionID(); // get a non admin transaction ID
+		const request: ChaincodeInvokeRequest = {
+			args: ['a', 'b', '100'],
+			chaincodeId: 'examplets',
+			fcn: 'move',
+			txId,
+			//targets - Letting default to all endorsing peers defined on the channel in the connection profile
+		};
+
+		// put in a very small timeout to force a failure, thereby checking that the timeout value was being used
+		return channel.sendTransactionProposal(request, 1); //logged in as org1 user
+	}).then((results: ProposalResponseObject) => {
+		const proposalResponses = results[0];
+		for (const proposalResponse of proposalResponses) {
+			if (proposalResponse instanceof Error && proposalResponse.toString().indexOf('REQUEST_TIMEOUT') > 0) {
+				t.pass('Successfully cause a timeout error by setting the timeout setting to 1');
+			} else {
+				t.fail('Failed to get the timeout error');
+			}
+		}
+
+		return true;
+	}).then(() => {
+		t.pass('Testing has completed successfully');
+		t.end();
+	}).catch((err: Error) => {
+		t.fail(err.message);
+		t.end();
+		throw err;
+	});
 });
 
 function sleep(ms: number): Promise<void> {
