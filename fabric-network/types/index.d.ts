@@ -4,11 +4,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-/* tslint:disable:max-classes-per-file */
+import {Channel, ChannelPeer, TransactionId, TransientMap} from 'fabric-client';
+import {User} from 'fabric-common/types';
 
-import { Channel, ChannelPeer, TransactionId, User } from 'fabric-client';
-
-import Client = require('fabric-client');
+import {Block, ChannelEventHub, Client, Peer, ProposalErrorResponse} from 'fabric-client';
 
 //-------------------------------------------
 // Main fabric network classes
@@ -49,7 +48,9 @@ export type TxEventHandlerFactory = (transaction: Transaction, options: object) 
 
 export interface TxEventHandler {
 	startListening(): Promise<void>;
+
 	waitForEvents(): Promise<void>;
+
 	cancelListening(): void;
 }
 
@@ -73,44 +74,59 @@ export interface Query {
 }
 
 export interface QueryResults {
-	[peerName: string]: Buffer | Client.ProposalErrorResponse;
+	[peerName: string]: Buffer | ProposalErrorResponse;
 }
 
 export class Gateway {
 	constructor();
+
 	public connect(config: Client | string | object, options: GatewayOptions): Promise<void>;
+
 	public disconnect(): void;
+
 	public getClient(): Client;
+
 	public getCurrentIdentity(): User;
+
 	public getNetwork(channelName: string): Promise<Network>;
+
 	public getOptions(): GatewayOptions;
 }
 
 export interface Network {
 	getChannel(): Channel;
+
 	getContract(chaincodeId: string, name?: string): Contract;
-	addBlockListener(listenerName: string, callback: (block: Client.Block) => Promise<any>, options?: object): Promise<BlockEventListener>;
+
+	addBlockListener(listenerName: string, callback: (block: Block) => Promise<any>, options?: object): Promise<BlockEventListener>;
+
 	addCommitListener(listenerName: string, callback: (error: Error, transactionId: string, status: string, blockNumber: string) => Promise<any>, options?: object): Promise<CommitEventListener>;
 }
 
 export interface Contract {
 	createTransaction(name: string): Transaction;
+
 	evaluateTransaction(name: string, ...args: string[]): Promise<Buffer>;
+
 	submitTransaction(name: string, ...args: string[]): Promise<Buffer>;
-	addContractListener(listenerName: string, eventName: string, callback: (error: Error, event: {[key: string]: any}, blockNumber: string, transactionId: string, status: string) => Promise<any>, options?: object): Promise<ContractEventListener>;
+
+	addContractListener(listenerName: string, eventName: string, callback: (error: Error, event: { [key: string]: any }, blockNumber: string, transactionId: string, status: string) => Promise<any>, options?: object): Promise<ContractEventListener>;
 }
 
-export interface TransientMap {
-	[key: string]: Buffer;
-}
 export interface Transaction {
 	evaluate(...args: string[]): Promise<Buffer>;
+
 	getName(): string;
+
 	getTransactionID(): TransactionId;
+
 	getNetwork(): Network;
+
 	setTransient(transientMap: TransientMap): this;
+
 	submit(...args: string[]): Promise<Buffer>;
-	addCommitListener(callback: (error: Error, transactionId: string, status: string, blockNumber: string) => Promise<any>, options: object, eventHub?: Client.ChannelEventHub): Promise<CommitEventListener>;
+
+	addCommitListener(callback: (error: Error, transactionId: string, status: string, blockNumber: string) => Promise<any>, options: object, eventHub?: ChannelEventHub): Promise<CommitEventListener>;
 }
 
 export interface FabricError extends Error {
@@ -118,7 +134,8 @@ export interface FabricError extends Error {
 	transactionId?: string;
 }
 
-export interface TimeoutError extends FabricError {} // tslint:disable-line:no-empty-interface
+export interface TimeoutError extends FabricError {
+}
 
 //-------------------------------------------
 // Wallet Management
@@ -135,36 +152,55 @@ export interface IdentityInfo {
 
 export interface Wallet {
 	delete(label: string): Promise<void>;
+
 	exists(label: string): Promise<boolean>;
+
 	export(label: string): Promise<Identity>;
+
 	import(label: string, identity: Identity): Promise<void>;
+
 	list(): Promise<IdentityInfo[]>;
 }
 
 export class InMemoryWallet implements Wallet {
 	constructor(mixin?: WalletMixin);
+
 	public delete(label: string): Promise<void>;
+
 	public exists(label: string): Promise<boolean>;
+
 	public export(label: string): Promise<Identity>;
+
 	public import(label: string, identity: Identity): Promise<void>;
+
 	public list(): Promise<IdentityInfo[]>;
 }
 
 export class FileSystemWallet implements Wallet {
 	constructor(path: string, mixin?: WalletMixin);
+
 	public delete(label: string): Promise<void>;
+
 	public exists(label: string): Promise<boolean>;
+
 	public export(label: string): Promise<Identity>;
+
 	public import(label: string, identity: Identity): Promise<void>;
+
 	public list(): Promise<IdentityInfo[]>;
 }
 
 export class CouchDBWallet implements Wallet {
 	constructor(options: CouchDBWalletOptions, mixin?: WalletMixin)
+
 	public delete(label: string): Promise<void>;
+
 	public exists(label: string): Promise<boolean>;
+
 	public export(label: string): Promise<Identity>;
+
 	public import(label: string, identity: Identity): Promise<void>;
+
 	public list(): Promise<IdentityInfo[]>;
 }
 
@@ -172,15 +208,18 @@ export interface CouchDBWalletOptions {
 	url: string;
 }
 
-export interface WalletMixin {} // tslint:disable-line:no-empty-interface
+export interface WalletMixin {
+}
 
 export class X509WalletMixin implements WalletMixin {
 	public static createIdentity(mspId: string, certificate: string, privateKey: string): Identity;
+
 	constructor();
 }
 
 export class HSMWalletMixin implements WalletMixin {
 	public static createIdentity(mspId: string, certificate: string): Identity;
+
 	constructor();
 }
 
@@ -195,8 +234,11 @@ export class BaseCheckpointer {
 
 export class FileSystemCheckpointer extends BaseCheckpointer {
 	constructor(channelName: string, listenerName: string, options: any);
+
 	public initialize(): Promise<void>;
+
 	public save(transactionId: string, blockNumber: string): Promise<void>;
+
 	public load(): Promise<Checkpoint>;
 }
 
@@ -204,31 +246,40 @@ export type CheckpointerFactory = (channelName: string, listenerName: string, op
 
 export class EventHubManager {
 	constructor();
-	public getEventHub(peer: Client.Peer): Client.ChannelEventHub;
-	public getEventHubs(peers: Client.Peer[]): Client.ChannelEventHub[];
-	public getReplayEventHub(peer: Client.Peer): Client.ChannelEventHub;
-	public getReplayEventHubs(peers: Client.Peer[]): Client.ChannelEventHub[];
+
+	public getEventHub(peer: Peer): ChannelEventHub;
+
+	public getEventHubs(peers: Peer[]): ChannelEventHub[];
+
+	public getReplayEventHub(peer: Peer): ChannelEventHub;
+
+	public getReplayEventHubs(peers: Peer[]): ChannelEventHub[];
 }
 
 export class CommitEventListener {
 	public register(): void;
-	public setEventHub(eventHub: Client.ChannelEventHub): void;
+
+	public setEventHub(eventHub: ChannelEventHub): void;
+
 	public unregister(): void;
 }
 
 export class ContractEventListener {
 	public register(): void;
+
 	public unregister(): void;
 }
 
 export class BlockEventListener {
 	public register(): void;
+
 	public unregister(): void;
 }
 
 export interface BaseEventHubSelectionStrategy {
-	getNextPeer(): Client.Peer;
-	updateEventHubAvailability(deadPeer: Client.Peer): void;
+	getNextPeer(): Peer;
+
+	updateEventHubAvailability(deadPeer: Peer): void;
 }
 
 export class DefaultEventHubSelectionStrategies {

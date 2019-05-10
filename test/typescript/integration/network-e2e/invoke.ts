@@ -6,7 +6,6 @@
 
 // This is an end-to-end test that focuses on exercising all parts of the fabric APIs
 // in a happy-path scenario
-'use strict';
 
 import fs = require('fs-extra');
 import os = require('os');
@@ -24,15 +23,11 @@ import {
 	GatewayOptions,
 	InMemoryWallet,
 	Transaction,
-	TransientMap,
 	Wallet,
 	X509WalletMixin,
 } from 'fabric-network';
 
-import {
-	ChannelEventHub,
-	RegistrationOpts,
-} from 'fabric-client';
+import {ChannelEventHub, RegistrationOpts, TransientMap} from 'fabric-client';
 
 import e2eUtils = require('../../../integration/e2e/e2eUtils.js');
 import sampleEventStrategy = require('../../../integration/network-e2e/sample-transaction-event-handler');
@@ -743,9 +738,11 @@ test('\n\n***** Network End-to-end flow: invoke transaction while channel\'s eve
 		function onEvent(txId: string, code: string, blockNumber: number) {
 			eventsReceived++;
 		}
+
 		function onError(error: Error) {
 			errorsReceived++;
 		}
+
 		// Trigger replay of previous blocks, which will prevent any other listeners registering with this event hub
 		const registrationOptions: RegistrationOpts = {
 			disconnect: false,
