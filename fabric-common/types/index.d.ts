@@ -9,76 +9,13 @@
 import FabricCAServices = require('fabric-ca-client');
 import { BaseClient } from '../../fabric-common/types/base';
 
-interface ProtoBufObject {
-	toBuffer(): Buffer;
-}
 
-declare class Remote {
-	constructor(url: string, opts?: Client.ConnectionOpts);
-	public getName(): string;
-	public setName(name: string): void;
-	public getUrl(): string;
-}
 
-declare class Client extends BaseClient {
-	public static loadFromConfig(config: any): Client;
 
-	constructor();
-	public loadFromConfig(config: any): void;
-	public setTlsClientCertAndKey(clientCert: string, clientKey: string): void;
-	public addTlsClientCertAndKey(opts: any): void;
-	public isDevMode(): boolean;
-	public setDevMode(mode: boolean): void;
-	public newChannel(name: string): Client.Channel;
-	public getChannel(name?: string, throwError?: boolean): Client.Channel;
-	public newPeer(url: string, opts?: Client.ConnectionOpts): Client.Peer;
-	public getPeer(name: string): Client.Peer;
-	public getPeersForOrg(mspid?: string): Client.Peer[];
-	public newOrderer(url: string, opts?: Client.ConnectionOpts): Client.Orderer;
-	public getOrderer(name: string): Client.Orderer;
-	public getPeersForOrgOnChannel(channelNames: string | string[]): Client.ChannelPeer[];
-	public getCertificateAuthority(): FabricCAServices;
-	public getClientConfig(): any;
-	public getMspid(): string;
-	public newTransactionID(admin?: boolean): Client.TransactionId;
-	public extractChannelConfig(configEnvelope: Buffer): Buffer;
-	public signChannelConfig(config: Buffer): Client.ConfigSignature;
-	public createChannel(request: Client.ChannelRequest): Promise<Client.BroadcastResponse>;
-	public updateChannel(request: Client.ChannelRequest): Promise<Client.BroadcastResponse>;
-	public queryPeers(request: Client.PeerQueryRequest): Promise<Client.PeerQueryResponse>;
-	public queryChannels(peer: Client.Peer | string, useAdmin?: boolean): Promise<Client.ChannelQueryResponse>;
-	public queryInstalledChaincodes(peer: Client.Peer | string, useAdmin?: boolean): Promise<Client.ChaincodeQueryResponse>;
-	public installChaincode(request: Client.ChaincodeInstallRequest, timeout?: number): Promise<Client.ProposalResponseObject>;
-	public initCredentialStores(): Promise<boolean>;
-	public setStateStore(store: Client.IKeyValueStore): void;
-	public setAdminSigningIdentity(privateKey: string, certificate: string, mspid: string): void;
-	public saveUserToStateStore(): Promise<Client.User>;
-	public setUserContext(user: Client.User | Client.UserContext, skipPersistence?: boolean): Promise<Client.User>;
-	public getUserContext(name: string, checkPersistence?: boolean): Promise<Client.User> | Client.User;
-	public loadUserFromStateStore(name: string): Promise<Client.User>;
-	public getStateStore(): Client.IKeyValueStore;
-	public createUser(opts: Client.UserOpts): Promise<Client.User>;
+export = Common;
 
-	public getTargetPeers(requestTargets: string | string[] | Client.Peer | Client.Peer[]): Client.Peer[];
-	public getTargetOrderer(requestOrderer?: string | Client.Orderer, channelOrderers?: Client.Orderer[], channelName?: string): Client.Orderer;
-	public getClientCertHash(create: boolean): Buffer;
-}
+declare namespace Common { // tslint:disable-line:no-namespace
 
-export = Client;
-
-declare namespace Client { // tslint:disable-line:no-namespace
-	export enum Status {
-		UNKNOWN = 0,
-		SUCCESS = 200,
-		BAD_REQUEST = 400,
-		FORBIDDEN = 403,
-		NOT_FOUND = 404,
-		REQUEST_ENTITY_TOO_LARGE = 413,
-		INTERNAL_SERVER_ERROR = 500,
-		SERVICE_UNAVAILABLE = 503,
-	}
-
-	export type ChaincodeType = 'golang' | 'car' | 'java' | 'node';
 	export interface ICryptoKey {
 		getSKI(): string;
 		isSymmetric(): boolean;
@@ -119,15 +56,6 @@ declare namespace Client { // tslint:disable-line:no-namespace
 		roles?: string[];
 	}
 
-	export interface ConnectionOpts {
-		pem?: string;
-		clientKey?: string;
-		clientCert?: string;
-		'request-timeout'?: number;
-		'ssl-target-name-override'?: string;
-		[propName: string]: any;
-	}
-
 	export class User {
 		public static isInstance(object: any): boolean;
 
@@ -146,152 +74,20 @@ declare namespace Client { // tslint:disable-line:no-namespace
 		public fromString(): Promise<User>;
 	}
 
-	export interface InitializeRequest {
-		target?: string | Peer | ChannelPeer;
-		discover?: boolean;
-		endorsementHandler?: string;
-		commitHandler?: string;
-		asLocalhost?: boolean;
-		configUpdate?: Buffer;
-	}
-
-	export class Channel {
-		public static sendSignedProposal(request: SignedProposal, timeout?: number): Promise<ProposalResponseObject>;
-
-		constructor(name: string, clientContext: Client);
-		public close(): void;
-		public initialize(request?: InitializeRequest): Promise<void>;
-		public getName(): string;
-
-		public getDiscoveryResults(endorsementHints?: DiscoveryChaincodeInterest[]): Promise<DiscoveryResults>;
-		public getEndorsementPlan(endorsementHint?: DiscoveryChaincodeInterest): Promise<DiscoveryResultEndorsementPlan>;
-		public refresh(): Promise<DiscoveryResults>;
-
-		public getOrganizations(): string[];
-
-		public setMSPManager(mspManager: MSPManager): void;
-		public getMSPManager(): MSPManager;
-
-		public addPeer(peer: Peer, mspid: string, roles?: ChannelPeerRoles, replace?: boolean): void;
-		public removePeer(peer: Peer): void;
-		public getPeer(name: string): ChannelPeer;
-		public getChannelPeer(name: string): ChannelPeer;
-		public getPeers(): ChannelPeer[];
-		public getChannelPeers(): ChannelPeer[];
-
-		public addOrderer(orderer: Orderer, replace?: boolean): void;
-		public removeOrderer(orderer: Orderer): void;
-		public getOrderer(name: string): Orderer;
-		public getOrderers(): Orderer[];
-		public newChannelEventHub(peer: Peer | string): ChannelEventHub;
-		public getChannelEventHub(name: string): ChannelEventHub;
-		public getChannelEventHubsForOrg(mspid?: string): ChannelEventHub[];
-		public getPeersForOrg(mspid?: string): ChannelPeer[];
-
-		public getGenesisBlock(request?: OrdererRequest): Promise<Block>;
-
-		public joinChannel(request: JoinChannelRequest, timeout?: number): Promise<ProposalResponse[]>;
-		public getChannelConfig(target?: string | Peer, timeout?: number): Promise<any>;
-		public getChannelConfigFromOrderer(): Promise<any>;
-		public loadConfigUpdate(configUpdateBytes: Buffer): any;
-		public loadConfigEnvelope(configEnvelope: any): any;
-
-		public queryInfo(target?: Peer | string, useAdmin?: boolean): Promise<BlockchainInfo>;
-		public queryBlockByTxID(txId: string, target?: Peer | string, useAdmin?: boolean, skipDecode?: false): Promise<Block>;
-		public queryBlockByTxID(txId: string, target?: Peer | string, useAdmin?: boolean, skipDecode?: true): Promise<Buffer>;
-		public queryBlockByHash(block: Buffer, target?: Peer | string, useAdmin?: boolean, skipDecode?: false): Promise<Block>;
-		public queryBlockByHash(block: Buffer, target?: Peer | string, useAdmin?: boolean, skipDecode?: true): Promise<Buffer>;
-		public queryBlock(blockNumber: number, target?: Peer | string, useAdmin?: boolean, skipDecode?: false): Promise<Block>;
-		public queryBlock(blockNumber: number, target?: Peer | string, useAdmin?: boolean, skipDecode?: true): Promise<Buffer>;
-		public queryTransaction(txId: string, target?: Peer | string, useAdmin?: boolean, skipDecode?: false): Promise<any>;
-		public queryTransaction(txId: string, target?: Peer | string, useAdmin?: boolean, skipDecode?: true): Promise<Buffer>;
-
-		public queryInstantiatedChaincodes(target: Peer | string, useAdmin?: boolean): Promise<ChaincodeQueryResponse>;
-		public queryCollectionsConfig(options: CollectionQueryOptions, useAdmin?: boolean): Promise<CollectionQueryResponse[]>;
-
-		public sendInstantiateProposal(request: ChaincodeInstantiateUpgradeRequest, timeout?: number): Promise<ProposalResponseObject>;
-		public sendUpgradeProposal(request: ChaincodeInstantiateUpgradeRequest, timeout?: number): Promise<ProposalResponseObject>;
-		public sendTransactionProposal(request: ChaincodeInvokeRequest, timeout?: number): Promise<ProposalResponseObject>;
-		public sendTransaction(request: TransactionRequest, timeout?: number): Promise<BroadcastResponse>;
-
-		public generateUnsignedProposal(request: ProposalRequest, mspId: string, certificate: string, admin: boolean): Promise<Proposal>;
-		public sendSignedProposal(request: SignedProposal, timeout?: number): Promise<ProposalResponseObject>;
-		public generateUnsignedTransaction(request: TransactionRequest): Promise<any>;
-		public sendSignedTransaction(request: SignedCommitProposal, timeout?: number): Promise<BroadcastResponse>;
-
-		public queryByChaincode(request: ChaincodeQueryRequest, useAdmin?: boolean): Promise<Buffer[]>;
-		public verifyProposalResponse(proposalResponse: ProposalResponse): boolean;
-		public compareProposalResponseResults(proposalResponses: ProposalResponse[]): boolean;
-	}
-
-	export interface ChannelPeerRoles {
-		endorsingPeer?: boolean;
-		chaincodeQuery?: boolean;
-		ledgerQuery?: boolean;
-		eventSource?: boolean;
-		discover?: boolean;
-	}
-
-	export class ChannelPeer {
-		constructor(mspid: string, channel: Channel, peer: Peer, roles: ChannelPeerRoles);
-
-		public close(): void;
-
-		public getMspid(): string;
-		public getName(): string;
-		public getUrl(): string;
-		public setRole(role: string, isIn: boolean): void;
-		public isInRole(role: string): boolean;
-		public isInOrg(mspid: string): boolean;
-		public getChannelEventHub(): ChannelEventHub;
-		public getPeer(): Peer;
-		public sendProposal(proposal: Proposal, timeout?: number): Promise<ProposalResponse>;
-		public sendDiscovery(request: SignedRequest, timeout?: number): Promise<DiscoveryResults>;
-	}
-
 	export interface IKeyValueStore {
 		getValue(name: string): Promise<string>;
 		setValue(name: string, value: string): Promise<string>;
 	}
 
-	export interface ConfigSignature extends ProtoBufObject {
-		signature_header: Buffer;
-		signature: Buffer;
-	}
 
-	export class TransactionId {
-		constructor(signerOrUserContext: IIdentity, admin: boolean);
-		public getTransactionID(): string;
-		public getNonce(): Buffer;
-		public isAdmin(): boolean;
-	}
-
-	export interface ChannelRequest {
-		name: string;
-		orderer: Orderer | string;
-		envelope?: Buffer;
-		config?: Buffer;
-		txId?: TransactionId;
-		signatures: ConfigSignature[] | string[];
-	}
-
-	export interface TransactionRequest {
-		proposalResponses: ProposalResponse[];
-		proposal: Proposal;
-		txId?: TransactionId;
-		orderer?: string | Orderer;
-	}
 
 	export interface BroadcastResponse {
 		status: string;
 		info?: string;
 	}
 
-	export interface ProposalErrorResponse extends Error {
-		isProposalResponse?: boolean;
-	}
 
-	export type ProposalResponseObject = [Array<Client.ProposalResponse | Client.ProposalErrorResponse>, Client.Proposal];
+	export type ProposalResponseObject = [Array<Common.ProposalResponse | Common.ProposalErrorResponse>, Common.Proposal];
 
 	export interface OrdererRequest {
 		txId?: TransactionId;
@@ -392,19 +188,7 @@ declare namespace Client { // tslint:disable-line:no-namespace
 		signature: Buffer;
 	}
 
-	export class Peer extends Remote {
-		constructor(url: string, opts?: ConnectionOpts);
-		public close(): void;
-		public sendProposal(proposal: PeerSignedProposal, timeout?: number): Promise<ProposalResponse>;
-		public sendDiscovery(request: SignedRequest, timeout?: number): Promise<DiscoveryResults>;
-	}
 
-	export class Orderer extends Remote {
-		constructor(url: string, opts?: ConnectionOpts);
-		public close(): void;
-		public sendBroadcast(envelope: Buffer): Promise<BroadcastResponse>;
-		public sendDeliver(envelope: Buffer): Promise<any>;
-	}
 
 	export interface MSPConstructorConfig {
 		rootCerts: IIdentity[];
@@ -413,7 +197,7 @@ declare namespace Client { // tslint:disable-line:no-namespace
 		signer: ISigningIdentity;
 		id: string;
 		orgs: string[];
-		cryptoSuite: Client.ICryptoSuite;
+		cryptoSuite: Common.ICryptoSuite;
 	}
 
 	export class MSP {
@@ -503,7 +287,7 @@ declare namespace Client { // tslint:disable-line:no-namespace
 	export interface CryptoContent {
 		privateKey?: string;
 		privateKeyPEM?: string;
-		privateKeyObj?: Client.ICryptoKey;
+		privateKeyObj?: Common.ICryptoKey;
 		signedCert?: string;
 		signedCertPEM?: string;
 	}
@@ -588,11 +372,6 @@ declare namespace Client { // tslint:disable-line:no-namespace
 		member_only_write: boolean;
 	}
 
-	export interface Response {
-		status: Client.Status;
-		message: string;
-		payload: Buffer;
-	}
 
 	export interface Proposal {
 		header: ByteBuffer;

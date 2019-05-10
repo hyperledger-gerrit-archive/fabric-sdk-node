@@ -21,7 +21,7 @@
   },
   "files": [
       "index.d.ts",
-      "base.d.ts"
+	  "../node_modules/fabric-common/types/base.d.ts"
   ],
   "formatCodeOptions": {
     "indentSize": 4,
