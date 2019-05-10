@@ -4,7 +4,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { CryptoSetting, ICryptoKeyStore, ICryptoSuite, IKeyValueStore } from 'fabric-client';
+import { fabricCommon} from './index';
+import CryptoSetting = fabricCommon.CryptoSetting;
+import ICryptoSuite = fabricCommon.ICryptoSuite;
+import ICryptoKeyStore = fabricCommon.ICryptoKeyStore;
+import IKeyValueStore = fabricCommon.IKeyValueStore;
 
 export abstract class BaseClient {
 	public static newCryptoSuite(setting?: CryptoSetting): ICryptoSuite;
