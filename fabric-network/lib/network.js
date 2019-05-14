@@ -177,9 +177,19 @@ class Network {
 	/**
 	 * Get the checkpoint factory
 	 * @private
+	 * @param {Object} options the event listener options
 	 * @returns {Function} The checkpointer factory
 	 */
-	getCheckpointer() {
+	getCheckpointer(options) {
+		if (options) {
+			if (typeof options.checkpointer === 'undefined') {
+				return this.checkpointer;
+			} else if (options.hasOwnProperty('checkpointer') && typeof options.checkpointer.factory === 'function') {
+				return options.checkpointer;
+			} else if (options.checkpointer === false) {
+				return null;
+			}
+		}
 		return this.checkpointer;
 	}
 

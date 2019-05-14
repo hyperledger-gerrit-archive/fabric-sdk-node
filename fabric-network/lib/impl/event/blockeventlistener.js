@@ -35,7 +35,7 @@ class BlockEventListener extends AbstractEventListener {
 		this._registration = this.eventHub.registerBlockEvent(
 			this._onEvent.bind(this),
 			this._onError.bind(this),
-			this.options
+			this.clientOptions
 		);
 		this.eventHub.connect(!this._filtered);
 		this._registered = true;

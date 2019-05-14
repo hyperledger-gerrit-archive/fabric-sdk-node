@@ -29,12 +29,25 @@ class FileSystemCheckpointer extends BaseCheckpointer {
 		await fs.createFile(checkpointPath);
 	}
 
-	async save(transactionId, blockNumber) {
+	async save(transactionId, blockNumber, expectedTotal) {
+		const hasExpectedTotal = !!expectedTotal;
 		const checkpointPath = this._getCheckpointFileName(this._chaincodeId);
 		if (!(await fs.exists(checkpointPath))) {
 			await this._initialize();
 		}
-		const checkpoint = await this.load();
+
+		let fullCheckpoint;
+		let checkpoint;
+		if (hasExpectedTotal) {
+			fullCheckpoint = await this.load();
+			if (fullCheckpoint.hasOwnProperty('blockNumber')) {
+				fullCheckpoint = {[fullCheckpoint.blockNumber]: fullCheckpoint};
+			}
+			checkpoint = fullCheckpoint[blockNumber] || {blockNumber: blockNumber, transactionIds: [], expectedTotal};
+		} else {
+			checkpoint = await this.load();
+		}
+
 		if (Number(checkpoint.blockNumber) === Number(blockNumber)) {
 			const transactionIds = checkpoint.transactionIds;
 			if (transactionId) {
@@ -49,7 +62,12 @@ class FileSystemCheckpointer extends BaseCheckpointer {
 			}
 			checkpoint.blockNumber = blockNumber;
 		}
-		await fs.writeFile(checkpointPath, JSON.stringify(checkpoint));
+		if (hasExpectedTotal) {
+			fullCheckpoint[blockNumber] = checkpoint;
+			await fs.writeFile(checkpointPath, JSON.stringify(fullCheckpoint));
+		} else {
+			await fs.writeFile(checkpointPath, JSON.stringify(checkpoint));
+		}
 	}
 
 	async load() {
@@ -65,6 +83,25 @@ class FileSystemCheckpointer extends BaseCheckpointer {
 			checkpoint = JSON.parse(checkpoint);
 		}
 		return checkpoint;
+	}
+
+	async loadStartingCheckpoint() {
+		const checkpoint = await this.load();
+		const orderedBlockNumbers = Object.keys(checkpoint).sort();
+		if (checkpoint.hasOwnProperty('blockNumber') || orderedBlockNumbers.length === 0) {
+			return checkpoint;
+		} else {
+			// Sort checkpoints in ascending order
+			for (const blockNumber of orderedBlockNumbers) {
+				const blockCheckpoint = checkpoint[blockNumber];
+				if (!blockCheckpoint.hasOwnProperty('expectedNumber')) {
+					continue;
+				} else if (Number(blockCheckpoint.expectedNumber) > blockCheckpoint.transactionIds.length) {
+					return blockCheckpoint;
+				}
+			}
+		}
+		return checkpoint[orderedBlockNumbers[orderedBlockNumbers.length - 1]];
 	}
 
 	_getCheckpointFileName() {

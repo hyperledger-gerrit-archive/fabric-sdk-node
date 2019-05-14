@@ -24,9 +24,10 @@ class BaseCheckpointer {
 	 * Updates the storage mechanism
 	 * @param {String} transactionId the transaction ID
 	 * @param {Number} blockNumber the block number
+	 * @param {Number} expectedTotal the number of events expected in this block
 	 * @async
 	 */
-	async save(transactionId, blockNumber) {
+	async save(transactionId, blockNumber, expectedTotal) {
 		throw new Error('Method has not been implemented');
 	}
 
@@ -36,6 +37,15 @@ class BaseCheckpointer {
 	 */
 	async load() {
 		throw new Error('Method has not been implemented');
+	}
+
+	/**
+	 * Loads the earliest incomplete checkpoint to decide which
+	 * block to replay from
+	 * @return {Checkpoint} the checkpoint
+	 */
+	async loadStartingCheckpoint() {
+		return this.load();
 	}
 
 	/**

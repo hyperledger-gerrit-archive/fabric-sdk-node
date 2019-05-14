@@ -49,7 +49,7 @@ class CommitEventListener extends AbstractEventListener {
 			this.transactionId,
 			this._onEvent.bind(this),
 			this._onError.bind(this),
-			Object.assign({unregister: true}, this.options)
+			Object.assign({unregister: true}, this.clientOptions)
 		);
 		this._registration = this.eventHub._transactionRegistrations[txid];
 		this.eventHub.connect(!this._filtered);
@@ -96,7 +96,7 @@ class CommitEventListener extends AbstractEventListener {
 			this.eventHub = this.getEventHubManager().getFixedEventHub(this.eventHub._peer);
 		}
 
-		this.options.disconnect = true;
+		this.clientOptions.disconnect = true;
 		await this.register();
 	}
 

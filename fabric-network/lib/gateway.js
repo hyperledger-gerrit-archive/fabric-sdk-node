@@ -28,7 +28,7 @@ const logger = require('./logger').getLogger('Gateway');
  * default query handler capability.
  * @property {module:fabric-network.Gateway~DiscoveryOptions} [discovery] Discovery options.
  * @property {module:fabric-network.Gateway~DefaultEventHubSelectionOptions} [eventHubSelectionOptions] Event hub selection options.
- * @property {module:fabric-network.Network~CheckpointerFactory} [checkpointer] Event hub selection options.
+ * @property {module:fabric-network.Gateway~CheckpointerFactory} [checkpointer] Event hub selection options.
  */
 
 /**
@@ -66,7 +66,7 @@ const logger = require('./logger').getLogger('Gateway');
  * @memberof module:fabric-network
  * @param {String} channelName the name of the channel the checkpoint exists in
  * @param {String} listenerName the name of the listener being checkpointed
- * @param {Object} [options] Optional. Options to configure behaviour of customer checkpointers i.e.
+ * @param {Object} [options] Optional. Options to configure behaviour of custom checkpointers i.e.
  * Supplying database connection details
  * @returns {BaseCheckpointer}
  */
