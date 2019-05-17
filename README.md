@@ -23,12 +23,12 @@ Clone the project and launch the following commands to install the dependencies 
 In the project root folder:
 * `npm install` to install dependencies
 * optionally, `gulp docs` to generate API docs if you want to review the doc content
-* `install-and-generate-certs` to generate the required crypto material used by the tests
+* `gulp install-and-generate-certs` to generate the required crypto material used by the tests
 * `npm test` or `gulp test-headless` to run the headless tests that do not require any additional set up
 
 The following tests require setting up a local blockchain network as the target. You need to build the necessary Docker images required to run the network. Follow the steps below to set it up.
-* You will need the peers, orderers and fabric-ca server (new implementation of the member service) to run the tests. The first two components are from the *fabric* repository. The fabric-ca server is from the *fabric-ca* repository.
-* git clone both the *fabric* and *fabric-ca* repositories into the $GOPATH/src/github.com/hyperledger folder in your native host (MacOS, Windows or Ubuntu, etc).
+* You will need the peers, orderers, fabric-ccenv, fabric-nodeenv and fabric-ca server (new implementation of the member service) to run the tests. The first three components are from the *fabric* repository. The fabric-nodeenv is from the *fabric-chaincode-node* repository. The fabric-ca server is from the *fabric-ca* repository.
+* git clone all the *fabric*, *fabric-chaincode-node* and *fabric-ca* repositories into the $GOPATH/src/github.com/hyperledger folder in your native host (MacOS, Windows or Ubuntu, etc).
 
 You can build the docker images in your native host (Mac, Ubuntu, Windows, etc.):
 * If docker is installed and it’s not ‘Docker for Mac/Windows’, uninstall and follow Docker’s clean up instructions to uninstall completely.
@@ -40,9 +40,12 @@ You can build the docker images in your native host (Mac, Ubuntu, Windows, etc.)
 * build fabric-ca docker image (new membership service)
   * cd `$GOPATH/src/github.com/hyperledger/fabric-ca`
   * run `make docker`. For more build instructions see [fabric-ca README](https://github.com/hyperledger/fabric-ca)
-* build fabric peer and orderer docker images and other ancillary images
+* build fabric peer, orderer, fabric-ccenv and other ancillary docker images
   * `cd $GOPATH/src/github.com/hyperledger/fabric`
   * run `make docker` to build the docker images (you may need to run `make docker-clean` first if you've built before)
+* build fabric-nodeenv docker image
+  * `cd $GOPATH/src/github.com/hyperledger/fabric-chaincode-node`
+  * run `npm install` and `gulp docker-image-build` to build the docker image (you may need to run `gulp docker-image-clean` first if you've built before)
 * Now you are ready to run the tests:
   * Clear out your previous key value stores that may have cached user enrollment certificates (`rm -rf /tmp/hfc-*`, `rm -rf ~/.hfc-key-store`)
   * run `gulp test` to execute the entire test suite (800+ test cases), or you can run them individually
