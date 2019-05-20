@@ -168,30 +168,26 @@ describe('FabricCAClient', () => {
 			}
 		});
 
-		it('should throw if called with too few parameters', () => {
-			(() => {
-				const connect_opts = {
-					caname: 'test-ca-name',
-					protocol: 'https',
-					hostname: 'testHost'
-				};
+		it('should reject if called with too few parameters', async () => {
+			const connect_opts = {
+				caname: 'test-ca-name',
+				protocol: 'https',
+				hostname: 'testHost'
+			};
 
-				const client = new FabricCAClientRewire(connect_opts, cryptoPrimitives);
-				client.register('one', 'too', 'few', 'parameters', 'for', 'this_function_call');
-			}).should.throw(/Missing required parameters/);
+			const client = new FabricCAClientRewire(connect_opts, cryptoPrimitives);
+			await client.register('one', 'too', 'few', 'parameters', 'for', 'this_function_call').should.be.rejectedWith(/Missing required parameters/);
 		});
 
-		it('should throw if called with maxEnrollements that is not a number', () => {
-			(() => {
-				const connect_opts = {
-					caname: 'test-ca-name',
-					protocol: 'https',
-					hostname: 'testHost'
-				};
+		it('should reject if called with maxEnrollements that is not a number', async () => {
+			const connect_opts = {
+				caname: 'test-ca-name',
+				protocol: 'https',
+				hostname: 'testHost'
+			};
 
-				const client = new FabricCAClientRewire(connect_opts, cryptoPrimitives);
-				client.register(null, null, null, null, 'string_num', null, null);
-			}).should.throw(/Parameter 'maxEnrollments' must be a number/);
+			const client = new FabricCAClientRewire(connect_opts, cryptoPrimitives);
+			client.register(null, null, null, null, 'string_num', null, null).should.be.rejectedWith(/Parameter 'maxEnrollments' must be a number/);
 		});
 
 		it('should call POST with the correct method, request, and signing identity', () => {
@@ -312,17 +308,15 @@ describe('FabricCAClient', () => {
 			}
 		});
 
-		it('should throw if not called with the correct number of parameters', () => {
-			(() => {
-				const connect_opts = {
-					caname: 'test-ca-name',
-					protocol: 'https',
-					hostname: 'testHost'
-				};
+		it('should reject if not called with the correct number of parameters', async () => {
+			const connect_opts = {
+				caname: 'test-ca-name',
+				protocol: 'https',
+				hostname: 'testHost'
+			};
 
-				const client = new FabricCAClientRewire(connect_opts, cryptoPrimitives);
-				client.revoke('one_too', 'few', 'parameters_for', 'this_function_call');
-			}).should.throw(/Missing required parameters/);
+			const client = new FabricCAClientRewire(connect_opts, cryptoPrimitives);
+			await client.revoke('one_too', 'few', 'parameters_for', 'this_function_call').should.be.rejectedWith(/Missing required parameters/);
 		});
 
 		it('should call POST with the correct method, request, and signing identity', () => {
@@ -384,17 +378,15 @@ describe('FabricCAClient', () => {
 			}
 		});
 
-		it('should throw if not called with the correct number of parameters', () => {
-			(() => {
-				const connect_opts = {
-					caname: 'test-ca-name',
-					protocol: 'https',
-					hostname: 'testHost'
-				};
+		it('should reject if not called with the correct number of parameters', async () => {
+			const connect_opts = {
+				caname: 'test-ca-name',
+				protocol: 'https',
+				hostname: 'testHost'
+			};
 
-				const client = new FabricCAClientRewire(connect_opts, cryptoPrimitives);
-				client.reenroll('one_too_few_parameters_for_this_function_call');
-			}).should.throw(/Missing required parameters/);
+			const client = new FabricCAClientRewire(connect_opts, cryptoPrimitives);
+			await client.reenroll('one_too_few_parameters_for_this_function_call').should.be.rejectedWith(/Missing required parameters/);
 		});
 
 		it('should call POST with the correct method, request, and signing identity', () => {
