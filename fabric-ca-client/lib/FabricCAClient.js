@@ -7,7 +7,6 @@ const config = utils.getConfig();
 const logger = utils.getLogger('FabricCAClient.js');
 const http = require('http');
 const https = require('https');
-const util = require('util');
 const IdentityService = require('./IdentityService');
 const AffiliationService = require('./AffiliationService');
 const CertificateService = require('./CertificateService');
@@ -41,8 +40,8 @@ const FabricCAClient = class {
 			throw new Error(`Invalid connection options. ${err.message}`);
 		}
 
-		this._caName = connect_opts.caname,
-			this._httpClient = (connect_opts.protocol === 'http') ? http : https;
+		this._caName = connect_opts.caname;
+		this._httpClient = (connect_opts.protocol === 'http') ? http : https;
 		this._hostname = connect_opts.hostname;
 		if (connect_opts.port) {
 			this._port = connect_opts.port;
@@ -93,10 +92,7 @@ const FabricCAClient = class {
 	 * signing certificate, hash algorithm and signature algorithm
 	 * @returns {Promise} The enrollment secret to use when this user enrolls
 	 */
-	register(enrollmentID, enrollmentSecret, role, affiliation, maxEnrollments, attrs, signingIdentity) {
-
-		const self = this;
-
+	async register(enrollmentID, enrollmentSecret, role, affiliation, maxEnrollments, attrs, signingIdentity) {
 		// all arguments are required
 		if (arguments.length < 7) {
 			throw new Error('Missing required parameters. \'enrollmentID\', \'enrollmentSecret\', \'role\', \'affiliation\', ' +
@@ -106,32 +102,26 @@ const FabricCAClient = class {
 			throw new Error('Parameter \'maxEnrollments\' must be a number');
 		}
 
-		return new Promise(((resolve, reject) => {
-			const regRequest = {
-				'id': enrollmentID,
-				'affiliation': affiliation,
-				'max_enrollments': maxEnrollments
-			};
+		const regRequest = {
+			affiliation,
+			id: enrollmentID,
+			max_enrollments: maxEnrollments
+		};
 
-			if (role) {
-				regRequest.type = role;
-			}
+		if (role) {
+			regRequest.type = role;
+		}
 
-			if (attrs) {
-				regRequest.attrs = attrs;
-			}
+		if (attrs) {
+			regRequest.attrs = attrs;
+		}
 
-			if (typeof enrollmentSecret === 'string' && enrollmentSecret !== '') {
-				regRequest.secret = enrollmentSecret;
-			}
+		if (typeof enrollmentSecret === 'string' && enrollmentSecret !== '') {
+			regRequest.secret = enrollmentSecret;
+		}
 
-			return self.post('register', regRequest, signingIdentity)
-				.then((response) => {
-					return resolve(response.result.secret);
-				}).catch((err) => {
-					return reject(err);
-				});
-		}));
+		const response = await this.post('register', regRequest, signingIdentity);
+		return response.result.secret;
 	}
 
 	/**
@@ -148,32 +138,21 @@ const FabricCAClient = class {
 	 * signing certificate, hash algorithm and signature algorithm
 	 * @returns {Promise} The revocation results
 	 */
-	revoke(enrollmentID, aki, serial, reason, signingIdentity) {
-
-		const self = this;
-
+	async revoke(enrollmentID, aki, serial, reason, signingIdentity) {
 		// all arguments are required
 		if (arguments.length < 5) {
 			throw new Error('Missing required parameters. \'enrollmentID\', \'aki\', \'serial\', \'reason\', ' +
 				'\'callerID\' and \'signingIdentity\' are all required.');
 		}
 
-		return new Promise(((resolve, reject) => {
+		const regRequest = {
+			aki,
+			serial,
+			reason,
+			id: enrollmentID
+		};
 
-			const regRequest = {
-				'id': enrollmentID,
-				'aki': aki,
-				'serial': serial,
-				'reason': reason
-			};
-
-			return self.post('revoke', regRequest, signingIdentity)
-				.then((response) => {
-					return resolve(response);
-				}).catch((err) => {
-					return reject(err);
-				});
-		}));
+		return await this.post('revoke', regRequest, signingIdentity);
 	}
 
 	/**
@@ -184,32 +163,21 @@ const FabricCAClient = class {
 	 * @param {AttributeRequest[]} attr_reqs An array of {@link AttributeRequest}
 	 * @returns {Promise} {@link EnrollmentResponse}
 	 */
-	reenroll(csr, signingIdentity, attr_reqs) {
-
-		const self = this;
-
+	async reenroll(csr, signingIdentity, attr_reqs) {
 		// First two arguments are required
 		if (arguments.length < 2) {
 			throw new Error('Missing required parameters.  \'csr\', \'signingIdentity\' are all required.');
 		}
 
-		return new Promise(((resolve, reject) => {
+		const request = {
+			certificate_request: csr
+		};
 
-			const request = {
-				certificate_request: csr
-			};
+		if (attr_reqs) {
+			request.attr_reqs = attr_reqs;
+		}
 
-			if (attr_reqs) {
-				request.attr_reqs = attr_reqs;
-			}
-
-			return self.post('reenroll', request, signingIdentity)
-				.then((response) => {
-					return resolve(response);
-				}).catch((err) => {
-					return reject(err);
-				});
-		}));
+		return await this.post('reenroll', request, signingIdentity);
 	}
 
 	/**
@@ -255,11 +223,10 @@ const FabricCAClient = class {
 		return this.request('PUT', api_method, signingIdentity, requestObj);
 	}
 
-	request(http_method, api_method, signingIdentity, requestObj) {
-
+	async request(http_method, api_method, signingIdentity, requestObj) {
 		// Check for required args (requestObj optional)
 		if (arguments.length < 3) {
-			return Promise.reject('Missing required parameters.  \'http_method\', \'api_method\' and \'signingIdentity\' are all required.');
+			throw new Error('Missing required parameters.  \'http_method\', \'api_method\' and \'signingIdentity\' are all required.');
 		}
 
 		if (requestObj) {
@@ -275,80 +242,75 @@ const FabricCAClient = class {
 		const SO_TIMEOUT = config.get('socket-operation-timeout');
 		logger.debug('CONNECTION_TIMEOUT = %s, SO_TIMEOUT = %s', CONNECTION_TIMEOUT, SO_TIMEOUT ? SO_TIMEOUT : 'infinite');
 
-		const self = this;
-		const path = self._baseAPI + api_method;
+		const path = this._baseAPI + api_method;
 
 		const requestOptions = {
-			hostname: self._hostname,
-			port: self._port,
+			hostname: this._hostname,
+			port: this._port,
 			path,
 			method: http_method,
 			headers: {
-				Authorization: self.generateAuthToken(requestObj, signingIdentity, path, http_method)
+				Authorization: this.generateAuthToken(requestObj, signingIdentity, path, http_method)
 			},
-			ca: self._tlsOptions.trustedRoots,
-			rejectUnauthorized: self._tlsOptions.verify,
+			ca: this._tlsOptions.trustedRoots,
+			rejectUnauthorized: this._tlsOptions.verify,
 			timeout: CONNECTION_TIMEOUT
 		};
 
-		return new Promise(((resolve, reject) => {
-
-			const request = self._httpClient.request(requestOptions, (response) => {
+		return new Promise((resolve, reject) => {
+			const request = this._httpClient.request(requestOptions, response => {
 
 				const responseBody = [];
-				response.on('data', (data) => {
+				response.on('data', data => {
 					responseBody.push(data);
 				});
 
-				response.on('end', (data) => {
+				response.on('end', data => {
 					const payload = responseBody.join('');
 
 					if (!payload) {
-						return reject(new Error(
-							util.format('fabric-ca request %s failed with HTTP status code %s', api_method, response.statusCode)));
+						reject(new Error(`fabric-ca request ${api_method} failed with HTTP status code ${response.statusCode}`));
 					}
 					// response should be JSON
 					let responseObj;
 					try {
 						responseObj = JSON.parse(payload);
 						if (responseObj.success) {
-							return resolve(responseObj);
+							resolve(responseObj);
 						} else {
-							return reject(new Error(
-								util.format('fabric-ca request %s failed with errors [%s]', api_method, JSON.stringify(responseObj && responseObj.errors ? responseObj.errors : responseObj))));
+							reject(new Error(`fabric-ca request ${api_method} failed with errors [${JSON.stringify(responseObj && responseObj.errors ? responseObj.errors : responseObj)}]`));
 						}
 
 					} catch (err) {
-						return reject(new Error(
-							util.format('Could not parse %s response [%s] as JSON due to error [%s]', api_method, payload, err)));
+						reject(new Error(`Could not parse ${api_method} response [${payload}] as JSON due to error [${err}]`));
 					}
 				});
 			});
 
-			request.on('socket', (socket) => {
+			request.on('socket', socket => {
 				socket.setTimeout(CONNECTION_TIMEOUT);
 				socket.on('timeout', () => {
 					request.abort();
-					reject(new Error(util.format('Calling %s endpoint failed, CONNECTION Timeout', api_method)));
+					reject(new Error(`Calling ${api_method} endpoint failed, CONNECTION Timeout`));
 				});
 			});
 
 			// If socket-operation-timeout is not set, read operations will not time out (infinite timeout).
 			if (SO_TIMEOUT && Number.isInteger(SO_TIMEOUT) && SO_TIMEOUT > 0) {
 				request.setTimeout(SO_TIMEOUT, () => {
-					reject(new Error(util.format('Calling %s endpoint failed, READ Timeout', api_method)));
+					reject(new Error(`Calling ${api_method} endpoint failed, READ Timeout`));
 				});
 			}
 
-			request.on('error', (err) => {
-				reject(new Error(util.format('Calling %s endpoint failed with error [%s]', api_method, err)));
+			request.on('error', err => {
+				reject(new Error(`Calling ${api_method} endpoint failed with error [${err}]`));
 			});
 
 			if (requestObj) {
 				request.write(JSON.stringify(requestObj));
 			}
 			request.end();
-		}));
+		});
 	}
 
 	/*
@@ -372,7 +334,7 @@ const FabricCAClient = class {
 		}
 
 		const sig = signingIdentity.sign(signString, {hashFunction: this._cryptoPrimitives.hash.bind(this._cryptoPrimitives)});
-		logger.debug(util.format('signString: %s', signString));
+		logger.debug('signString: %s', signString);
 
 		const b64Sign = Buffer.from(sig, 'hex').toString('base64');
 		return `${cert}.${b64Sign}`;
@@ -402,27 +364,24 @@ const FabricCAClient = class {
 	 * @throws Will throw an error if all parameters are not provided
 	 * @throws Will throw an error if calling the enroll API fails for any reason
 	 */
-	enroll(enrollmentID, enrollmentSecret, csr, profile, attr_reqs) {
-
-		const self = this;
-
+	async enroll(enrollmentID, enrollmentSecret, csr, profile, attr_reqs) {
 		// check for required args
 		if (arguments.length < 3) {
-			return Promise.reject('Missing required parameters.  \'enrollmentID\', \'enrollmentSecret\' and \'csr\' are all required.');
+			throw new Error('Missing required parameters.  \'enrollmentID\', \'enrollmentSecret\' and \'csr\' are all required.');
 		}
 
 		const requestOptions = {
-			hostname: self._hostname,
-			port: self._port,
-			path: `${self._baseAPI}enroll`,
+			hostname: this._hostname,
+			port: this._port,
+			path: this._baseAPI + 'enroll',
 			method: 'POST',
 			auth: `${enrollmentID}:${enrollmentSecret}`,
-			ca: self._tlsOptions.trustedRoots,
-			rejectUnauthorized: self._tlsOptions.verify
+			ca: this._tlsOptions.trustedRoots,
+			rejectUnauthorized: this._tlsOptions.verify
 		};
 
 		const enrollRequest = {
-			caName: self._caName,
+			caName: this._caName,
 			certificate_request: csr
 		};
 
@@ -434,22 +393,19 @@ const FabricCAClient = class {
 			enrollRequest.attr_reqs = attr_reqs;
 		}
 
-		return new Promise(((resolve, reject) => {
-
-			const request = self._httpClient.request(requestOptions, (response) => {
+		return await new Promise((resolve, reject) => {
+			const request = this._httpClient.request(requestOptions, response => {
 
 				const responseBody = [];
-				response.on('data', (chunk) => {
+				response.on('data', chunk => {
 					responseBody.push(chunk);
 				});
 
-				response.on('end', (data) => {
-
+				response.on('end', data => {
 					const payload = responseBody.join('');
 
 					if (!payload) {
-						return reject(new Error(
-							util.format('Enrollment failed with HTTP status code', response.statusCode)));
+						reject(new Error(`Enrollment failed with HTTP status code ${response.statusCode}`));
 					}
 					// response should be JSON
 					try {
@@ -460,62 +416,50 @@ const FabricCAClient = class {
 							// Cert field is Base64-encoded PEM
 							enrollResponse.enrollmentCert = Buffer.from(res.result.Cert, 'base64').toString();
 							enrollResponse.caCertChain = Buffer.from(res.result.ServerInfo.CAChain, 'base64').toString();
-							return resolve(enrollResponse);
+							resolve(enrollResponse);
 						} else {
-							return reject(new Error(
-								util.format('Enrollment failed with errors [%s]', JSON.stringify(res.errors))));
+							reject(new Error(`Enrollment failed with errors [${JSON.stringify(res.errors)}]`));
 						}
 
 					} catch (err) {
-						return reject(new Error(
-							util.format('Could not parse enrollment response [%s] as JSON due to error [%s]', payload, err)));
+						reject(new Error(`Could not parse enrollment response [${payload}] as JSON due to error [${err}]`));
 					}
 				});
 
-				response.on('error', (error) => {
-					reject(new Error(
-						util.format('Enrollment failed with error [%s]', error)));
+				response.on('error', error => {
+					reject(new Error(`Enrollment failed with error [${error}]`));
 				});
 			});
 
-			request.on('error', (err) => {
-				reject(new Error(util.format('Calling enrollment endpoint failed with error [%s]', err)));
+			request.on('error', err => {
+				reject(new Error(`Calling enrollment endpoint failed with error [${err}]`));
 			});
 
 			const body = JSON.stringify(enrollRequest);
 			request.end(body);
-
-		}));
-
+		});
 	}
 
-	generateCRL(revokedBefore, revokedAfter, expireBefore, expireAfter, signingIdentity) {
-		const self = this;
-
+	async generateCRL(revokedBefore, revokedAfter, expireBefore, expireAfter, signingIdentity) {
 		if (arguments.length !== 5) {
-			return Promise.reject(new Error('Missing required parameters. \'revokedBefore\', \'revokedAfter\' ,' +
-				'\'expireBefore\', \'expireAfter\' and \'signingIdentity\' are all required.'));
+			throw new Error('Missing required parameters. \'revokedBefore\', \'revokedAfter\' ,' +
+				'\'expireBefore\', \'expireAfter\' and \'signingIdentity\' are all required.');
 		}
 
-		const request = {};
-		request.revokedBefore = revokedBefore;
-		request.revokedAfter = revokedAfter;
-		request.expireBefore = expireBefore;
-		request.expireAfter = expireAfter;
-		request.caname = self._caName;
+		const request = {
+			revokedBefore,
+			revokedAfter,
+			expireBefore,
+			expireAfter,
+			caname: this._caName
+		};
 
-		return new Promise(((resolve, reject) => {
-			return self.post('gencrl', request, signingIdentity)
-				.then((response) => {
-					if (response.success && response.result) {
-						return resolve(response.result.CRL);
-					} else {
-						return reject(response.errors);
-					}
-				}).catch((err) => {
-					return reject(err);
-				});
-		}));
+		const response = await this.post('gencrl', request, signingIdentity);
+		if (response.success && response.result) {
+			return response.result.CRL;
+		} else {
+			throw response.errors;
+		}
 	}
 
 	/**
