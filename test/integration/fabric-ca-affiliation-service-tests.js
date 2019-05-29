@@ -16,12 +16,12 @@ const tlsOptions = {
 	trustedRoots: [],
 	verify: false
 };
-const caName = 'ca-org1';
+const caname = 'ca-org1';
 let ORGS;
 
 function checkResponse(response, name, t) {
 	t.equal(response.success, true, 'Response should have property \'success\' equals true');
-	t.equal(response.result.caname, caName, `Response should have property 'caname' equals ${caName}`);
+	t.equal(response.result.caname, caname, `Response should have property 'caname' equals ${caname}`);
 	t.equal(response.result.name, name, `Response should have property 'name' equals ${JSON.stringify(name)}`);
 }
 

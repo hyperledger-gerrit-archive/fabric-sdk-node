@@ -228,7 +228,7 @@ describe('IdentityService', () => {
 
 		it('should call the client GET method with the extracted url and signing identity', async () => {
 			const clientStub = sinon.createStubInstance(FabricCAClient);
-			clientStub._caName = 'passed_ca_name';
+			clientStub._caname = 'passed_ca_name';
 			identity = new IdentityServiceRewire(clientStub);
 
 			const registrar = new User('bob');
@@ -271,7 +271,7 @@ describe('IdentityService', () => {
 
 		it('should call the client GET method with the extracted url and signing identity', async () => {
 			const clientStub = sinon.createStubInstance(FabricCAClient);
-			clientStub._caName = 'passed_ca_name';
+			clientStub._caname = 'passed_ca_name';
 			identity = new IdentityServiceRewire(clientStub);
 
 			const registrar = new User('bob');
@@ -434,7 +434,7 @@ describe('IdentityService', () => {
 				maxEnrollments: 42,
 				attrs: 'testAtts',
 				enrollmentSecret: 'shhh!',
-				caname: 'caName'
+				caname: 'caname'
 			};
 
 			await identity.update('bob', req, registrar);
@@ -450,7 +450,7 @@ describe('IdentityService', () => {
 				max_enrollments: 42,
 				attrs: 'testAtts',
 				secret: 'shhh!',
-				caname: 'caName'
+				caname: 'caname'
 			});
 		});
 	});

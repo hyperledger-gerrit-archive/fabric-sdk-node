@@ -43,7 +43,7 @@ const FabricCAServices = class extends BaseClient {
 	 * @param {string | object} url The endpoint URL for Fabric CA services of the form: "http://host:port" or "https://host:port"
 	 When this parameter is an object then it must include the parameters listed as key value pairs.
 	 * @param {TLSOptions} tlsOptions The TLS settings to use when the Fabric CA services endpoint uses "https"
-	 * @param {string} caName The optional name of the CA. Fabric-ca servers support multiple Certificate Authorities from
+	 * @param {string} caname The optional name of the CA. Fabric-ca servers support multiple Certificate Authorities from
 	 *  a single server. If omitted or null or an empty string, then the default CA is the target of requests
 	 * @param {CryptoSuite} cryptoSuite The optional cryptoSuite instance to be used if options other than defaults are needed.
 	 * If not specified, an instance of {@link CryptoSuite} will be constructed based on the current configuration settings:
@@ -55,22 +55,22 @@ const FabricCAServices = class extends BaseClient {
 	 *  is provided for this purpose, which can be used on top of any implementation of the {@link KeyValueStore} interface,
 	 *  such as a file-based store or a database-based one. The specific implementation is determined by the value of this configuration setting.
 	 */
-	constructor(url, tlsOptions, caName, cryptoSuite) {
+	constructor(url, tlsOptions, caname, cryptoSuite) {
 		super();
-		let _url, _tlsOptions, _caName, _cryptoSuite;
+		let _url, _tlsOptions, _caname, _cryptoSuite;
 		if (typeof url === 'object') {
 			_url = url.url;
 			_tlsOptions = url.tlsOptions;
-			_caName = url.caName;
+			_caname = url.caname;
 			_cryptoSuite = url.cryptoSuite;
 		} else {
 			_url = url;
 			_tlsOptions = tlsOptions;
-			_caName = caName;
+			_caname = caname;
 			_cryptoSuite = cryptoSuite;
 		}
 
-		this.caName = _caName;
+		this.caname = _caname;
 
 		const endpoint = parseURL(_url);
 
@@ -82,7 +82,7 @@ const FabricCAServices = class extends BaseClient {
 		}
 
 		this._fabricCAClient = new FabricCAClient({
-			caname: _caName,
+			caname: _caname,
 			protocol: endpoint.protocol,
 			hostname: endpoint.hostname,
 			port: endpoint.port,
@@ -96,10 +96,10 @@ const FabricCAServices = class extends BaseClient {
 	/**
 	 * Returns the name of the certificate authority.
 	 *
-	 * @returns {string} caName
+	 * @returns {string} caname
 	 */
 	getCaName() {
-		return this.caName;
+		return this.caname;
 	}
 
 	/**

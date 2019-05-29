@@ -158,7 +158,7 @@ class IdentityService {
 		checkRegistrar(registrar);
 		const signingIdentity = registrar.getSigningIdentity();
 
-		const url = 'identities/' + enrollmentID + '?ca=' + this.client._caName;
+		const url = 'identities/' + enrollmentID + '?ca=' + this.client._caname;
 		return this.client.get(url, signingIdentity);
 	}
 
@@ -173,7 +173,7 @@ class IdentityService {
 
 		const signingIdentity = registrar.getSigningIdentity();
 
-		return this.client.get('identities?ca=' + this.client._caName, signingIdentity);
+		return this.client.get('identities?ca=' + this.client._caname, signingIdentity);
 	}
 
 	/**

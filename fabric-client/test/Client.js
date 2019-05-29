@@ -724,7 +724,7 @@ describe('Client', () => {
 			sinon.assert.calledWith(requireStub, 'class-path');
 			sinon.assert.calledWith(caServiceStub, {
 				tlsOptions: {trustedRoots: ['cert'], verify: true},
-				caName: 'name',
+				caname: 'name',
 				cryptoSuite: null,
 				url: 'url'
 			});
@@ -739,7 +739,7 @@ describe('Client', () => {
 			sinon.assert.calledWith(requireStub, 'class-path');
 			sinon.assert.calledWith(caServiceStub, {
 				tlsOptions: {trustedRoots: [], verify: true},
-				caName: 'name',
+				caname: 'name',
 				cryptoSuite: null,
 				url: 'url'
 			});
@@ -2375,7 +2375,7 @@ describe('Client', () => {
 			client._cryptoSuite = {};
 			enrollStub.returns({key: 'key', certificate: 'cert'});
 
-			const user = await client._setUserFromConfig({username: 'test', password: 'password', caName: 'ca'});
+			const user = await client._setUserFromConfig({username: 'test', password: 'password', caname: 'ca'});
 			sinon.assert.calledWith(getUserContextStub, 'test', true);
 			sinon.assert.called(isEnrolledStub);
 			sinon.assert.called(getClientConfigStub);
@@ -2409,7 +2409,7 @@ describe('Client', () => {
 				}, certificate: 'cert'
 			});
 
-			const user = await client._setUserFromConfig({username: 'test', password: 'password', caName: 'ca'});
+			const user = await client._setUserFromConfig({username: 'test', password: 'password', caname: 'ca'});
 			sinon.assert.calledWith(getUserContextStub, 'test', true);
 			sinon.assert.called(isEnrolledStub);
 			sinon.assert.called(getClientConfigStub);
@@ -2438,7 +2438,7 @@ describe('Client', () => {
 			client._cryptoSuite = {};
 			enrollStub.returns({key: {toBytes: () => '-----BEGIN'}, certificate: 'cert'});
 
-			const user = await client._setUserFromConfig({username: 'test', password: 'password', caName: 'ca'});
+			const user = await client._setUserFromConfig({username: 'test', password: 'password', caname: 'ca'});
 			sinon.assert.calledWith(getUserContextStub, 'test', true);
 			sinon.assert.called(isEnrolledStub);
 			sinon.assert.called(getClientConfigStub);

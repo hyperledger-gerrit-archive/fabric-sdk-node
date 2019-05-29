@@ -620,7 +620,7 @@ const Client = class extends BaseClient {
 		const ca_service = new ca_service_impl({
 			url: ca_url,
 			tlsOptions: tls_options,
-			caName: ca_name,
+			caname: ca_name,
 			cryptoSuite: this._cryptoSuite
 		});
 		return ca_service;
@@ -1433,7 +1433,7 @@ const Client = class extends BaseClient {
 	 * @param {Object} opts - contains
 	 *                  - username [required] - username of the user
 	 *                  - password [optional] - password of the user
-	 *                  - caName [optional] - name of the Certificate Authority
+	 *                  - caname [optional] - name of the Certificate Authority
 	 */
 	async _setUserFromConfig(opts = {}) {
 		if (!opts.username) {
@@ -1465,7 +1465,7 @@ const Client = class extends BaseClient {
 		if (!mspid) {
 			throw new Error('Common connection profile is missing this client\'s organization and mspid');
 		}
-		const ca_service = this.getCertificateAuthority(opts.caName);
+		const ca_service = this.getCertificateAuthority(opts.caname);
 
 		const enrollment = await ca_service.enroll({
 			enrollmentID: opts.username,
@@ -1529,7 +1529,7 @@ const Client = class extends BaseClient {
 	 * @typedef {Object} UserNamePasswordObject
 	 * @property {string} username - Required. A string representing the user name of the user
 	 * @property {string} password - Optional. A string repsesenting the password of the user
-	 * @property {string} caName - Optional. A string repsesenting the name of the Certificate Authority.
+	 * @property {string} caname - Optional. A string repsesenting the name of the Certificate Authority.
 	 If not specified, will use the first Certifcate Authority on the list.
 	 */
 
@@ -1546,7 +1546,7 @@ const Client = class extends BaseClient {
 	 * @param {User | UserNamePasswordObject} user - An instance of the User class encapsulating the authenticated
 	 *                      user’s signing materials (private key and enrollment certificate).
 	 *                      The parameter may also be a {@link UserNamePasswordObject} that contains the username
-	 *                      and optionally the password and caName. A common connection profile must has been loaded to use the
+	 *                      and optionally the password and caname. A common connection profile must has been loaded to use the
 	 *                      {@link UserNamePasswordObject} which will also create the user context and set it on
 	 *                      this client instance. The created user context will be based on the current network
 	 *                      configuration( i.e. the current organization's CA, current persistence stores).

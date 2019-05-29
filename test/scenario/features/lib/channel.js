@@ -36,9 +36,9 @@ async function create_channel(channelTxPath, ccp, tls, channelName) {
 
 		// Conditional action on TLS enablement
 		if (tls) {
-			const caName = org.certificateAuthorities[0];
-			const fabricCAEndpoint = ccp.getCertificateAuthority(caName).url;
-			const tlsInfo = await testUtil.tlsEnroll(fabricCAEndpoint, caName);
+			const caname = org.certificateAuthorities[0];
+			const fabricCAEndpoint = ccp.getCertificateAuthority(caname).url;
+			const tlsInfo = await testUtil.tlsEnroll(fabricCAEndpoint, caname);
 			client.setTlsClientCertAndKey(tlsInfo.certificate, tlsInfo.key);
 		}
 
@@ -126,9 +126,9 @@ async function existing_channels(ccp, tls) {
 
 		// Conditional action on TLS enablement
 		if (tls) {
-			const caName = org.certificateAuthorities[0];
-			const fabricCAEndpoint = ccp.getCertificateAuthority(caName).url;
-			const tlsInfo = await testUtil.tlsEnroll(fabricCAEndpoint, caName);
+			const caname = org.certificateAuthorities[0];
+			const fabricCAEndpoint = ccp.getCertificateAuthority(caname).url;
+			const tlsInfo = await testUtil.tlsEnroll(fabricCAEndpoint, caname);
 			client.setTlsClientCertAndKey(tlsInfo.certificate, tlsInfo.key);
 		}
 
@@ -187,9 +187,9 @@ async function join_channel(ccp, tls, channelName, orgName) {
 
 		// Conditional action on TLS enablement
 		if (tls) {
-			const caName = ccp.getCertificatAuthoritiesForOrg(orgName)[0];
-			const fabricCAEndpoint = ccp.getCertificateAuthority(caName).url;
-			const tlsInfo = await testUtil.tlsEnroll(fabricCAEndpoint, caName);
+			const caname = ccp.getCertificatAuthoritiesForOrg(orgName)[0];
+			const fabricCAEndpoint = ccp.getCertificateAuthority(caname).url;
+			const tlsInfo = await testUtil.tlsEnroll(fabricCAEndpoint, caname);
 			client.setTlsClientCertAndKey(tlsInfo.certificate, tlsInfo.key);
 		}
 
@@ -291,9 +291,9 @@ async function update_channel(ccp, channelName, channelTxPath, tls) {
 
 		// Conditional action on TLS enablement
 		if (tls) {
-			const caName = org.certificateAuthorities[0];
-			const fabricCAEndpoint = ccp.getCertificateAuthority(caName).url;
-			const tlsInfo = await testUtil.tlsEnroll(fabricCAEndpoint, caName);
+			const caname = org.certificateAuthorities[0];
+			const fabricCAEndpoint = ccp.getCertificateAuthority(caname).url;
+			const tlsInfo = await testUtil.tlsEnroll(fabricCAEndpoint, caname);
 			client.setTlsClientCertAndKey(tlsInfo.certificate, tlsInfo.key);
 		}
 

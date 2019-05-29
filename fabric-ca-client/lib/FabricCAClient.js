@@ -41,7 +41,7 @@ const FabricCAClient = class {
 			throw new Error(`Invalid connection options. ${err.message}`);
 		}
 
-		this._caName = connect_opts.caname,
+		this._caname = connect_opts.caname,
 			this._httpClient = (connect_opts.protocol === 'http') ? http : https;
 		this._hostname = connect_opts.hostname;
 		if (connect_opts.port) {
@@ -263,7 +263,7 @@ const FabricCAClient = class {
 		}
 
 		if (requestObj) {
-			requestObj.caName = this._caName;
+			requestObj.caname = this._caname;
 		}
 		// establish socket timeout
 		// default: 3000ms
@@ -422,7 +422,7 @@ const FabricCAClient = class {
 		};
 
 		const enrollRequest = {
-			caName: self._caName,
+			caname: self._caname,
 			certificate_request: csr
 		};
 
@@ -502,7 +502,7 @@ const FabricCAClient = class {
 		request.revokedAfter = revokedAfter;
 		request.expireBefore = expireBefore;
 		request.expireAfter = expireAfter;
-		request.caname = self._caName;
+		request.caname = self._caname;
 
 		return new Promise(((resolve, reject) => {
 			return self.post('gencrl', request, signingIdentity)

@@ -87,7 +87,7 @@ test('\n\n***** use the connection profile file  *****\n\n', async (t) => {
 
 		// get the CA associated with this client's organization
 		let caService = client_org1.getCertificateAuthority();
-		t.equals(caService.fabricCAServices._fabricCAClient._caName, 'ca-org1', 'checking that caname is correct after resetting the config');
+		t.equals(caService.fabricCAServices._fabricCAClient._caname, 'ca-org1', 'checking that caname is correct after resetting the config');
 
 		let request = {
 			enrollmentID: 'admin',
@@ -108,7 +108,7 @@ test('\n\n***** use the connection profile file  *****\n\n', async (t) => {
 
 		// get the CA associated with this client's organization
 		caService = client_org2.getCertificateAuthority();
-		t.equals(caService.fabricCAServices._fabricCAClient._caName, 'ca-org2', 'checking that caname is correct after resetting the config');
+		t.equals(caService.fabricCAServices._fabricCAClient._caname, 'ca-org2', 'checking that caname is correct after resetting the config');
 		request = {
 			enrollmentID: 'admin',
 			enrollmentSecret: 'adminpw',
@@ -661,7 +661,7 @@ test('\n\n***** use the connection profile file  *****\n\n', async (t) => {
 	t.end();
 });
 
-test('\n\n***** Enroll user and set user context using a specified caName *****\n\n', async (t) => {
+test('\n\n***** Enroll user and set user context using a specified caname *****\n\n', async (t) => {
 	try {
 		// ca_name and org_name must match common connection profile
 		const ca_name = 'ca-org1';
@@ -681,18 +681,18 @@ test('\n\n***** Enroll user and set user context using a specified caName *****\
 		t.pass('Successfully created the key value store  and crypto store based on the config and network config');
 
 		const caService = client_org1.getCertificateAuthority();
-		t.equals(caService.fabricCAServices._fabricCAClient._caName, ca_name, 'checking that caname is correct after resetting the config');
+		t.equals(caService.fabricCAServices._fabricCAClient._caname, ca_name, 'checking that caname is correct after resetting the config');
 
 		const admin = await client_org1.setUserContext({username: 'admin', password: 'adminpw'});
 		t.pass('Successfully set user context \'admin\' for ' + org_name);
 
-		// register another user and enroll it with a specified caName
+		// register another user and enroll it with a specified caname
 		const ca1 = client_org1.getCertificateAuthority();
 		const secret = await ca1.register({enrollmentID: testuser, affiliation: org_name}, admin);
 		t.pass('Successfully registerred user ' + testuser + ' for ' + org_name);
 
-		await client_org1.setUserContext({username: testuser, password: secret, caName: ca_name});
-		t.pass('Successfully enrolled user and set user context using username, password, and caName');
+		await client_org1.setUserContext({username: testuser, password: secret, caname: ca_name});
+		t.pass('Successfully enrolled user and set user context using username, password, and caname');
 
 		let user = await client_org1.getUserContext();
 		if (user && user.getName() === testuser) {
@@ -701,7 +701,7 @@ test('\n\n***** Enroll user and set user context using a specified caName *****\
 			t.fail('Failed to get user from context');
 		}
 
-		// register another user and enroll it without a caName. SDK will pick the first CA on the list
+		// register another user and enroll it without a caname. SDK will pick the first CA on the list
 		const testuser2 = testuser + '2';
 		const secret2 = await ca1.register({enrollmentID: testuser2, affiliation: org_name}, admin);
 		t.pass('Successfully registerred user ' + testuser2 + ' for ' + org_name);
@@ -717,13 +717,13 @@ test('\n\n***** Enroll user and set user context using a specified caName *****\
 		}
 	} catch (err) {
 		logger.error(err);
-		t.fail('Got unexpected error when testing setUserContext with caName. Error: ' + err.message);
+		t.fail('Got unexpected error when testing setUserContext with caname. Error: ' + err.message);
 	}
 
 	t.end();
 });
 
-test('\n\n***** Enroll user and set user context using a bad caName *****\n\n', async (t) => {
+test('\n\n***** Enroll user and set user context using a bad caname *****\n\n', async (t) => {
 	try {
 		// ca_name and org_name must match common connection profile
 		const ca_name = 'ca-org1';
@@ -745,7 +745,7 @@ test('\n\n***** Enroll user and set user context using a bad caName *****\n\n', 
 		t.pass('Successfully created the key value store  and crypto store based on the config and network config');
 
 		const caService = client_org1.getCertificateAuthority();
-		t.equals(caService.fabricCAServices._fabricCAClient._caName, ca_name, 'checking that caname is correct after resetting the config');
+		t.equals(caService.fabricCAServices._fabricCAClient._caname, ca_name, 'checking that caname is correct after resetting the config');
 
 		const admin = await client_org1.setUserContext({username: 'admin', password: 'adminpw'});
 		t.pass('Successfully set user context \'admin\' for ' + org_name);
@@ -754,24 +754,24 @@ test('\n\n***** Enroll user and set user context using a bad caName *****\n\n', 
 		const secret = await ca1.register({enrollmentID: testuser, affiliation: org_name}, admin);
 
 		try {
-			await client_org1.setUserContext({username: testuser, password: secret, caName: ca_bad_name});
-			t.fail('Should throw error when setting user context using a bad caName');
+			await client_org1.setUserContext({username: testuser, password: secret, caname: ca_bad_name});
+			t.fail('Should throw error when setting user context using a bad caname');
 		} catch (err) {
 			// Expected error should include missing this client\'s organization and certificate authority
 			t.equal(err.message.includes('missing this client\'s organization and certificate authority'), true,
-				'Got expected error to enroll user using a bad caName. Error: ' + err.message);
+				'Got expected error to enroll user using a bad caname. Error: ' + err.message);
 		}
 
 		try {
-			await client_org1.setUserContext({username: testuser, password: secret, caName: ca_wrong_name});
-			t.fail('Should throw error when setting user context using a caName in another org');
+			await client_org1.setUserContext({username: testuser, password: secret, caname: ca_wrong_name});
+			t.fail('Should throw error when setting user context using a caname in another org');
 		} catch (err) {
 			// Expected error should include Authorization failure or Authentication failure
 			t.equal(err.message.includes('failure'), true,
-				'Got expected error to enroll user using a caName in another org. Error: ' + err.message);
+				'Got expected error to enroll user using a caname in another org. Error: ' + err.message);
 		}
 	} catch (err) {
-		t.fail('Got unexpected error when testing setUserContext with bad caName. Error: ' + err.message);
+		t.fail('Got unexpected error when testing setUserContext with bad caname. Error: ' + err.message);
 	}
 
 	t.end();

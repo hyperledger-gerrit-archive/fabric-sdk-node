@@ -65,9 +65,9 @@ async function connectGateway(ccp, tls, userName, orgName, gatewayName, useDisco
 	const userIdentity = await inMemoryIdentitySetup(inMemoryWallet, ccp, orgName, userName);
 
 	if (tls) {
-		const caName = ccp.getCertificatAuthoritiesForOrg(orgName)[0];
-		const fabricCAEndpoint = ccp.getCertificateAuthority(caName).url;
-		const tlsInfo = await testUtil.tlsEnroll(fabricCAEndpoint, caName);
+		const caname = ccp.getCertificatAuthoritiesForOrg(orgName)[0];
+		const fabricCAEndpoint = ccp.getCertificateAuthority(caname).url;
+		const tlsInfo = await testUtil.tlsEnroll(fabricCAEndpoint, caname);
 		await inMemoryWallet.import('tlsId', X509WalletMixin.createIdentity(userIdentity, tlsInfo.certificate, tlsInfo.key));
 	}
 	const opts = {

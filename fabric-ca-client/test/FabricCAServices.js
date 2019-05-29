@@ -63,7 +63,7 @@ describe('FabricCAServices', () => {
 		it('should call "parseURL" with information extracted from the URL object', () => {
 			const url = {
 				url: 'https://hyperledger.com',
-				caName: 'my_ca',
+				caname: 'my_ca',
 				cryptoSuite: cryptoPrimitives
 			};
 			new FabricCAServicesRewire(url);
@@ -129,14 +129,14 @@ describe('FabricCAServices', () => {
 			const service = new FabricCAServicesRewire('http://penguin.com', null, 'ca_name', cryptoPrimitives);
 
 			// Should set things correctly
-			service.caName.should.be.equal('ca_name');
+			service.caname.should.be.equal('ca_name');
 			service._fabricCAClient.should.exist;
 		});
 	});
 
 	describe('#getCaName', () => {
 
-		it('should return the caName', () => {
+		it('should return the caname', () => {
 			const service = new FabricCAServicesRewire('http://penguin.com', null, 'ca_name', cryptoPrimitives);
 			service.getCaName().should.equal('ca_name');
 		});

@@ -36,9 +36,9 @@ async function installChaincode(ccName, ccId, ccType, ccVersion, tls, ccp, orgNa
 
 	// Conditional action on TLS enablement
 	if (tls) {
-		const caName = ccp.getCertificatAuthoritiesForOrg(orgName)[0];
-		const fabricCAEndpoint = ccp.getCertificateAuthority(caName).url;
-		const tlsInfo = await testUtil.tlsEnroll(fabricCAEndpoint, caName);
+		const caname = ccp.getCertificatAuthoritiesForOrg(orgName)[0];
+		const fabricCAEndpoint = ccp.getCertificateAuthority(caname).url;
+		const tlsInfo = await testUtil.tlsEnroll(fabricCAEndpoint, caname);
 		client.setTlsClientCertAndKey(tlsInfo.certificate, tlsInfo.key);
 	}
 
@@ -162,9 +162,9 @@ async function instantiateChaincode(ccName, ccId, ccType, args, version, upgrade
 
 	// Conditional action on TLS enablement
 	if (tls) {
-		const caName = ccp.getCertificatAuthoritiesForOrg(orgName)[0];
-		const fabricCAEndpoint = ccp.getCertificateAuthority(caName).url;
-		const tlsInfo = await testUtil.tlsEnroll(fabricCAEndpoint, caName);
+		const caname = ccp.getCertificatAuthoritiesForOrg(orgName)[0];
+		const fabricCAEndpoint = ccp.getCertificateAuthority(caname).url;
+		const tlsInfo = await testUtil.tlsEnroll(fabricCAEndpoint, caname);
 		client.setTlsClientCertAndKey(tlsInfo.certificate, tlsInfo.key);
 	}
 

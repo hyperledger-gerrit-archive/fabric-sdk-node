@@ -68,7 +68,7 @@ describe('FabricCAClient', () => {
 
 			client._port.should.equal(7054);
 			client._tlsOptions.should.deep.equal({trustedRoots: [], verify: false});
-			client._caName.should.equal('test-ca-name');
+			client._caname.should.equal('test-ca-name');
 			client._httpClient.should.deep.equal(https);
 			client._hostname.should.equal('testHost');
 			client._baseAPI.should.equal('/api/v1/');

@@ -18,7 +18,7 @@ import { ICryptoSuite, ICryptoKeyStore, IKeyValueStore, User } from "fabric-clie
 import { BaseClient } from './base';
 
 declare class FabricCAServices extends BaseClient {
-    constructor(url: string | FabricCAServices.IFabricCAService, tlsOptions?: FabricCAServices.TLSOptions, caName?: string, cryptoSuite?: ICryptoSuite);
+    constructor(url: string | FabricCAServices.IFabricCAService, tlsOptions?: FabricCAServices.TLSOptions, caname?: string, cryptoSuite?: ICryptoSuite);
     getCaName(): string;
     register(req: FabricCAServices.IRegisterRequest, registrar: User): Promise<string>;
     enroll(req: FabricCAServices.IEnrollmentRequest): Promise<FabricCAServices.IEnrollResponse>;
@@ -42,7 +42,7 @@ declare namespace FabricCAServices {
     export interface IFabricCAService {
         url: string;
         tlsOptions?: TLSOptions;
-        caName?: string;
+        caname?: string;
         cryptoSuite?: ICryptoSuite;
     }
 

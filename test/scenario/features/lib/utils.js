@@ -238,15 +238,15 @@ function getSubmitter(client, peerAdmin, org, ccp) {
 /**
  * Enrol and get the cert
  * @param {*} fabricCAEndpoint url of org endpoint
- * @param {*} caName name of caName
+ * @param {*} caname name of caname
  * @return {Object} something useful in a promise
  */
-async function tlsEnroll(fabricCAEndpoint, caName) {
+async function tlsEnroll(fabricCAEndpoint, caname) {
 	const tlsOptions = {
 		trustedRoots: [],
 		verify: false
 	};
-	const caService = new FabricCAServices(fabricCAEndpoint, tlsOptions, caName);
+	const caService = new FabricCAServices(fabricCAEndpoint, tlsOptions, caname);
 	const req = {
 		enrollmentID: 'admin',
 		enrollmentSecret: 'adminpw',

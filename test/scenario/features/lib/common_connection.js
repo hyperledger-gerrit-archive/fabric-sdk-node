@@ -146,11 +146,11 @@ class CommonConnectionProfile {
 
 	/**
 	 * Retrieve a certificate authority named in the profile
-	 * @param {String} caName the name of the certificate authority
+	 * @param {String} caname the name of the certificate authority
 	 * @return {Object} the certifaicate authority
 	 */
-	getCertificateAuthority(caName) {
-		return this.profile.certificateAuthorities[caName];
+	getCertificateAuthority(caname) {
+		return this.profile.certificateAuthorities[caname];
 	}
 
 	/**
