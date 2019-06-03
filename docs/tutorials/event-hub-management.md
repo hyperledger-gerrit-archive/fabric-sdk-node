@@ -8,7 +8,7 @@ If you do not want the event hub strategy to manage event hubs for a listener, c
 The interface for an event hub selection strategy is as follows:
 
 ```javascript
-class BaseEventHubSelectionStrategy {
+class AbstractEventHubSelectionStrategy {
 	/**
 	 * Returns the next peer in the list per the strategy implementation
 	 * @returns {ChannelPeer}
