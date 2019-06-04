@@ -258,6 +258,12 @@ exports.getConfig = () => {
 //
 // Other miscellaneous methods
 //
+/**
+ * Used on the argument line to throw an error when the argument is missing
+ */
+module.exports.checkParameter = (name) => {
+	throw Error(`Missing ${name} parameter`);
+};
 
 /**
  * Convert from a bitArray to bytes (refer to SJCL's codec)
