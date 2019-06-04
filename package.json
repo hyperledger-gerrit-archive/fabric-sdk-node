@@ -40,6 +40,7 @@
     "del": "^3.0.0",
     "elliptic": "^6.3.2",
     "eslint": "^5.7.0",
+    "fabric-base": "file:fabric-base",
     "fabric-ca-client": "file:./fabric-ca-client",
     "fabric-client": "file:./fabric-client",
     "fabric-common": "file:./fabric-common",
