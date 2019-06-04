@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+const BaseClient = require('./lib/BaseClient');
 const Config = require('./lib/Config');
 const CryptoAlgorithms = require('./lib/CryptoAlgorithms');
 const CryptoSuite = require('./lib/CryptoSuite');
@@ -13,11 +14,11 @@ const Key = require('./lib/Key');
 const KeyValueStore = require('./lib/KeyValueStore');
 const Signer = require('./lib/Signer');
 const SigningIdentity = require('./lib/SigningIdentity');
-const Utils = require('./lib/Utils');
 const User = require('./lib/User');
-const BaseClient = require('./lib/BaseClient');
+const Utils = require('./lib/Utils');
 
 module.exports = {
+	BaseClient,
 	Config,
 	CryptoAlgorithms,
 	CryptoSuite,
@@ -27,7 +28,6 @@ module.exports = {
 	KeyValueStore,
 	Signer,
 	SigningIdentity,
-	Utils,
 	User,
-	BaseClient
+	Utils
 };
