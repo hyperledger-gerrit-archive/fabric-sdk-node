@@ -377,4 +377,7 @@ module.exports = function () {
 		Client.setConfigSetting('orderer-org2', {value: orderer_org2});
 	});
 
+	this.Then(/^I sleep to wait for all peers to catch up$/, {timeout: testUtil.TIMEOUTS.LONG_STEP}, async () => {
+		return await testUtil.sleep(testUtil.TIMEOUTS.SHORT_INC);
+	});
 };
