@@ -1854,7 +1854,7 @@ const Client = class extends BaseClient {
 	 */
 	getClientCertHash(create) {
 		const method = 'getClientCertHash';
-		logger.debug('%s - start', method);
+		logger.debug(`${method} - start`);
 		if (this._tls_mutual.clientCertHash) {
 			return this._tls_mutual.clientCertHash;
 		}
@@ -1864,11 +1864,11 @@ const Client = class extends BaseClient {
 		}
 
 		if (this._tls_mutual.clientCert) {
-			logger.debug('%s - using clientCert %s', method, this._tls_mutual.clientCert);
+			logger.debug(`${method} - using clientCert ${this._tls_mutual.clientCert}`);
 			const der_cert = sdkUtils.pemToDER(this._tls_mutual.clientCert);
 			this._tls_mutual.clientCertHash = computeHash(der_cert);
 		} else {
-			logger.debug('%s - no tls client cert', method);
+			logger.debug(`${method} - no tls client cert`);
 		}
 
 		return this._tls_mutual.clientCertHash;
