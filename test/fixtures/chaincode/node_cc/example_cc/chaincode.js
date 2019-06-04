@@ -120,7 +120,7 @@ const Chaincode = class {
 
 
 		if (args.length !== 3) {
-			return shim.error('Incorrect number of arguments. Expecting 4, function followed by 2 names and 1 value');
+			return shim.error('Incorrect number of arguments. Expecting 3, function followed by 2 names and 1 value');
 		}
 
 		const A = args[0];
