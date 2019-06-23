@@ -24,6 +24,11 @@ const languageToType = {
 };
 
 const fileNames = {
+	gosym: [
+		'src/golang-symlink/chaincode.go',
+		'src/golang-symlink/chaincode_test.go',
+		'src/golang-symlink/main.go'
+	],
 	golang: [
 		'src/golang-contract/chaincode.go',
 		'src/golang-contract/chaincode_test.go',
@@ -187,6 +192,14 @@ describe('Package', () => {
 			});
 
 		}
+
+		it('should create a smart contract package from a symlink to a golang contract', async () => {
+			const pkg = await Package.fromDirectory({name: 'my-contract', version: '1.2.3', path: 'golang-symlink', type: 'golang'});
+			pkg.getName().should.equal('my-contract');
+			pkg.getVersion().should.equal('1.2.3');
+			pkg.getType().should.equal('golang');
+			pkg.getFileNames().should.deep.equal(fileNames.gosym);
+		});
 
 	});
 
