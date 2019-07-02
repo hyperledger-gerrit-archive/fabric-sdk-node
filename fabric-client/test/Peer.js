@@ -86,7 +86,7 @@ describe('Peer', () => {
 			sandbox.restore();
 		});
 
-		it('should log function entry', () => {
+		it('should log function entry', async () => {
 			const FakeLogger = {
 				debug : () => {},
 				error: () => {}
@@ -99,13 +99,13 @@ describe('Peer', () => {
 			const obj = new PeerRewire('grpc://host:2700');
 
 			// this will throw, but we can still check method entry
-			obj.sendProposal()
+			await obj.sendProposal()
 				.then(() => {
 					sinon.assert.fail();
 				})
 				.catch(() => {
 					sinon.assert.called(debugStub);
-					debugStub.getCall(1).args.should.deep.equal(['%s - Start ----%s %s', 'sendProposal', 'host:2700', 'grpc://host:2700']);
+					debugStub.getCall(1).args.should.deep.equal(['_createClients - create peer endorser connection host:2700']);
 				});
 		});
 
@@ -380,13 +380,13 @@ describe('Peer', () => {
 			const obj = new PeerRewire('grpc://host:2700');
 
 			// this will throw, but we can still check method entry
-			obj.sendDiscovery()
+			await obj.sendDiscovery()
 				.then(() => {
 					sinon.assert.fail();
 				})
 				.catch(() => {
 					sinon.assert.called(debugStub);
-					debugStub.getCall(1).args.should.deep.equal(['%s - Start', 'sendDiscovery']);
+					debugStub.getCall(1).args.should.deep.equal(['_createClients - create peer endorser connection host:2700']);
 				});
 		});
 
