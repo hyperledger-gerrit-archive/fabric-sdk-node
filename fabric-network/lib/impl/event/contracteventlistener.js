@@ -127,6 +127,7 @@ class ContractEventListener extends AbstractEventListener {
 	}
 
 	async _onEvents(events) {
+		// eslint-disable-next-line no-console
 		console.log('_onEvents');
 		logger.debug(`[${this.listenerName}]: Received contract events as array`);
 		if (!this.options.asArray) {
