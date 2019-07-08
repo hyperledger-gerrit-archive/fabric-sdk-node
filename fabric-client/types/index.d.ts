@@ -7,7 +7,7 @@
 /* tslint:disable:max-classes-per-file */
 /* tslint:disable:ordered-imports */
 
-import { BaseClient } from './base';
+import { BaseClient } from '../../fabric-common/types/base';
 import FabricCAServices = require('fabric-ca-client');
 import { lstatSync } from 'fs';
 
