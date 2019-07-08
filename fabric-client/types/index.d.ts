@@ -7,7 +7,8 @@
 /* tslint:disable:max-classes-per-file */
 /* tslint:disable:ordered-imports */
 
-import { BaseClient } from './base';
+import { BaseClient } from 'fabric-common/types/base';
+import Common = require('fabric-common');
 import FabricCAServices = require('fabric-ca-client');
 import { lstatSync } from 'fs';
 
@@ -52,15 +53,15 @@ declare class Client extends BaseClient {
 	public queryInstalledChaincodes(peer: Client.Peer | string, useAdmin?: boolean): Promise<Client.ChaincodeQueryResponse>;
 	public installChaincode(request: Client.ChaincodeInstallRequestv1, timeout?: number): Promise<Client.ProposalResponseObject>;
 	public initCredentialStores(): Promise<boolean>;
-	public setStateStore(store: Client.IKeyValueStore): void;
+	public setStateStore(store: Common.IKeyValueStore): void;
 	public setAdminSigningIdentity(privateKey: string, certificate: string, mspid: string): void;
-	public _getSigningIdentity(admin: boolean): Client.ISigningIdentity;
-	public saveUserToStateStore(): Promise<Client.User>;
-	public setUserContext(user: Client.User | Client.UserContext, skipPersistence?: boolean): Promise<Client.User>;
-	public getUserContext(name: string, checkPersistence?: boolean): Promise<Client.User> | Client.User;
-	public loadUserFromStateStore(name: string): Promise<Client.User>;
-	public getStateStore(): Client.IKeyValueStore;
-	public createUser(opts: Client.UserOpts): Promise<Client.User>;
+	public _getSigningIdentity(admin: boolean): Common.ISigningIdentity;
+	public saveUserToStateStore(): Promise<Common.User>;
+	public setUserContext(user: Common.User | Client.UserContext, skipPersistence?: boolean): Promise<Common.User>;
+	public getUserContext(name: string, checkPersistence?: boolean): Promise<Common.User> | Common.User;
+	public loadUserFromStateStore(name: string): Promise<Common.User>;
+	public getStateStore(): Common.IKeyValueStore;
+	public createUser(opts: Common.UserOpts): Promise<Common.User>;
 
 	public getTargetPeers(requestTargets: string | string[] | Client.Peer | Client.Peer[]): Client.Peer[];
 	public getTargetOrderer(requestOrderer?: string | Client.Orderer, channelOrderers?: Client.Orderer[], channelName?: string): Client.Orderer;
@@ -84,45 +85,6 @@ declare namespace Client { // tslint:disable-line:no-namespace
 	}
 
 	export type ChaincodeType = 'golang' | 'car' | 'java' | 'node';
-	export interface ICryptoKey {
-		getSKI(): string;
-		isSymmetric(): boolean;
-		isPrivate(): boolean;
-		getPublicKey(): ICryptoKey;
-		toBytes(): string;
-	}
-
-	export interface ICryptoKeyStore {
-		getKey(ski: string): Promise<string>;
-		putKey(key: ICryptoKey): Promise<ICryptoKey>;
-	}
-
-	export interface ICryptoSuite {
-		decrypt(key: ICryptoKey, cipherText: Buffer, opts: any): Buffer;
-		deriveKey(key: ICryptoKey, opts?: KeyOpts): ICryptoKey;
-		encrypt(key: ICryptoKey, plainText: Buffer, opts: any): Buffer;
-		getKey(ski: string): Promise<ICryptoKey>;
-		generateKey(opts?: KeyOpts): Promise<ICryptoKey>;
-		hash(msg: string, opts: any): string;
-		importKey(pem: string, opts?: KeyOpts): ICryptoKey | Promise<ICryptoKey>;
-		setCryptoKeyStore(cryptoKeyStore: ICryptoKeyStore): void;
-		sign(key: ICryptoKey, digest: Buffer): Buffer;
-		verify(key: ICryptoKey, signature: Buffer, digest: Buffer): boolean;
-	}
-
-	export interface CryptoSetting {
-		algorithm: string;
-		hash: string;
-		keysize: number;
-		software: boolean;
-	}
-
-	export interface UserConfig {
-		affiliation?: string;
-		enrollmentID: string;
-		name: string;
-		roles?: string[];
-	}
 
 	export interface ConnectionOpts {
 		pem?: string;
@@ -131,25 +93,6 @@ declare namespace Client { // tslint:disable-line:no-namespace
 		'request-timeout'?: number;
 		'ssl-target-name-override'?: string;
 		[propName: string]: any;
-	}
-
-	export class User {
-		public static isInstance(object: any): boolean;
-
-		constructor(cfg: string | UserConfig);
-		public getName(): string;
-		public getRoles(): string[];
-		public setRoles(roles: string[]): void;
-		public getAffiliation(): string;
-		public setAffiliation(affiliation: string): void;
-		public getIdentity(): IIdentity;
-		public getSigningIdentity(): ISigningIdentity;
-		public setSigningIdentity(signingIdentity: ISigningIdentity): void;
-		public getCryptoSuite(): ICryptoSuite;
-		public setCryptoSuite(suite: ICryptoSuite): void;
-		public setEnrollment(privateKey: ICryptoKey, certificate: string, mspId: string): Promise<void>;
-		public isEnrolled(): boolean;
-		public fromString(): Promise<User>;
 	}
 
 	export interface InitializeRequest {
@@ -306,18 +249,13 @@ declare namespace Client { // tslint:disable-line:no-namespace
 		public sendDiscovery(request: SignedRequest, timeout?: number): Promise<DiscoveryResults>;
 	}
 
-	export interface IKeyValueStore {
-		getValue(name: string): Promise<string>;
-		setValue(name: string, value: string): Promise<string>;
-	}
-
 	export interface ConfigSignature extends ProtoBufObject {
 		signature_header: Buffer;
 		signature: Buffer;
 	}
 
 	export class TransactionId {
-		constructor(signerOrUserContext: IIdentity, admin: boolean);
+		constructor(signerOrUserContext: Common.IIdentity, admin: boolean);
 		public getTransactionID(): string;
 		public getNonce(): Buffer;
 		public isAdmin(): boolean;
@@ -421,7 +359,7 @@ declare namespace Client { // tslint:disable-line:no-namespace
 	}
 
 	export interface EventHubRegistrationRequest {
-		identity: IIdentity;
+		identity: Common.IIdentity;
 		TransactionID: TransactionId;
 		certificate: string;
 		mspId: string;
@@ -477,31 +415,31 @@ declare namespace Client { // tslint:disable-line:no-namespace
 	}
 
 	export interface MSPConstructorConfig {
-		rootCerts: IIdentity[];
-		intermediateCerts: IIdentity[];
-		admins: IIdentity[];
-		signer: ISigningIdentity;
+		rootCerts: Common.IIdentity[];
+		intermediateCerts: Common.IIdentity[];
+		admins: Common.IIdentity[];
+		signer: Common.ISigningIdentity;
 		id: string;
 		orgs: string[];
-		cryptoSuite: Client.ICryptoSuite;
+		cryptoSuite: Common.ICryptoSuite;
 	}
 
 	export class MSP {
 		constructor(config: MSPConstructorConfig);
-		public deserializeIdentity(serializedIdentity: Buffer, storeKey: boolean): IIdentity | Promise<IIdentity>;
-		public getDefaultSigningIdentity(): ISigningIdentity;
+		public deserializeIdentity(serializedIdentity: Buffer, storeKey: boolean): Common.IIdentity | Promise<Common.IIdentity>;
+		public getDefaultSigningIdentity(): Common.ISigningIdentity;
 		public getId(): string;
 		public getOrganizationUnits(): string[];
 		public getPolicy(): any;
-		public getSigningIdentity(identifier: string): ISigningIdentity;
+		public getSigningIdentity(identifier: string): Common.ISigningIdentity;
 		public toProtoBuf(): any;
-		public validate(id: IIdentity): boolean;
+		public validate(id: Common.IIdentity): boolean;
 	}
 
 	export class MSPManager {
 		constructor();
 		public addMSP(config: any): MSP;
-		public deserializeIdentity(serializedIdentity: Buffer): IIdentity;
+		public deserializeIdentity(serializedIdentity: Buffer): Common.IIdentity;
 		public getMSP(): MSP;
 		public getMSPs(): any;
 		public loadMSPs(mspConfigs: any): void;
@@ -573,40 +511,9 @@ declare namespace Client { // tslint:disable-line:no-namespace
 		request_timeout?: number;
 	}
 
-	export interface KeyOpts {
-		ephemeral: boolean;
-	}
-
-	export interface CryptoContent {
-		privateKey?: string;
-		privateKeyPEM?: string;
-		privateKeyObj?: Client.ICryptoKey;
-		signedCert?: string;
-		signedCertPEM?: string;
-	}
-
 	export interface UserContext {
 		username: string;
 		password?: string;
-	}
-
-	export interface UserOpts {
-		username: string;
-		mspid: string;
-		cryptoContent: CryptoContent;
-		skipPersistence: boolean;
-	}
-
-	export interface IIdentity {
-		serialize(): Buffer;
-		getMSPId(): string;
-		isValid(): boolean;
-		getOrganizationUnits(): string;
-		verify(msg: Buffer, signature: Buffer, opts: any): boolean;
-	}
-
-	export interface ISigningIdentity {
-		sign(msg: Buffer, opts: any): Buffer;
 	}
 
 	export interface ChaincodeInfo {
