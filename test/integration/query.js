@@ -13,7 +13,7 @@
 
 'use strict';
 
-const {Utils:utils} = require('fabric-common');
+const {Utils:utils} = require('fabric-common/index');
 const logger = utils.getLogger('query');
 
 const tape = require('tape');

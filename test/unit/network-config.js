@@ -6,7 +6,7 @@
 
 'use strict';
 
-const {Utils:utils, User} = require('fabric-common');
+const {Utils:utils, User} = require('fabric-common/index');
 const logger = utils.getLogger('unit.client');
 
 const tape = require('tape');
