@@ -8,7 +8,7 @@ const rewire = require('rewire');
 const AffiliationService = require('../lib/AffiliationService');
 const AffiliationServiceRewire = rewire('../lib/AffiliationService');
 const FabricCAClient = require('../lib/FabricCAClient');
-const {User} = require('fabric-common');
+const {User} = require('fabric-common/index');
 
 const chai = require('chai');
 const chaiAsPromised = require('chai-as-promised');

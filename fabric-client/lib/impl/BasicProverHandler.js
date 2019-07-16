@@ -8,7 +8,7 @@
 'use strict';
 
 const token_utils = require('../token-utils');
-const {Utils: utils} = require('fabric-common');
+const {Utils: utils} = require('fabric-common/index');
 const Constants = require('../Constants.js');
 const ProverHandler = require('../ProverHandler');
 const logger = utils.getLogger('BasicProverHandler');

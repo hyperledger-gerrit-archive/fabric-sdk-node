@@ -20,7 +20,7 @@ const Client = rewire('../lib/Client');
 const Channel = require('../lib/Channel');
 const NetworkConfig = require('../lib/impl/NetworkConfig_1_0');
 const fs = require('fs');
-const {Identity, User} = require('fabric-common');
+const {Identity, User} = require('fabric-common/index');
 const Package = require('../lib/Package');
 const path = require('path');
 

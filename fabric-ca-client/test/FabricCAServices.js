@@ -20,7 +20,7 @@ const FabricCAClient = rewire('../lib/FabricCAClient');
 
 const CryptoSuite = require('fabric-common/lib/impl/CryptoSuite_ECDSA_AES.js');
 const ECDSAKey = require('fabric-common/lib/impl/ecdsa/key');
-const {User} = require('fabric-common');
+const {User} = require('fabric-common/index');
 
 const chai = require('chai');
 const should = chai.should();

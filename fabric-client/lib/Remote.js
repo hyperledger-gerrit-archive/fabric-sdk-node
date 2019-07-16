@@ -18,7 +18,7 @@
 const grpc = require('fabric-protos/grpc');
 const urlParser = require('url');
 
-const {Utils: utils, HashPrimitives} = require('fabric-common');
+const {Utils: utils, HashPrimitives} = require('fabric-common/index');
 const logger = utils.getLogger('Remote.js');
 const MAX_SEND = 'grpc.max_send_message_length';
 const MAX_RECEIVE = 'grpc.max_receive_message_length';

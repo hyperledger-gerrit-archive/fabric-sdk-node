@@ -4,7 +4,7 @@
 
 'use strict';
 
-const {Utils: utils} = require('fabric-common');
+const {Utils: utils} = require('fabric-common/index');
 const Remote = require('./Remote');
 
 const fabprotos = require('fabric-protos');

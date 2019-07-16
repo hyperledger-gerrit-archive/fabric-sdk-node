@@ -10,7 +10,7 @@ const clientUtils = require('./client-utils.js');
 const fabprotos = require('fabric-protos');
 const Packager = require('./Packager.js');
 const tar = require('tar-stream');
-const {Utils: utils} = require('fabric-common');
+const {Utils: utils} = require('fabric-common/index');
 const zlib = require('zlib');
 
 const logger = utils.getLogger('package');

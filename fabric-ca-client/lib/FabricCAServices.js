@@ -7,7 +7,7 @@
 
 'use strict';
 
-const {Utils: utils, BaseClient} = require('fabric-common');
+const {Utils: utils, BaseClient} = require('fabric-common/index');
 
 const FabricCAClient = require('./FabricCAClient');
 
