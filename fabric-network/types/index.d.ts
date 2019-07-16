@@ -6,7 +6,8 @@
 
 /* tslint:disable:max-classes-per-file */
 
-import { Channel, ChannelPeer, TransactionId, User } from 'fabric-client';
+import { Channel, ChannelPeer, TransactionId } from 'fabric-client';
+import { User } from 'fabric-common';
 
 import Client = require('fabric-client');
 
