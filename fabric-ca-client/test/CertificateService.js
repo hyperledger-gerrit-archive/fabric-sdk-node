@@ -7,7 +7,7 @@
 const rewire = require('rewire');
 const CertificateServiceRewire = rewire('../lib/CertificateService');
 const FabricCAClient = require('../lib/FabricCAClient');
-const {User} = require('fabric-common');
+const {User} = require('fabric-common/index');
 
 require('chai').should();
 const sinon = require('sinon');

@@ -14,7 +14,7 @@
  */
 
 'use strict';
-const {Identity, Utils: sdk_utils} = require('fabric-common');
+const {Identity, Utils: sdk_utils} = require('fabric-common/index');
 const client_utils = require('./client-utils.js');
 const token_utils = require('./token-utils.js');
 const util = require('util');

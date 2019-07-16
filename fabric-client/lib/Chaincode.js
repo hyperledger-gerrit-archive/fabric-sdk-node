@@ -16,7 +16,7 @@
 const {format} = require('util');
 const Long = require('long');
 
-const {Utils: utils} = require('fabric-common');
+const {Utils: utils} = require('fabric-common/index');
 const client_utils = require('./client-utils.js');
 const logger = utils.getLogger('Chaincode.js');
 const Packager = require('./Packager.js');

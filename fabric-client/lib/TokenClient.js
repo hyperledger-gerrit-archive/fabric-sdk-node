@@ -14,7 +14,7 @@
 
 'use strict';
 
-const {Utils: utils, Identity, HashPrimitives} = require('fabric-common');
+const {Utils: utils, Identity, HashPrimitives} = require('fabric-common/index');
 
 const TransactionID = require('./TransactionID');
 const util = require('util');
