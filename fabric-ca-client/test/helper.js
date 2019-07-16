@@ -15,7 +15,7 @@
 'use strict';
 
 const Helper = require('../lib/helper');
-const {User} = require('fabric-common');
+const {User} = require('fabric-common/index');
 
 const chai = require('chai');
 const should = chai.should();

@@ -3,7 +3,7 @@
  */
 
 'use strict';
-const {Utils} = require('fabric-common');
+const {Utils} = require('fabric-common/index');
 const logger = Utils.getLogger('AffiliationService');
 const checkRegistrar = require('./helper').checkRegistrar;
 

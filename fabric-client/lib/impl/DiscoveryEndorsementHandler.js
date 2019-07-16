@@ -10,7 +10,7 @@
 const Long = require('long');
 const util = require('util');
 
-const {Utils: utils} = require('fabric-common');
+const {Utils: utils} = require('fabric-common/index');
 const EndorsementHandler = require('../EndorsementHandler');
 const logger = utils.getLogger('DiscoveryEndorsementHandler');
 const client_utils = require('fabric-client/lib/client-utils.js');

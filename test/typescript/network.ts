@@ -26,8 +26,9 @@ import Client = require('fabric-client');
 import {
 	Channel,
 	TransactionId,
-	User,
 } from 'fabric-client';
+
+import { User } from 'fabric-common';
 
 (async () => {
 
