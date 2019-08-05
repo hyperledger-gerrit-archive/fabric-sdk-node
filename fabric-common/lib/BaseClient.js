@@ -47,14 +47,14 @@ const BaseClient = class {
 	 *
 	 * <br><br><code>cryptosuite.setCryptoKeyStore(Client.newCryptoKeyStore(KVSImplClass, opts))</code>
 	 *
+	 * @param {Object} opts Implementation-specific option object used in the constructor
 	 * @param {api.KeyValueStore} KVSImplClass Optional. The built-in key store saves private keys. The key store may be backed by different
 	 * {@link KeyValueStore} implementations. If specified, the value of the argument must point to a module implementing the
 	 * KeyValueStore interface.
-	 * @param {Object} opts Implementation-specific option object used in the constructor
 	 * @returns {CryptoKeyStore} a new instance of the CryptoKeystore
 	 */
-	static newCryptoKeyStore(KVSImplClass, opts) {
-		return sdkUtils.newCryptoKeyStore(KVSImplClass, opts);
+	static newCryptoKeyStore(opts, KVSImplClass) {
+		return sdkUtils.newCryptoKeyStore(opts, KVSImplClass);
 	}
 
 	/**
