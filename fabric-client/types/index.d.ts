@@ -9,7 +9,6 @@
 
 import { BaseClient } from './base';
 import FabricCAServices = require('fabric-ca-client');
-import { lstatSync } from 'fs';
 
 interface ProtoBufObject {
 	toBuffer(): Buffer;
