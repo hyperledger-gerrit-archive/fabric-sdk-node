@@ -54,7 +54,7 @@ const BaseClient = class {
 	 * @returns {CryptoKeyStore} a new instance of the CryptoKeystore
 	 */
 	static newCryptoKeyStore(KVSImplClass, opts) {
-		return sdkUtils.newCryptoKeyStore(KVSImplClass, opts);
+		return sdkUtils.newCryptoKeyStore(opts, KVSImplClass);
 	}
 
 	/**
