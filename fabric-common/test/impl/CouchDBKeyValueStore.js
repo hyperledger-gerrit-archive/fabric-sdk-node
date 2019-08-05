@@ -46,12 +46,12 @@ describe('CouchDBKeyValueStore', () => {
 		});
 
 		it('should set a default member_db name if not passed', () => {
-			const myStore = new CouchDBKeyValueStore({url: 'anything'});
+			const myStore = new CouchDBKeyValueStore({url: 'http://someurl'});
 			myStore._name.should.equal('member_db');
 		});
 
 		it('should set the member_db name if not passed', () => {
-			const myStore = new CouchDBKeyValueStore({url: 'anything', name: 'pingu'});
+			const myStore = new CouchDBKeyValueStore({url: 'http://someurl', name: 'pingu'});
 			myStore._name.should.equal('pingu');
 		});
 	});
