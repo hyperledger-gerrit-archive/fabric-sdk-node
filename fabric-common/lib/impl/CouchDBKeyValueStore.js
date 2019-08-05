@@ -50,6 +50,8 @@ const CouchDBKeyValueStore = class extends KeyValueStore {
 		} else {
 			this._name = options.name;
 		}
+		// Specify it as the database to use
+		this._database = nano(this._url).use(this._name);
 	}
 
 	async initialize() {
@@ -61,8 +63,6 @@ const CouchDBKeyValueStore = class extends KeyValueStore {
 			await get(this._name);
 			// Database exists
 			logger.debug('%s already exists', this._name);
-			// Specify it as the database to use
-			this._database = dbClient.use(this._name);
 		} catch (err) {
 			if (err.error === 'not_found') {
 				logger.debug('No %s found, creating %s', this._name);
@@ -70,8 +70,6 @@ const CouchDBKeyValueStore = class extends KeyValueStore {
 				try {
 					await create(this._name);
 					logger.debug('Created %s database', this._name);
-					// Specify it as the database to use
-					this._database = dbClient.use(this._name);
 				} catch (error) {
 					throw new Error(util.format('Failed to create %s database due to error: %s', this._name, error.stack ? error.stack : error.description));
 				}

@@ -358,68 +358,22 @@ module.exports.getDefaultKeyStorePath = () => {
 	return path.join(os.homedir(), '.hfc-key-store');
 };
 
-const CryptoKeyStore = function (KVSImplClass, opts) {
-	this.logger = module.exports.getLogger('utils.CryptoKeyStore');
-	this.logger.debug('CryptoKeyStore, constructor - start');
-	if (KVSImplClass && typeof opts === 'undefined') {
-		if (typeof KVSImplClass === 'function') {
-			// the super class module was passed in, but not the 'opts'
-			opts = null;
-		} else {
-			// called with only one argument for the 'opts' but KVSImplClass was skipped
-			opts = KVSImplClass;
-			KVSImplClass = null;
-		}
-	}
-
-	if (typeof opts === 'undefined' || opts === null) {
-		opts = {
-			path: module.exports.getDefaultKeyStorePath()
-		};
-	}
-	let superClass;
-	if (typeof KVSImplClass !== 'undefined' && KVSImplClass !== null) {
-		superClass = KVSImplClass;
-	} else {
-		// no super class specified, use the default key value store implementation
-		superClass = require(exports.getConfigSetting('key-value-store'));
-		this.logger.debug('constructor, no super class specified, using config: ' + module.exports.getConfigSetting('key-value-store'));
-	}
-
-	this._store = null;
-	this._storeConfig = {
-		superClass: superClass,
-		opts: opts
-
-	};
-
-	this._getKeyStore = async function () {
-		const CKS = require('./impl/CryptoKeyStore');
-
-		if (this._store === null) {
-			this.logger.debug(util.format('This class requires a CryptoKeyStore to save keys, using the store: %j', this._storeConfig));
-
-			try {
-				this._store = await CKS(this._storeConfig.superClass, this._storeConfig.opts);
-				await this._store.initialize();
-				return this._store;
-			} catch (err) {
-				throw err;
-			}
-		} else {
-			this.logger.debug('_getKeyStore returning store');
-			return this._store;
-		}
-	};
-
-};
-
 module.exports.newCryptoKeyStore = (KVSImplClass, opts) => {
 	// this function supports skipping any of the arguments such that it can be called in any of the following fashions:
 	// - newCryptoKeyStore(CouchDBKeyValueStore, {name: 'member_db', url: 'http://localhost:5984'})
 	// - newCryptoKeyStore({path: '/tmp/app-state-store'})
 	// - newCryptoKeyStore()
-	return new CryptoKeyStore(KVSImplClass, opts);
+	const cksImpl = exports.getConfigSetting('crypto-key-store');
+	const CryptoKeyStore = require(cksImpl);
+	if (!opts) {
+		if (!KVSImplClass) {
+			return new CryptoKeyStore();
+		} else {
+			return new CryptoKeyStore(KVSImplClass);
+		}
+	} else {
+		return new CryptoKeyStore(KVSImplClass, opts);
+	}
 };
 
 /*

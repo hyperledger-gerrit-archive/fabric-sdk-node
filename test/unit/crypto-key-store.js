@@ -17,7 +17,7 @@ const test = _test(tape);
 
 const util = require('util');
 const testutil = require('./util.js');
-const {Utils:utils} = require('fabric-common');
+const {Utils: utils} = require('fabric-common');
 const fs = require('fs-extra');
 const path = require('path');
 const os = require('os');
@@ -58,50 +58,60 @@ const testPrivKey = new ecdsaKey(f1);
 const f2 = KEYUTIL.getKey(TEST_KEY_PRIVATE_CERT_PEM);
 const testPubKey = new ecdsaKey(f2);
 
-test('\n\n** CryptoKeyStore tests **\n\n', (t) => {
+test('\n\n** CryptoKeyStore tests **\n\n', async (t) => {
 	testutil.resetDefaults();
 
-	const keystorePath = path.join(testutil.getTempDir(), 'crypto-key-store');
+	const keystorePath = path.join(testutil.getTempDir(), 'crypto-key-store/');
 
-	const store = CKS({path: keystorePath});
-	return store.initialize().then(() => {
-		store.putKey(testPrivKey).then(() => {
-			t.pass('Successfully saved private key in store');
-
-			t.equal(fs.existsSync(path.join(keystorePath, testPrivKey.getSKI() + '-priv')), true,
-				'Check that the private key has been saved with the proper <SKI>-priv index');
-
-			return store.getKey(testPrivKey.getSKI());
-		}).then((recoveredKey) => {
-			t.notEqual(recoveredKey, null, 'Successfully read private key from store using SKI');
-			t.equal(recoveredKey.isPrivate(), true, 'Test if the recovered key is a private key');
-
-			return store.putKey(testPubKey);
-		}).then(() => {
-			t.equal(fs.existsSync(path.join(keystorePath, testPrivKey.getSKI() + '-pub')), true,
-				'Check that the public key has been saved with the proper <SKI>-pub index');
-
-			return store.getKey(testPubKey.getSKI());
-		}).then((recoveredKey) => {
-			t.notEqual(recoveredKey, null, 'Successfully read public key from store using SKI');
-			t.equal(recoveredKey.isPrivate(), true, 'Test if the recovered key is a private key');
-
-			// delete the private key entry and test if getKey() would return the public key
-			fs.unlinkSync(path.join(keystorePath, testPrivKey.getSKI() + '-priv'));
-			return store.getKey(testPubKey.getSKI());
-		}).then((recoveredKey) => {
-			t.notEqual(recoveredKey, null, 'Successfully read public key from store using SKI');
-			t.equal(recoveredKey.isPrivate(), false, 'Test if the recovered key is a public key');
-			t.end();
-		}).catch((err) => {
-			t.fail(err.stack ? err.stack : err);
-			t.end();
-		});
-	});
+	const store = new CKS({path: keystorePath});
+	try {
+		await store.initialize();
+		await store.putKey(testPrivKey);
+		t.pass('Successfully saved private key in store');
+		t.equal(fs.existsSync(path.join(keystorePath, testPrivKey.getSKI() + '-priv')), true,
+			'Check that the private key has been saved with the proper <SKI>-priv index');
+	} catch (err) {
+		t.fail(err.stack ? err.stack : err);
+		t.end();
+	}
+	try {
+		const recoveredKey = await store.getKey(testPrivKey.getSKI());
+		t.notEqual(recoveredKey, null, 'Successfully read private key from store using SKI');
+		t.equal(recoveredKey.isPrivate(), true, 'Test if the recovered key is a private key');
+	} catch (err) {
+		t.fail(err.stack ? err.stack : err);
+		t.end();
+	}
+	try {
+		await store.putKey(testPubKey);
+		t.equal(fs.existsSync(path.join(keystorePath, testPrivKey.getSKI() + '-pub')), true,
+			'Check that the public key has been saved with the proper <SKI>-pub index');
+	} catch (err) {
+		t.fail(err.stack ? err.stack : err);
+		t.end();
+	}
+	try {
+		const recoveredKey = await store.getKey(testPubKey.getSKI());
+		t.notEqual(recoveredKey, null, 'Successfully read public key from store using SKI');
+		t.equal(recoveredKey.isPrivate(), true, 'Test if the recovered key is a private key');
+		// delete the private key entry and test if getKey() would return the public key
+		fs.unlinkSync(path.join(keystorePath, testPrivKey.getSKI() + '-priv'));
+	} catch (err) {
+		t.fail(err.stack ? err.stack : err);
+		t.end();
+	}
+	try {
+		const recoveredKey = await store.getKey(testPubKey.getSKI());
+		t.notEqual(recoveredKey, null, 'Successfully read public key from store using SKI');
+		t.equal(recoveredKey.isPrivate(), false, 'Test if the recovered key is a public key');
+		t.end();
+	} catch (err) {
+		t.fail(err.stack ? err.stack : err);
+		t.end();
+	}
 });
 
-
-test('\n\n** CryptoKeyStore tests - couchdb based store tests - use configSetting **\n\n', (t) => {
+test('\n\n** CryptoKeyStore tests - couchdb based store tests - use configSetting **\n\n', async (t) => {
 	utils.setConfigSetting('key-value-store', 'fabric-common/lib/impl/CouchDBKeyValueStore.js');
 
 	const couchdb = CouchdbMock.createServer();
@@ -109,7 +119,7 @@ test('\n\n** CryptoKeyStore tests - couchdb based store tests - use configSettin
 
 	// override t.end function so it'll always disconnect the event hub
 	t.end = ((context, mockdb, f) => {
-		return function() {
+		return function () {
 			if (mockdb) {
 				t.comment('Disconnecting the mock couchdb server');
 				mockdb.close();
@@ -119,25 +129,23 @@ test('\n\n** CryptoKeyStore tests - couchdb based store tests - use configSettin
 		};
 	})(t, couchdb, t.end);
 
-	const store = CKS({name: dbname, url: 'http://localhost:5985'});
-	store.initialize()
-		.then(() => {
-			return testKeyStore(store, t);
-		}).catch((err) => {
-			t.fail(err.stack ? err.stack : err);
-			t.end();
-		}).then(() => {
-			t.end();
-		});
+	const store = new CKS({name: dbname, url: 'http://localhost:5985'});
+	try {
+		await testKeyStore(store, t);
+		t.end();
+	} catch (err) {
+		t.fail(err.stack ? err.stack : err);
+		t.end();
+	}
 });
 
-test('\n\n** CryptoKeyStore tests - couchdb based store tests - use constructor argument **\n\n', (t) => {
+test('\n\n** CryptoKeyStore tests - couchdb based store tests - use constructor argument **\n\n', async (t) => {
 	const couchdb = CouchdbMock.createServer();
 	couchdb.listen(5985);
 
 	// override t.end function so it'll always disconnect the event hub
 	t.end = ((context, mockdb, f) => {
-		return function() {
+		return function () {
 			if (mockdb) {
 				t.comment('Disconnecting the mock couchdb server');
 				mockdb.close();
@@ -147,73 +155,64 @@ test('\n\n** CryptoKeyStore tests - couchdb based store tests - use constructor 
 		};
 	})(t, couchdb, t.end);
 
-	const store = CKS(CouchDBKeyValueStore, {name: dbname, url: 'http://localhost:5985'});
-	store.initialize()
-		.then(() => {
-			return testKeyStore(store, t);
-		}).catch((err) => {
-			t.fail(err.stack ? err.stack : err);
-			t.end();
-		}).then(() => {
-			t.end();
-		});
+	const store = new CKS(CouchDBKeyValueStore, {name: dbname, url: 'http://localhost:5985'});
+	try {
+		await testKeyStore(store, t);
+		t.end();
+	} catch (err) {
+		t.fail(err.stack ? err.stack : err);
+		t.end();
+	}
 });
 
-function testKeyStore(store, t) {
+async function testKeyStore(store, t) {
 	let docRev;
 
-	return store.putKey(testPrivKey)
-		.then(() => {
-			t.pass('Successfully saved private key in store based on couchdb');
+	await store.initialize();
+	await store.putKey(testPrivKey);
+	t.pass('Successfully saved private key in store based on couchdb');
 
-			return new Promise((resolve) => {
-				dbclient.use(dbname).get(testPrivKey.getSKI() + '-priv', (err, body) => {
-					if (!err) {
-						t.pass('Successfully verified private key persisted in couchdb');
-						docRev = body._rev;
-						return resolve(store.getKey(testPrivKey.getSKI()));
-					} else {
-						t.fail('Failed to persist private key in couchdb. ' + err.stack ? err.stack : err);
-						t.end();
-					}
-				});
-			});
-		}).then((recoveredKey) => {
-			t.notEqual(recoveredKey, null, 'Successfully read private key from store using SKI');
-			t.equal(recoveredKey.isPrivate(), true, 'Test if the recovered key is a private key');
-
-			return store.putKey(testPubKey);
-		}).then(() => {
-			return new Promise((resolve) => {
-				dbclient.use(dbname).get(testPrivKey.getSKI() + '-pub', (err) => {
-					if (!err) {
-						t.pass('Successfully verified public key persisted in couchdb');
-						return resolve(store.getKey(testPubKey.getSKI()));
-					} else {
-						t.fail('Failed to persist public key in couchdb. ' + err.stack ? err.stack : err);
-						t.end();
-					}
-				});
-			});
-		}).then((recoveredKey) => {
-			t.notEqual(recoveredKey, null, 'Successfully read public key from store using SKI');
-			t.equal(recoveredKey.isPrivate(), true, 'Test if the recovered key is a private key');
-
-			// delete the private key entry and test if getKey() would return the public key
-			return new Promise((resolve) => {
-				dbclient.use(dbname).destroy(testPrivKey.getSKI() + '-priv', docRev, (err) => {
-					if (!err) {
-						return resolve(store.getKey(testPubKey.getSKI()));
-					} else {
-						t.fail('Failed to delete private key in couchdb. ' + err.stack ? err.stack : err);
-						t.end();
-					}
-				});
-			});
-		}).then((recoveredKey) => {
-			t.notEqual(recoveredKey, null, 'Successfully read public key from store using SKI');
-			t.equal(recoveredKey.isPrivate(), false, 'Test if the recovered key is a public key');
+	let recoveredKey = await new Promise((resolve) => {
+		dbclient.use(dbname).get(testPrivKey.getSKI() + '-priv', (err, body) => {
+			if (!err) {
+				t.pass('Successfully verified private key persisted in couchdb');
+				docRev = body._rev;
+				return resolve(store.getKey(testPrivKey.getSKI()));
+			} else {
+				t.fail('Failed to persist private key in couchdb. ' + err.stack ? err.stack : err);
+				t.end();
+			}
 		});
+	});
+	t.notEqual(recoveredKey, null, 'Successfully read private key from store using SKI');
+	t.equal(recoveredKey.isPrivate(), true, 'Test if the recovered key is a private key');
+	await store.putKey(testPubKey);
+	recoveredKey = await new Promise((resolve) => {
+		dbclient.use(dbname).get(testPrivKey.getSKI() + '-pub', (err) => {
+			if (!err) {
+				t.pass('Successfully verified public key persisted in couchdb');
+				return resolve(store.getKey(testPubKey.getSKI()));
+			} else {
+				t.fail('Failed to persist public key in couchdb. ' + err.stack ? err.stack : err);
+				t.end();
+			}
+		});
+	});
+	t.notEqual(recoveredKey, null, 'Successfully read public key from store using SKI');
+	t.equal(recoveredKey.isPrivate(), true, 'Test if the recovered key is a private key');
+	// delete the private key entry and test if getKey() would return the public key
+	recoveredKey = await new Promise((resolve) => {
+		dbclient.use(dbname).destroy(testPrivKey.getSKI() + '-priv', docRev, (err) => {
+			if (!err) {
+				return resolve(store.getKey(testPubKey.getSKI()));
+			} else {
+				t.fail('Failed to delete private key in couchdb. ' + err.stack ? err.stack : err);
+				t.end();
+			}
+		});
+	});
+	t.notEqual(recoveredKey, null, 'Successfully read public key from store using SKI');
+	t.equal(recoveredKey.isPrivate(), false, 'Test if the recovered key is a public key');
 }
 
 test('\n\n** CryptoKeyStore tests - newCryptoKeyStore tests **\n\n', (t) => {
@@ -221,23 +220,23 @@ test('\n\n** CryptoKeyStore tests - newCryptoKeyStore tests **\n\n', (t) => {
 	const keyValStorePath = 'tmp/keyValStore1';
 	const config = {path: keyValStorePath};
 	let cs = utils.newCryptoKeyStore(config);
-	t.equal(cs._storeConfig.opts, config, util.format('Returned instance should have store config opts of %j', config));
-	t.equal(typeof cs._storeConfig.superClass, 'function', 'Returned instance should have store config superClass');
+	t.equal(cs._opts, config, util.format('Returned instance should have store config opts of %j', config));
+	t.equal(typeof cs._superClass, 'function', 'Returned instance should have store config superClass');
 
 	const defaultKVSPath = path.join(os.homedir(), '.hfc-key-store');
 	cs = utils.newCryptoKeyStore();
-	t.equal(cs._storeConfig.opts.path, defaultKVSPath, util.format('Returned instance should have store config opts.path of %s', defaultKVSPath));
-	t.equal(typeof cs._storeConfig.superClass, 'function', 'Returned instance should have store config superClass');
+	t.equal(cs._opts.path, defaultKVSPath, util.format('Returned instance should have store config opts.path of %s', defaultKVSPath));
+	t.equal(typeof cs._superClass, 'function', 'Returned instance should have store config superClass');
 
 	let kvsImplClass = require(utils.getConfigSetting('key-value-store'));
 	cs = utils.newCryptoKeyStore(kvsImplClass);
-	t.equal(cs._storeConfig.opts.path, defaultKVSPath, util.format('Returned instance should have store config opts.path of %s', defaultKVSPath));
-	t.equal(typeof cs._storeConfig.superClass, 'function', 'Returned instance should have store config superClass');
+	t.equal(cs._opts.path, defaultKVSPath, util.format('Returned instance should have store config opts.path of %s', defaultKVSPath));
+	t.equal(typeof cs._superClass, 'function', 'Returned instance should have store config superClass');
 
 	kvsImplClass = require(utils.getConfigSetting('key-value-store'));
 	cs = utils.newCryptoKeyStore(kvsImplClass, config);
-	t.equal(cs._storeConfig.opts, config, util.format('Returned instance should have store config opts of %j', config));
-	t.equal(typeof cs._storeConfig.superClass, 'function', 'Returned instance should have store config superClass');
+	t.equal(cs._opts, config, util.format('Returned instance should have store config opts of %j', config));
+	t.equal(typeof cs._superClass, 'function', 'Returned instance should have store config superClass');
 
 	t.end();
 });
