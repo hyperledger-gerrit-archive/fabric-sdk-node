@@ -43,7 +43,7 @@ class InMemoryWallet extends BaseWallet {
 		logger.debug('in getCryptoSuite, label = %s', label);
 		label = this.normalizeLabel(label);
 		const cryptoSuite = Client.newCryptoSuite();
-		cryptoSuite.setCryptoKeyStore(Client.newCryptoKeyStore(InMemoryKVS, label));
+		cryptoSuite.setCryptoKeyStore(Client.newCryptoKeyStore(label, InMemoryKVS));
 		return cryptoSuite;
 	}
 
