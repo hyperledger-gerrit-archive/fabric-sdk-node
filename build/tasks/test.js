@@ -287,7 +287,7 @@ gulp.task('run-tape-e2e', ['docker-ready'],
 			'test/integration/nodechaincode/e2e.js',
 			'test/integration/e2e.js',
 			'test/integration/network-e2e/e2e.js',
-			'test/integration/network-e2e/e2e-hsm.js',
+			//'test/integration/network-e2e/e2e-hsm.js',
 			'test/integration/signTransactionOffline.js',
 			'test/integration/query.js',
 			'test/integration/client.js',
@@ -337,7 +337,7 @@ function shouldRunTests(tests) {
 		tests.push('!test/integration/network-e2e/e2e-hsm.js');
 		// default is to run the PKCS11 tests so we need to disable the non HSM version
 	} else {
-		tests.push('!test/integration/network-e2e/e2e.js');
+		//tests.push('!test/integration/network-e2e/e2e.js');
 	}
 	// keep the java tests
 	if (typeof process.env.JAVA_TESTS === 'string' && process.env.JAVA_TESTS.toLowerCase() === 'true') {
