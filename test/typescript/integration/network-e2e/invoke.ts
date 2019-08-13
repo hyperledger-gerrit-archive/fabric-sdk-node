@@ -951,6 +951,39 @@ test('\n\n***** Network End-to-end flow: invoke multiple transactions concurrent
 	t.end();
 });
 
+test('\n\n***** Network End-to-end flow: specify endorsing peers *****\n\n', async (t: any) => {
+	const gateway = new Gateway();
+	try {
+		const contract = await createContract(t, gateway, {
+			clientTlsIdentity: 'tlsId',
+			discovery: {
+				enabled: false,
+			},
+			identity: 'User1@org1.example.com',
+			wallet: inMemoryWallet,
+		});
+
+		const network = await gateway.getNetwork(channelName);
+		const channel = network.getChannel();
+		const badPeer = channel.getChannelPeer('badpeer.org1.example.com');
+
+		await contract.createTransaction('echo')
+			.setEndorsingPeers([badPeer])
+			.submit('RESULT');
+		t.fail('Transaction should have failed as badpeer was the only endorser');
+	} catch (error) {
+		if (/No valid responses from any peers/.test(error.message)) {
+			t.pass('No valid proposal responses when badpeer is the only endorser');
+		} else {
+			t.fail('Expected no valid proposal responses, received: ' + error);
+		}
+	} finally {
+		gateway.disconnect();
+	}
+
+	t.end();
+});
+
 test('\n\n***** Network End-to-end flow: invoke transaction to move money using in memory wallet and no event strategy *****\n\n', async (t: any) => {
 	const gateway = new Gateway();
 
