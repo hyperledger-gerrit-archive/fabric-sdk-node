@@ -286,6 +286,17 @@ test('\n\n***** D I S C O V E R Y  *****\n\n', async (t) => {
 	};
 	await testUtil.invokeAsAdmin(t, client_org1, channel_org1, force_target_request);
 
+	const bad_target_request = {
+		chaincodeId: first_chaincode_name,
+		target: peer_bad
+	};
+	try {
+		await testUtil.invokeAsAdmin(t, client_org1, channel_org1, force_target_request);
+		t.fail('Failed to get the error with a bad target');
+	} catch(error) {
+		t.pass('Successfully got the error with a bad target' + error);
+	}
+
 	t.pass('***** Invokes and Queries complete *****');
 
 	const tx_id = client_org1.newTransactionID(true);
