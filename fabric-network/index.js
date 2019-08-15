@@ -33,7 +33,7 @@
  *
  * @example
  * // Obtain the smart contract with which our application wants to interact
- * const wallet = new FileSystemWallet(walletDirectoryPath);
+ * const wallet = await Wallets.newFileSystemWallet(walletDirectoryPath);
  * const gatewayOptions: GatewayOptions = {
  *     identity: 'user@example.org', // Previously imported identity
  *     wallet,
@@ -59,12 +59,10 @@
  */
 
 module.exports.Gateway = require('./lib/gateway');
-module.exports.Wallet = require('./lib/api/wallet');
-module.exports.InMemoryWallet = require('./lib/impl/wallet/inmemorywallet');
-module.exports.X509WalletMixin = require('./lib/impl/wallet/x509walletmixin');
-module.exports.HSMWalletMixin = require('./lib/impl/wallet/hsmwalletmixin');
-module.exports.FileSystemWallet = require('./lib/impl/wallet/filesystemwallet');
-module.exports.CouchDBWallet = require('./lib/impl/wallet/couchdbwallet');
+module.exports.Wallet = require('./lib/impl/wallet/wallet').Wallet;
+module.exports.Wallets = require('./lib/impl/wallet/wallets').Wallets;
+module.exports.IdentityProviderRegistry = require('./lib/impl/wallet/identityproviderregistry').IdentityProviderRegistry;
+module.exports.HsmX509Provider = require('./lib/impl/wallet/hsmx509identity').HsmX509Provider;
 module.exports.DefaultEventHandlerStrategies = require('fabric-network/lib/impl/event/defaulteventhandlerstrategies');
 module.exports.DefaultQueryHandlerStrategies = require('fabric-network/lib/impl/query/defaultqueryhandlerstrategies');
 module.exports.CheckpointFactories = require('fabric-network/lib/impl/event/checkpointfactories');
