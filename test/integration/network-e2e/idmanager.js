@@ -6,19 +6,17 @@
 'use strict';
 
 const Client = require('fabric-client');
-const {User} = require('fabric-common');
 
 class IDManager {
-
 	async initialize(ccp) {
 		this.client = await Client.loadFromConfig(ccp);
 	}
 
-	async registerUser(userID, options, issuerWallet, issuerId) {
-		if (!options) {
-			options = {};
-		}
-		const identity = await issuerWallet.setUserContext(this.client, issuerId);
+	async registerUser(userID, issuerWallet, issuerId, options = {}) {
+		const identity = await issuerWallet.get(issuerId);
+		const provider = issuerWallet.getProviderRegistry().getProvider(identity.type);
+		await provider.setUserContext(this.client, identity, issuerId);
+		const user = await this.client.getUserContext();
 
 		const registerRequest = {
 			enrollmentID: userID,
@@ -59,24 +57,18 @@ class IDManager {
 			});
 		}
 
-		const userSecret = await this.client.getCertificateAuthority().register(registerRequest, identity);
+		const userSecret = await this.client.getCertificateAuthority().register(registerRequest, user);
 		return userSecret;
 	}
 
-	async enrollToWallet(userID, secret, mspId, walletToImportTo) {
-		await walletToImportTo.configureClientStores(this.client, userID);
+	async enroll(userID, secret) {
+		const cryptoSuite = this.client.getCryptoSuite();
+		if (!cryptoSuite) {
+			this.client.setCryptoSuite(Client.newCryptoSuite());
+		}
 		const options = {enrollmentID: userID, enrollmentSecret: secret};
-		const enrollment = await this.client.getCertificateAuthority().enroll(options);
-		// private key will now have been stored
-		const user = new User(userID);
-		user.setCryptoSuite(this.client.getCryptoSuite());
-		await user.setEnrollment(enrollment.key, enrollment.certificate, mspId);
-		// public key will now have been stored
-		await this.client.setUserContext(user);
-		// state store will now have been saved
-
+		return await this.client.getCertificateAuthority().enroll(options);
 	}
-
 }
 
 module.exports = IDManager;

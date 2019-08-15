@@ -48,6 +48,7 @@ fabric-network/.nyc_output
 fabric-network/_*
 fabric-network/e2e
 fabric-network/OUTSTA*
+fabric-network/lib
 
 #fabric common items
 fabric-common/node_modules/*

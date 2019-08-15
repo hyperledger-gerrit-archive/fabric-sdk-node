@@ -7,7 +7,7 @@
 const tape = require('tape');
 const _test = require('tape-promise').default;
 const test = _test(tape);
-const {Gateway, InMemoryWallet, HSMWalletMixin} = require('../../../fabric-network/index.js');
+const {Gateway, HsmX509Provider, Wallets} = require('fabric-network');
 const fs = require('fs-extra');
 
 const e2eUtils = require('../e2e/e2eUtils.js');
@@ -15,9 +15,7 @@ const testUtils = require('../../unit/util');
 const channelName = testUtils.NETWORK_END2END.channel;
 const chaincodeId = testUtils.NETWORK_END2END.chaincodeId;
 
-
 const fixtures = process.cwd() + '/test/fixtures';
-const inMemoryWallet = new InMemoryWallet();
 const ccp = fs.readFileSync(fixtures + '/profiles/network.json');
 
 const common_pkcs_pathnames = [
@@ -44,25 +42,52 @@ if (typeof process.env.PKCS11_LIB === 'string' && process.env.PKCS11_LIB !== '')
 }
 
 const IDManager = require('./idmanager');
-const idManager = new IDManager();
-idManager.initialize(JSON.parse(ccp.toString()));
 
 const PKCS11_SLOT = process.env.PKCS11_SLOT || '0';
 const PKCS11_PIN = process.env.PKCS11_PIN || '98765432';
 const hsmUser = 'hsm-user';
-const hsmWallet = new InMemoryWallet(new HSMWalletMixin(pkcsLibPath, PKCS11_SLOT, PKCS11_PIN));
+const mspId = 'Org1MSP';
+const adminUser = 'admin';
+const adminSecret = 'adminpw';
 
-async function setupAdmin() {
-	if (!(await inMemoryWallet.exists('admin'))) {
-		await idManager.enrollToWallet('admin', 'adminpw', 'Org1MSP', inMemoryWallet);
-	}
-}
+let hsmWallet;
 
-async function hsmIdentitySetup() {
-	if (!(await hsmWallet.exists(hsmUser))) {
-		const secret = await idManager.registerUser(hsmUser, null, inMemoryWallet, 'admin');
-		await idManager.enrollToWallet(hsmUser, secret, 'Org1MSP', hsmWallet);
-	}
+async function createWallet() {
+	const wallet = await Wallets.newInMemoryWallet();
+	const hsmOptions = {
+		lib: pkcsLibPath,
+		pin: PKCS11_PIN,
+		slot: PKCS11_SLOT
+	};
+	const hsmProvider = new HsmX509Provider(hsmOptions);
+	wallet.getProviderRegistry().addProvider(hsmProvider);
+
+	const idManager = new IDManager();
+	await idManager.initialize(JSON.parse(ccp.toString()));
+
+	const adminEnrollment = await idManager.enroll(adminUser, adminSecret, mspId, wallet);
+	const adminIdentity = {
+		credentials: {
+			certificate: adminEnrollment.certificate,
+			privateKey: adminEnrollment.key.toBytes()
+		},
+		mspId,
+		type: 'X.509'
+	};
+	await wallet.put(adminUser, adminIdentity);
+
+	const secret = await idManager.registerUser(hsmUser, wallet, adminUser);
+	const hsmEnrollment = await idManager.enroll(hsmUser, secret);
+	const hsmIdentity = {
+		credentials: {
+			certificate: hsmEnrollment.certificate
+		},
+		mspId,
+		type: hsmProvider.type
+	};
+	await wallet.put(hsmUser, hsmIdentity);
+
+	return wallet;
 }
 
 async function createContract(t, gateway, gatewayOptions) {
@@ -79,10 +104,9 @@ async function createContract(t, gateway, gatewayOptions) {
 }
 
 test('\n\n****** Network End-to-end flow: import identity into wallet using hsm *****\n\n', async (t) => {
-	await setupAdmin();
-	await hsmIdentitySetup();
-	const exists = await hsmWallet.exists(hsmUser);
-	if (exists) {
+	hsmWallet = await createWallet();
+	const identity = await hsmWallet.get(hsmUser);
+	if (identity) {
 		t.pass('Successfully imported hsmUser into wallet');
 	} else {
 		t.fail('Failed to import hsmUser into wallet');
@@ -94,9 +118,6 @@ test('\n\n***** Network End-to-end flow: invoke transaction to move money using 
 	const gateway = new Gateway();
 
 	try {
-		await setupAdmin();
-		await hsmIdentitySetup();
-
 		const tlsInfo = await e2eUtils.tlsEnroll('org1');
 		const contract = await createContract(t, gateway, {
 			wallet: hsmWallet,
