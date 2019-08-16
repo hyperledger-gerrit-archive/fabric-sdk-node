@@ -186,7 +186,7 @@ When there is certificate Authority information on the organization, the fabric 
 
 So first let's enroll an admin user so that we have the credentials (crypto material) needed to interact with the certificate authority and the fabric network. The following convenience method will first look in the state store (as defined above) to see if the user exist. If the user is not found and there is a connection profile configuration loaded, the fabric client will build a certificate authority client object as defined in the fabric client configuration with the address as defined in the currently loaded connection profile configuration. The fabric client uses the certificate authority client to enroll the admin user with the certificate authority, this requires that a new set of keys be generated on the client side. The fabric client will then use the signed certificate returned by the certificate authority from the enroll to create a user context. The context will then be assign it to fabric client and stored in the state store along with storing the keys in the crypto store. At this point the fabric client is ready to interact with the fabric network and the application may use the returned user object to interact with the certificate authority.
 
-In the following example we are able to enroll the user because it known by the certificate authority. New users will have to be registered first.
+In the following example we are able to enroll the user because it is known by the certificate authority. New users will have to be registered first.
 ```
 client.setUserContext({username:'admin', password:'adminpw'})
 .then((admin) => {
