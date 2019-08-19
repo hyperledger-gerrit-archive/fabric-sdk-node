@@ -78,11 +78,14 @@ def buildStages() {
             fabBuildLibrary.pullThirdPartyImages(props["FAB_BASEIMAGE_VERSION"], props["FAB_THIRDPARTY_IMAGES_LIST"])
           } else {
             if(env.GERRIT_BRANCH == "master") {
+sh 'echo TEST1'
               // Pull Docker Images from nexus3
               fabBuildLibrary.pullDockerImages(props["FAB_BASE_VERSION"], props["FAB_IMAGES_LIST"])
-              // Pull Thirdparty Docker Images from hyperledger DockerHub
+sh 'echo TEST2'              
+// Pull Thirdparty Docker Images from hyperledger DockerHub
               fabBuildLibrary.pullThirdPartyImages(props["FAB_BASEIMAGE_VERSION"], props["FAB_THIRDPARTY_IMAGES_LIST"])
-            }
+sh 'echo TEST3'            
+}
             else {
               sh 'echo -e "\\033[1m SKIP PULLING IMAGES FROM NEXUS.\\033[0m"'
               sh 'echo -e "\\033[1m Let gulp docker-ready pull images from DockerHub\\033[0m"'
