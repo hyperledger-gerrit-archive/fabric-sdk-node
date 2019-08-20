@@ -25,8 +25,8 @@ class Config {
 	constructor() {
 		nconf.use('memory');
 		nconf.argv();
-		nconf.env({parseValues: true});
-		nconf.use('mapenv', {type:'memory'});
+		nconf.env({ parseValues: true });
+		nconf.use('mapenv', { type: 'memory' });
 		this.mapSettings(nconf.stores.mapenv, process.env);
 		this._fileStores = [];
 		// reference to configuration settings
@@ -39,10 +39,12 @@ class Config {
 	//
 	mapSettings(store, settings) {
 		for (let key in settings) {
-			const value = settings[key];
-			key = key.toLowerCase();
-			key = key.replace(/_/g, '-');
-			store.set(key, value);
+			if (settings.hasOwnProperty(key)) {
+				const value = settings[key];
+				key = key.toLowerCase();
+				key = key.replace(/_/g, '-');
+				store.set(key, value);
+			}
 		}
 	}
 
@@ -54,7 +56,9 @@ class Config {
 	reorderFileStores(path, bottom) {
 		// first remove all the file stores
 		for (const x in this._fileStores) {
-			this._config.remove(this._fileStores[x]);
+			if (this._fileStores.hasOwnProperty(x)) {
+				this._config.remove(this._fileStores[x]);
+			}
 		}
 
 		if (bottom) {
@@ -67,8 +71,10 @@ class Config {
 
 		// now load all the file stores
 		for (const x in this._fileStores) {
-			const name = this._fileStores[x];
-			this._config.file(name, name);
+			if (this._fileStores.hasOwnProperty(x)) {
+				const name = this._fileStores[x];
+				this._config.file(name, name);
+			}
 		}
 	}
 
