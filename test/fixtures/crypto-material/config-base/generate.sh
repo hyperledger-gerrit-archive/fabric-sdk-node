@@ -2,6 +2,7 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 #
+set -e
 
 # Set the path to teh crypto material to ensure it may be used
 CRYPTOGEN=$1
@@ -20,7 +21,7 @@ mkdir "${BASEDIR}/../channel-config"
 echo 'Generating base crypto-material and channel tx files....'
 export FABRIC_CFG_PATH="${BASEDIR}"
 cryptogen generate --config="${BASEDIR}/crypto-config.yaml" --output="${BASEDIR}/../crypto-config"
-configtxgen -profile TwoOrgsOrdererGenesis -outputBlock "${BASEDIR}/twoorgs.genesis.block"
+configtxgen -profile TwoOrgsOrdererGenesis -outputBlock "${BASEDIR}/twoorgs.genesis.block" -channelID byfn-sys-channel
 configtxgen -profile TwoOrgsChannel -outputCreateChannelTx "${BASEDIR}/../channel-config/mychannel.tx" -channelID mychannel
 configtxgen -profile TwoOrgsChannel -outputCreateChannelTx "${BASEDIR}/../channel-config/mychannel2.tx" -channelID mychannel2 #test/integration/network-config.js
 configtxgen -profile TwoOrgsChannel -outputCreateChannelTx "${BASEDIR}/../channel-config/mychanneltx.tx" -channelID mychanneltx #test/integration/create-configtx-channel.js
