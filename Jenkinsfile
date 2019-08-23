@@ -19,8 +19,7 @@ timestamps { // set the timestamps on the jenkins console
       node ('hyp-z') { // trigger jobs on s390x builds nodes
         // Update the node version here
         env.NODE_VER = "8.14.0" // Set node version
-        env.GOPATH = "$WORKSPACE/gopath"
-        env.PATH = "$GOPATH/bin:/usr/local/bin:/usr/bin:/usr/local/sbin:/usr/sbin:~/npm/bin:/home/jenkins/.nvm/versions/node/v${NODE_VER}/bin:$PATH"
+        env.PATH = "/usr/local/bin:/usr/bin:/usr/local/sbin:/usr/sbin:~/npm/bin:/home/jenkins/.nvm/versions/node/v${NODE_VER}/bin:$PATH"
         buildStages() // call buildStages
       } // End node
     } else {
@@ -28,8 +27,7 @@ timestamps { // set the timestamps on the jenkins console
         // LF team has to install the newer version in Jenkins global config
         // Send an email to helpdesk@hyperledger.org to add newer version
         def nodeHome = tool 'nodejs-8.14.0'
-        env.GOPATH = "$WORKSPACE/gopath"
-        env.PATH = "$GOPATH/bin:/usr/local/bin:/usr/bin:/usr/local/sbin:/usr/sbin:${nodeHome}/bin:$PATH"
+        env.PATH = "/usr/local/bin:/usr/bin:/usr/local/sbin:/usr/sbin:${nodeHome}/bin:$PATH"
         buildStages() // call buildStages
       } // end node block
     }
@@ -63,8 +61,7 @@ def buildStages() {
           if(props["IMAGE_SOURCE"] == "build") {
             // Set PATH
             env.GOROOT = "/opt/go/go" + props["GO_VER"] + ".linux." + "$MARCH"
-            env.GOPATH = "$GOPATH/bin"
-            env.PATH = "$GOROOT/bin:$GOPATH/bin:$PATH"
+            env.PATH = "$GOROOT/bin:$PATH"
             // clone repository
             fabBuildLibrary.cloneScm('fabric', '$GERRIT_BRANCH')
             // build fabric docker images
