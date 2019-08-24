@@ -7,7 +7,7 @@
   "scripts": {
     "update:clean": "rimraf bundle.json protos && mkdirp protos",
     "update:copy": "cpx \"${GOPATH}/src/github.com/hyperledger/fabric/protos/**/*.proto\" protos",
-    "update:pbjs": "pbjs -t json -p google-protos -p protos $(find google-protos protos -name \"*.proto\" -type f) -o bundle.json",
+    "update:pbjs": "patch-package && pbjs -t json -p google-protos -p protos $(find google-protos protos -name \"*.proto\" -type f) -o bundle.json",
     "update": "npm run update:clean && npm run update:copy && npm run update:pbjs",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -32,6 +32,7 @@
   ],
   "dependencies": {
     "grpc": "1.22.2",
+    "patch-package": "^6.1.2",
     "protobufjs": "5.0.3"
   },
   "devDependencies": {
