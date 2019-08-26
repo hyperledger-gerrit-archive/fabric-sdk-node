@@ -299,7 +299,11 @@ test('\n\n***** D I S C O V E R Y  *****\n\n', async (t) => {
 	};
 	try {
 		results = await channel_org1.sendTransactionProposal(request);
-		t.fail('unknown chaincode should have failed to endorse');
+		if (testUtil.checkBadResults(t, results)) {
+			t.pass('Successfully failed to endorsed chaincode to chaincode');
+		} else {
+			t.fail('Failed by endorsing using a chaincode to chaincode call');
+		}
 	} catch (error) {
 		if (error.toString().includes('No endorsement plan available')) {
 			t.pass('Successfully got an error when the hint was not found ' + error);

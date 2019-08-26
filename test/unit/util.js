@@ -313,6 +313,26 @@ module.exports.checkGoodResults = function(t, results) {
 	return result;
 };
 
+module.exports.checkBadResults = function(t, results) {
+	let result = true;
+	const proposalResponses = results[0];
+	for (const i in proposalResponses) {
+		const proposal_response = proposalResponses[i];
+		if (proposal_response instanceof Error) {
+			t.pass('Successfully got error ' + proposal_response.toString());
+			result = result & true;
+		} else if (proposal_response && proposal_response.response && proposal_response.response.status === 200) {
+			t.fail('Failed transaction proposal has response status of good');
+			result = result & false;
+		} else {
+			t.fail(' Unknown results ');
+			result = result & false;
+		}
+	}
+
+	return result;
+};
+
 module.exports.getClientForOrg = async function(t, org) {
 	// build a 'Client' instance that knows of a network
 	//  this network config does not have the client information, we will
