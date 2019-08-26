@@ -253,7 +253,7 @@ const Channel = class {
 	async _initialize(request) {
 		const method = '_initialize';
 		logger.debug('%s - start', method);
-
+		console.log('initialize');
 		this._discovery_results = null;
 		this._last_discover_timestamp = null;
 		this._last_refresh_request = Object.assign({}, request);
@@ -653,6 +653,7 @@ const Channel = class {
 			const now = Date.now();
 			if (have_new_interests || now - this._last_discover_timestamp > allowed_age) {
 				logger.debug('%s - need to refresh :: have_new_interests %s', method, have_new_interests);
+				console.log('about to refresh discovery results .. have new hint');
 				await this.refresh();
 			}
 
@@ -674,7 +675,7 @@ const Channel = class {
 	async getEndorsementPlan(endorsement_hint) {
 		const method = 'getEndorsementPlan';
 		logger.debug('%s - start - %j', method, endorsement_hint);
-
+		console.log('getEndorsementPlan - starting');
 		let endorsement_plan = null;
 		const discovery_results = await this.getDiscoveryResults(endorsement_hint);
 		const plan_id = JSON.stringify(endorsement_hint);
@@ -684,6 +685,7 @@ const Channel = class {
 				if (plan.plan_id === plan_id) {
 					endorsement_plan = plan;
 					logger.debug('%s -  found plan in known plans ::%s', method, plan_id);
+					console.log('found hint in discovery results ');
 					break;
 				}
 			}
@@ -693,6 +695,8 @@ const Channel = class {
 			return JSON.parse(JSON.stringify(endorsement_plan));
 		} else {
 			logger.debug('%s - plan not found in known plans', method, plan_id);
+			console.log('no plan found- returning null');
+
 			return null;
 		}
 	}
