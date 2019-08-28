@@ -5,6 +5,7 @@
  */
 
 import * as Client from 'fabric-client';
+import { UserOpts } from 'fabric-common';
 
 import { Identity } from './identity';
 import { IdentityData } from './identitydata';
@@ -65,7 +66,7 @@ export class X509Provider implements IdentityProvider {
 	}
 
 	public async setUserContext(client: Client, identity: X509Identity, name: string): Promise<void> {
-		const userData: Client.UserOpts = {
+		const userData: UserOpts = {
 			cryptoContent: {
 				privateKeyPEM: identity.credentials.privateKey,
 				signedCertPEM: identity.credentials.certificate,

@@ -5,6 +5,7 @@
  */
 
 import * as Client from 'fabric-client';
+import { UserOpts } from 'fabric-common';
 
 import { Identity } from './identity';
 import { IdentityData } from './identitydata';
@@ -92,7 +93,7 @@ export class HsmX509Provider implements IdentityProvider {
 		const publicKey = await cryptoSuite.importKey(identity.credentials.certificate);
 		const privateKeyObj = await cryptoSuite.getKey(publicKey.getSKI());
 
-		const userData: Client.UserOpts = {
+		const userData: UserOpts = {
 			cryptoContent: {
 				privateKeyObj,
 				signedCertPEM: identity.credentials.certificate,
