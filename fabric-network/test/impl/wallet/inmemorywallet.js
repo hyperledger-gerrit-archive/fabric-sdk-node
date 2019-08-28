@@ -13,7 +13,7 @@ const should = chai.should();
 const InMemoryWallet = require('../../../lib/impl/wallet/inmemorywallet');
 const X509WalletMixin = require('../../../lib/impl/wallet/x509walletmixin');
 const Client = require('fabric-client');
-const {CryptoSuite, KeyValueStore} = require('fabric-common');
+const {CryptoSuite, KeyValueStore} = require('fabric-common/index');
 
 
 describe('InMemoryWallet', () => {

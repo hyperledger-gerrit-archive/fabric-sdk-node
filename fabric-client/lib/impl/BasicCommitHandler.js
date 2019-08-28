@@ -7,7 +7,7 @@
 
 'use strict';
 
-const {Utils: utils} = require('fabric-common');
+const {Utils: utils} = require('fabric-common/index');
 const Constants = require('../Constants.js');
 const CommitHandler = require('../CommitHandler');
 const logger = utils.getLogger('BasicCommitHandler');

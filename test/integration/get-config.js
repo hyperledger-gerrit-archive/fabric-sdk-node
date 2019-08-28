@@ -8,7 +8,7 @@
 // in a happy-path scenario
 'use strict';
 
-const {Utils: utils} = require('fabric-common');
+const {Utils: utils} = require('fabric-common/index');
 const logger = utils.getLogger('get-config');
 
 const tape = require('tape');

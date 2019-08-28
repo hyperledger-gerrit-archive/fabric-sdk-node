@@ -6,7 +6,7 @@
 
 'use strict';
 
-const {Utils:utils} = require('fabric-common');
+const {Utils:utils} = require('fabric-common/index');
 const util = require('util');
 
 module.exports.registerTxEvent = function(eh, txid, timeout) {

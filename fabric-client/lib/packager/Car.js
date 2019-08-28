@@ -14,7 +14,7 @@
 
 'use strict';
 
-const {Utils: utils} = require('fabric-common');
+const {Utils: utils} = require('fabric-common/index');
 
 const logger = utils.getLogger('packager/Car.js');
 const fs = require('fs-extra');

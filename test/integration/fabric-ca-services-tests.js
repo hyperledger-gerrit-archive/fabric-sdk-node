@@ -13,7 +13,7 @@
 // the fabric-ca-client package by editing build/tasks/ca.js
 // ///////////////////////////////////////////////////////////////
 
-const {Utils: utils, Signer, SigningIdentity, User} = require('fabric-common');
+const {Utils: utils, Signer, SigningIdentity, User} = require('fabric-common/index');
 const logger = utils.getLogger('integration.client');
 
 const tape = require('tape');
