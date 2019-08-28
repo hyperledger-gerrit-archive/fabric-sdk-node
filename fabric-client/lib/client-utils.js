@@ -8,7 +8,7 @@
 
 const settle = require('promise-settle');
 const util = require('util');
-const {Utils: utils} = require('fabric-common');
+const {Utils: utils} = require('fabric-common/index');
 const logger = utils.getLogger('client-utils.js');
 
 const fabprotos = require('fabric-protos');

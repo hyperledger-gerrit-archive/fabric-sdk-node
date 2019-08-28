@@ -7,7 +7,7 @@
 
 'use strict';
 
-const {KeyValueStore, Signer, SigningIdentity, Utils: sdkUtils, User, BaseClient} = require('fabric-common');
+const {KeyValueStore, Signer, SigningIdentity, Utils: sdkUtils, User, BaseClient} = require('fabric-common/index');
 
 const clientUtils = require('./client-utils.js');
 const Chaincode = require('./Chaincode.js');

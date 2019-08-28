@@ -7,6 +7,7 @@
 /* tslint:disable:max-classes-per-file */
 
 import * as Client from 'fabric-client';
+import { User } from 'fabric-common';
 
 import { Wallet } from '../lib/impl/wallet/wallet';
 
@@ -102,7 +103,7 @@ export class Gateway {
 	public connect(config: Client | string | object, options: GatewayOptions): Promise<void>;
 	public disconnect(): void;
 	public getClient(): Client;
-	public getCurrentIdentity(): Client.User;
+	public getCurrentIdentity(): User;
 	public getNetwork(channelName: string): Promise<Network>;
 	public getOptions(): GatewayOptions;
 }

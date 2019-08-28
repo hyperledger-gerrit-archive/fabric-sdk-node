@@ -19,7 +19,7 @@ const Car = require('./packager/Car.js');
 const Node = require('./packager/Node.js');
 const Java = require('./packager/Java.js');
 const Lifecycle = require('./packager/Lifecycle.js');
-const {Utils: utils} = require('fabric-common');
+const {Utils: utils} = require('fabric-common/index');
 
 const logger = utils.getLogger('packager');
 

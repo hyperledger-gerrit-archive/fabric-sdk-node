@@ -20,7 +20,7 @@ const klaw = require('klaw');
 const tar = require('tar-stream');
 const path = require('path');
 const zlib = require('zlib');
-const {Utils: utils} = require('fabric-common');
+const {Utils: utils} = require('fabric-common/index');
 
 const logger = utils.getLogger('packager/BasePackager.js');
 

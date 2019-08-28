@@ -14,7 +14,7 @@
 
 'use strict';
 const Long = require('long');
-const {Utils: utils, Identity} = require('fabric-common');
+const {Utils: utils, Identity} = require('fabric-common/index');
 const clientUtils = require('./client-utils.js');
 const Constants = require('./Constants.js');
 const logger = utils.getLogger('ChannelEventHub.js');
