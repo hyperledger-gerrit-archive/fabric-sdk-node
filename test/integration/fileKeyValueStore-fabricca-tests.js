@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-const {Utils:utils, User} = require('fabric-common');
+const {Utils:utils, User} = require('fabric-common/index');
 const logger = utils.getLogger('fileKeyValStore-fabricca');
 
 const tape = require('tape');
