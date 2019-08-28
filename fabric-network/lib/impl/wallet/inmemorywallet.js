@@ -8,7 +8,7 @@
 
 const Client = require('fabric-client');
 const BaseWallet = require('./basewallet');
-const {KeyValueStore} = require('fabric-common');
+const {KeyValueStore} = require('fabric-common/index');
 const logger = require('../../logger').getLogger('InMemoryWallet');
 
 // this will be shared across all instance of a memory wallet, so really an app should

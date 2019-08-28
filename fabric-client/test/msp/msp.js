@@ -7,7 +7,7 @@
 'use strict';
 
 
-const {Config, CryptoAlgorithms, Identity, SigningIdentity, Utils: utils} = require('fabric-common');
+const {Config, CryptoAlgorithms, Identity, SigningIdentity, Utils: utils} = require('fabric-common/index');
 const path = require('path');
 const fs = require('fs');
 

@@ -8,7 +8,7 @@
 // in a happy-path scenario
 'use strict';
 const FabricCAServices = require('../../../fabric-ca-client');
-const {Utils:utils} = require('fabric-common');
+const {Utils:utils} = require('fabric-common/index');
 const logger = utils.getLogger('E2E testing');
 
 const path = require('path');
