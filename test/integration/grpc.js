@@ -6,7 +6,7 @@
 
 'use strict';
 
-const {Utils:utils} = require('fabric-common');
+const {Utils:utils} = require('fabric-common/index');
 
 const tape = require('tape');
 const _test = require('tape-promise').default;

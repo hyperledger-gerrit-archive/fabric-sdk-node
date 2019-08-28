@@ -16,7 +16,7 @@
 
 const path = require('path');
 const sbuf = require('stream-buffers');
-const {Utils: utils} = require('fabric-common');
+const {Utils: utils} = require('fabric-common/index');
 
 const walk = require('ignore-walk');
 

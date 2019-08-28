@@ -10,7 +10,7 @@ if (global && global.hfc) {
 }
 require('nconf').reset();
 
-const {Utils:utils} = require('fabric-common');
+const {Utils:utils} = require('fabric-common/index');
 const logger = utils.getLogger('E2E create-channel');
 const fs = require('fs');
 const path = require('path');
