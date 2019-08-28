@@ -49,8 +49,8 @@ We have functional and scenario based tests that may be run via the following co
     * `node test/integration/e2e/query.js`
 
 ### Special Tests for Hardware Security Module support via PKCS#11 interface
-The SDK has support for PKCS#11 interface in order to allow applications to make use of HSM devices for key management. To turn these tests off, set environment variable "PKCS11_TESTS" to "false". In order to run the tests:
 
+<<<<<<< HEAD   (be841f Use github.com/hyperledger/fabric-protos repo)
 * Install a software emulator of the PKCS#11 interface. The unit tests have been tried with SoftHSM2:
   * install using the package manager for your host system:
     * Ubuntu:  apt-get install softhsm2
@@ -70,6 +70,9 @@ The unit test assumes slot '0' and user PIN `98765432`. If your configuration is
 * PKCS11_LIB - path to the SoftHSM2 library, if not specified, the test case searches through a list of popular install locaions
 * PKCS11_PIN
 * PKCS11_SLOT
+=======
+The SDK has support for Hardware Security Module via PKCS#11 interface. See [Testing for Hardware Security Module via PKCS#11 interface](https://fabric-sdk-node.github.io/release-1.4/tutorial-hsm-pkcs11.html) for configuration and tests.
+>>>>>>> CHANGE (a0c3b9 [FABN-1359] Move HSM docs into separated page)
 
 ### Hyperledger Fabric Client objects and reference documentation
 The SDK has support for Java based Chaincode. To turn these tests off, set the environment variable "JAVA_TESTS" to false.

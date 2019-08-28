@@ -50,10 +50,15 @@
 	"handlers": {
 		"title": "fabric-client: How to use the endorsement and commit handlers"
 	},
+<<<<<<< HEAD   (be841f Use github.com/hyperledger/fabric-protos repo)
 	"chaincode-lifecycle": {
 		"title": "fabric-client: How to install and start your chaincode"
 	},
 	"fabtoken": {
 		"title": "fabric-client: How to perform token operations"
+=======
+	"hsm-pkcs11": {
+		"title": "Testing for Hardware Security Module via PKCS#11 interface"
+>>>>>>> CHANGE (a0c3b9 [FABN-1359] Move HSM docs into separated page)
 	}
 }
