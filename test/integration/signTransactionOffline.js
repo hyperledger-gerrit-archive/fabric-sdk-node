@@ -14,7 +14,7 @@ const test = _test(tape);
 
 const FabricCAService = require('fabric-ca-client');
 const Client = require('fabric-client');
-const {HashPrimitives} = require('fabric-common');
+const {HashPrimitives} = require('fabric-common/index');
 
 const jsrsa = require('jsrsasign');
 const {KEYUTIL} = jsrsa;

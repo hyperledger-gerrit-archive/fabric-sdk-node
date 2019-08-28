@@ -16,7 +16,7 @@
 
 const rewire = require('rewire');
 const UserRewire = rewire('fabric-common/lib/User');
-const {User} = require('fabric-common');
+const {User} = require('fabric-common/index');
 
 const chai = require('chai');
 const should = chai.should();

@@ -11,7 +11,7 @@ const path = require('path');
 const FabricCAServices = require('../../fabric-ca-client');
 const {HFCAIdentityAttributes, HFCAIdentityType} = require('../../fabric-ca-client/lib/IdentityService');
 
-const {User} = require('fabric-common');
+const {User} = require('fabric-common/index');
 
 const userOrg1 = 'org1';
 const userOrg2 = 'org2';

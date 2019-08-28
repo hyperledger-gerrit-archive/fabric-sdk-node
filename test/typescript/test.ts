@@ -12,7 +12,7 @@ import * as util from 'util';
 
 import FabricCAServices = require('fabric-ca-client');
 import Client = require('fabric-client');
-import FabricCommon = require('fabric-common');
+import FabricCommon = require('fabric-common/index');
 const {Utils: utils} = FabricCommon;
 const logger = utils.getLogger('connection profile');
 
@@ -36,8 +36,6 @@ import {
 	ChannelRequest,
 	ConfigSignature,
 	EndorsementResults,
-	ICryptoKeyStore,
-	ICryptoSuite,
 	JoinChannelRequest,
 	Orderer,
 	OrdererRequest,
@@ -53,8 +51,13 @@ import {
 	QueryNamespaceDefinitionsRequest,
 	TransactionId,
 	TransactionRequest,
-	User,
 } from 'fabric-client';
+
+import {
+	ICryptoKeyStore,
+	ICryptoSuite,
+	User,
+} from 'fabric-common';
 
 const configPath: string = path.join(__dirname, '../fixtures/profiles');
 const configNetwork: string = path.resolve(configPath, 'network-ts.yaml');
