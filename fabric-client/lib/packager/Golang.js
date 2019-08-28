@@ -17,7 +17,7 @@ const fs = require('fs-extra');
 const klaw = require('klaw');
 const path = require('path');
 const sbuf = require('stream-buffers');
-const {Utils: utils} = require('fabric-common');
+const {Utils: utils} = require('fabric-common/index');
 
 const BasePackager = require('./BasePackager');
 

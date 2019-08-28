@@ -9,7 +9,7 @@
 
 const fs = require('fs-extra');
 const path = require('path');
-const {Utils: utils} = require('fabric-common');
+const {Utils: utils} = require('fabric-common/index');
 const Constants = require('../Constants.js');
 const Channel = require('../Channel.js');
 const Organization = require('../Organization.js');

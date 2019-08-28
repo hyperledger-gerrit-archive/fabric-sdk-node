@@ -8,7 +8,7 @@
 'use strict';
 
 
-const {Utils: utils, HashPrimitives, User} = require('fabric-common');
+const {Utils: utils, HashPrimitives, User} = require('fabric-common/index');
 const logger = utils.getLogger('TransactionID.js');
 
 /**
