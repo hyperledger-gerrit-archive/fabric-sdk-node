@@ -36,8 +36,6 @@ import {
 	ChannelRequest,
 	ConfigSignature,
 	EndorsementResults,
-	ICryptoKeyStore,
-	ICryptoSuite,
 	JoinChannelRequest,
 	Orderer,
 	OrdererRequest,
@@ -53,8 +51,13 @@ import {
 	QueryNamespaceDefinitionsRequest,
 	TransactionId,
 	TransactionRequest,
-	User,
 } from 'fabric-client';
+
+import {
+	ICryptoKeyStore,
+	ICryptoSuite,
+	User,
+} from 'fabric-common';
 
 const configPath: string = path.join(__dirname, '../fixtures/profiles');
 const configNetwork: string = path.resolve(configPath, 'network-ts.yaml');

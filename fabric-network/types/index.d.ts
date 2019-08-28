@@ -7,6 +7,7 @@
 /* tslint:disable:max-classes-per-file */
 
 import * as Client from 'fabric-client';
+import { User } from 'fabric-common';
 
 import { Wallet } from '../lib/impl/wallet/wallet';
 
@@ -102,7 +103,7 @@ export class Gateway {
 	public connect(config: Client | string | object, options: GatewayOptions): Promise<void>;
 	public disconnect(): void;
 	public getClient(): Client;
-	public getCurrentIdentity(): Client.User;
+	public getCurrentIdentity(): User;
 	public getNetwork(channelName: string): Promise<Network>;
 	public getOptions(): GatewayOptions;
 }
@@ -119,7 +120,7 @@ export interface Contract {
 	createTransaction(name: string): Transaction;
 	evaluateTransaction(name: string, ...args: string[]): Promise<Buffer>;
 	submitTransaction(name: string, ...args: string[]): Promise<Buffer>;
-	addContractListener(listenerName: string, eventName: string, callback: (error: Error, event?: {[key: string]: any} | Array<{[key: string]: any}>, blockNumber?: string, transactionId?: string, status?: string) => Promise<any>, options?: EventListenerOptions): Promise<ContractEventListener>;
+	addContractListener(listenerName: string, eventName: string, callback: (error: Error, event?: { [key: string]: any } | Array<{ [key: string]: any }>, blockNumber?: string, transactionId?: string, status?: string) => Promise<any>, options?: EventListenerOptions): Promise<ContractEventListener>;
 }
 
 export interface TransientMap {
@@ -141,7 +142,7 @@ export interface FabricError extends Error {
 	transactionId?: string;
 }
 
-export interface TimeoutError extends FabricError {} // tslint:disable-line:no-empty-interface
+export interface TimeoutError extends FabricError { } // tslint:disable-line:no-empty-interface
 
 export interface Checkpoint {
 	blockNumber: number;
@@ -157,7 +158,7 @@ export class FileSystemCheckpointer extends BaseCheckpointer {
 	constructor(channelName: string, listenerName: string, options: any);
 	public initialize(): Promise<void>;
 	public save(transactionId: string, blockNumber: string): Promise<void>;
-	public load(): Promise<Checkpoint | {[blockNumber: string]: Checkpoint}>;
+	public load(): Promise<Checkpoint | { [blockNumber: string]: Checkpoint }>;
 }
 
 export type CheckpointerFactory = (channelName: string, listenerName: string, options: object) => BaseCheckpointer;

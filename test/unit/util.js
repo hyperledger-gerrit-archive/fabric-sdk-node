@@ -11,7 +11,7 @@ const util = require('util');
 
 const Client = require('fabric-client');
 const copService = require('fabric-ca-client/lib/FabricCAServices.js');
-const {Utils:utils, User} = require('fabric-common');
+const {Utils: utils, User} = require('fabric-common');
 const Constants = require('./constants.js');
 const logger = utils.getLogger('TestUtil');
 
