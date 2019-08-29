@@ -1,0 +1,8 @@
+Verified+1: Hyperledger Jobbuilder <jobbuilder@jenkins.hyperledger.org>
+Code-Review+1: Simon Stone <sstone1@uk.ibm.com>
+Code-Review+2: Bret Harrison <beharrison@nc.rr.com>
+Submitted-by: Bret Harrison <beharrison@nc.rr.com>
+Submitted-at: Thu, 29 Aug 2019 13:23:24 +0000
+Reviewed-on: https://gerrit.hyperledger.org/r/c/fabric-sdk-node/+/33174
+Project: fabric-sdk-node
+Branch: refs/heads/master
