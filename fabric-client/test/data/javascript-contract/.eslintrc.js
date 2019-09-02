@@ -11,7 +11,7 @@ module.exports = {
     },
     parserOptions: {
         ecmaVersion: 8,
-        sourceType: 'script'
+        sourceType: 'module'
     },
     extends: "eslint:recommended",
     rules: {

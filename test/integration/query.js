@@ -11,7 +11,7 @@
 // AND set environment variables indicated in the comments
 // at the end of the invoke-transaction run.
 
-'use strict';
+
 
 const {Utils:utils} = require('fabric-common');
 const logger = utils.getLogger('query');

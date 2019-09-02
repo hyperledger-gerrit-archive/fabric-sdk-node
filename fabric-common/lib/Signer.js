@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-'use strict';
+
 
 /**
  * Signer is an interface for an opaque private key that can be used for signing operations

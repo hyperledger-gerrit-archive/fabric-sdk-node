@@ -12,7 +12,7 @@
  * limitations under the License.
  */
 
-'use strict';
+
 /* eslint-disable no-useless-call */
 
 const rewire = require('rewire');

@@ -12,7 +12,7 @@
  * limitations under the License.
  */
 
-'use strict';
+
 
 const fabprotos = require('fabric-protos');
 const util = require('util');

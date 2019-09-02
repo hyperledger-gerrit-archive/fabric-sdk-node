@@ -2,7 +2,7 @@
 /**
  * SPDX-License-Identifier: Apache-2.0
  */
-'use strict';
+
 
 const tape = require('tape');
 const _test = require('tape-promise').default;

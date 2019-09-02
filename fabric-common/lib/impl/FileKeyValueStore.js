@@ -5,7 +5,7 @@
 
 */
 
-'use strict';
+
 
 const {KeyValueStore, Utils: utils} = require('../../');
 const fs = require('fs-extra');

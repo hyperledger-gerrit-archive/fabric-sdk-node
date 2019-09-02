@@ -12,7 +12,7 @@
  * limitations under the License.
  */
 
-'use strict';
+
 
 const rewire = require('rewire');
 const Config = require('../lib/Config');

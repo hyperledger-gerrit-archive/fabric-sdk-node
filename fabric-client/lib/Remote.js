@@ -13,7 +13,7 @@
  */
 
 
-'use strict';
+
 
 const grpc = require('fabric-protos/grpc');
 const urlParser = require('url');

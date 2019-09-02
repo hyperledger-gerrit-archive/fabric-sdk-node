@@ -5,7 +5,7 @@
 
 */
 
-'use strict';
+
 
 const jsrsasign = require('jsrsasign');
 const {X509, ASN1HEX} = jsrsasign;

@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-'use strict';
+
 
 
 const {Config, CryptoAlgorithms, Identity, SigningIdentity, Utils: utils} = require('fabric-common');

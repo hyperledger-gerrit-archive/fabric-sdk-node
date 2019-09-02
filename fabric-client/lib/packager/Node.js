@@ -12,7 +12,7 @@
  * limitations under the License.
  */
 
-'use strict';
+
 
 const path = require('path');
 const sbuf = require('stream-buffers');

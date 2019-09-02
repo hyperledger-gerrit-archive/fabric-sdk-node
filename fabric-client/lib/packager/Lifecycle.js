@@ -12,7 +12,7 @@
  * limitations under the License.
  */
 
-'use strict';
+
 
 const sbuf = require('stream-buffers');
 const {Utils: utils} = require('fabric-common');

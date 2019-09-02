@@ -5,7 +5,7 @@
 
 */
 
-'use strict';
+
 
 
 const {Utils: utils, HashPrimitives, User} = require('fabric-common');

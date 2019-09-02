@@ -4,7 +4,7 @@
 
 /* eslint-disable no-console */
 
-'use strict';
+
 const shim = require('fabric-shim');
 const util = require('util');
 

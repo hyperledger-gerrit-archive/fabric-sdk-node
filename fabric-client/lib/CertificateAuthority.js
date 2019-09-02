@@ -13,7 +13,7 @@
  */
 
 
-'use strict';
+
 
 const {Utils: utils} = require('fabric-common');
 const logger = utils.getLogger('CertificateAuthority.js');

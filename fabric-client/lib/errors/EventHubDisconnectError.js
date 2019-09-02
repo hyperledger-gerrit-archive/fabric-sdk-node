@@ -5,7 +5,7 @@
 
 */
 
-'use strict';
+
 
 /**
  * Error when an event hub is disconnected.

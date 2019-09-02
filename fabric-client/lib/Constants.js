@@ -12,7 +12,7 @@
  * limitations under the License.
  */
 
-'use strict';
+
 
 module.exports.LSCC = 'lscc';
 module.exports.QSCC = 'qscc';

@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-'use strict';
+
 
 const rewire = require('rewire');
 const AffiliationService = require('../lib/AffiliationService');

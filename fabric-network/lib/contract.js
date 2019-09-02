@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-'use strict';
+
 
 const Transaction = require('fabric-network/lib/transaction');
 const ContractEventListener = require('./impl/event/contracteventlistener');

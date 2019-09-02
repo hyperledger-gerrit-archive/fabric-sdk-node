@@ -12,7 +12,7 @@
  * limitations under the License.
  */
 
-'use strict';
+
 
 const CryptoAlgorithms = {
 	// ECDSA Elliptic Curve Digital Signature Algorithm (key gen, import, sign, verify),

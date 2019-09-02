@@ -5,7 +5,7 @@
 
 */
 
-'use strict';
+
 
 // requires
 const {CryptoAlgorithms, CryptoSuite, HashPrimitives, Utils: utils} = require('../../');

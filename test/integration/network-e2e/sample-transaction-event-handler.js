@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-'use strict';
+
 
 // --- Plug-in event handler sample where the user takes full responsibility for event hub connection and event handling
 

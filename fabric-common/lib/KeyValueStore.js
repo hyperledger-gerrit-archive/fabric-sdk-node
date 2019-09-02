@@ -12,7 +12,7 @@
  * limitations under the License.
  */
 
-'use strict';
+
 
 /**
  * Abstract class for a Key-Value store. The Channel class uses this store

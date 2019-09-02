@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-'use strict';
+
 
 const clientUtils = require('./client-utils.js');
 const fabprotos = require('fabric-protos');

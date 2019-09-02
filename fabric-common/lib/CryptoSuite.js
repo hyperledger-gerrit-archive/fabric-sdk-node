@@ -12,7 +12,7 @@
  * limitations under the License.
  */
 
-'use strict';
+
 
 /**
  * Abstract class for a suite of crypto algorithms used by the SDK to perform digital signing,

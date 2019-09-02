@@ -12,7 +12,7 @@
  * limitations under the License.
  */
 
-'use strict';
+
 const rewire = require('rewire');
 const IdentityService = require('../lib/IdentityService');
 const IdentityServiceRewire = rewire('../lib/IdentityService');

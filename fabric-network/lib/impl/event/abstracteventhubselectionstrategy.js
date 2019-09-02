@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-'use strict';
+
 
 /**
  * An abstract selection strategy that provides an interface for other selection

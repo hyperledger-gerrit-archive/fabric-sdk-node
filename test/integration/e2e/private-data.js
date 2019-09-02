@@ -8,7 +8,7 @@
 // Install and instantiate a chaincode with private data.
 // Invokes and queries chaincode for private data.
 // Prerequisite: a chaincode reading/writing private data, install-channel.js and join-channels.js
-'use strict';
+
 
 const {Utils:utils} = require('fabric-common');
 const logger = utils.getLogger('E2E private-data');

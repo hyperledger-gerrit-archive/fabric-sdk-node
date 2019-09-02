@@ -12,7 +12,7 @@
  * limitations under the License.
  */
 
-'use strict';
+
 
 const Helper = require('../lib/helper');
 const {User} = require('fabric-common');

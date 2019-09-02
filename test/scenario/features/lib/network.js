@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-'use strict';
+
 
 const {Gateway, InMemoryWallet, X509WalletMixin} = require('fabric-network');
 const testUtil = require('./utils.js');
