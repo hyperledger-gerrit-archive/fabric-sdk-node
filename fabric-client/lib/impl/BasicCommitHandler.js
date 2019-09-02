@@ -5,7 +5,7 @@
 
 */
 
-'use strict';
+
 
 const {Utils: utils} = require('fabric-common');
 const Constants = require('../Constants.js');

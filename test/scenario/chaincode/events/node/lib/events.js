@@ -4,7 +4,7 @@
 
 /* eslint-disable no-console */
 
-'use strict';
+
 const {Contract} = require('fabric-contract-api');
 
 class Events extends Contract {

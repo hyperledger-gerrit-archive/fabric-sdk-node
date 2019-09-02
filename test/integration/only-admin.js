@@ -3,7 +3,7 @@
  *
  * SPDX-License-Identifier: Apache-2.0
  */
-'use strict';
+
 
 const {Utils:utils} = require('fabric-common');
 const logger = utils.getLogger('ONLY-ADMIN');

@@ -5,7 +5,7 @@
 
 */
 
-'use strict';
+
 
 const {Key} = require('../../../');
 const jsrsa = require('jsrsasign');

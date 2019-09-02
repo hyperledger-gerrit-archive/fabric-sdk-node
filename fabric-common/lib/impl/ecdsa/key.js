@@ -5,7 +5,7 @@
 
 */
 
-'use strict';
+
 
 const {HashPrimitives, Key, Utils: utils} = require('../../../');
 const jsrsa = require('jsrsasign');

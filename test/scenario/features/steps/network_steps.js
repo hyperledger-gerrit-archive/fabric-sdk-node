@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-'use strict';
+
 
 const network_util = require('../lib/network');
 const CCP = require('../lib/common_connection');

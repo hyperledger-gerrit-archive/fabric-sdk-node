@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-'use strict';
+
 
 const EventHubFactory = require('./eventhubfactory');
 const logger = require('fabric-network/lib/logger').getLogger('EventHubManager');

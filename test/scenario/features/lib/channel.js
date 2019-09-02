@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-'use strict';
+
 
 const Client = require('fabric-client');
 const testUtil = require('./utils.js');

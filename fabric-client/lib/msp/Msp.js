@@ -3,7 +3,7 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 */
-'use strict';
+
 
 const CryptoAlgorithms = require('fabric-common/lib/CryptoAlgorithms');
 const Identity = require('fabric-common/lib/Identity');

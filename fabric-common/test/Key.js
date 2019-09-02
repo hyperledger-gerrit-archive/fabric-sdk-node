@@ -12,7 +12,7 @@
  * limitations under the License.
  */
 
-'use strict';
+
 
 const Key = require('../lib/Key');
 

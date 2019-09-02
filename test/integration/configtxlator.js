@@ -3,7 +3,7 @@
  *
  * SPDX-License-Identifier: Apache-2.0
  */
-'use strict';
+
 
 /*
  *   This test case requires that the 'configtxlator' tool be running locally and on port 7059

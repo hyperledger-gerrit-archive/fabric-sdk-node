@@ -12,7 +12,7 @@
  * limitations under the License.
  */
 
-'use strict';
+
 
 const hash_sha2_256 = require('./hash/hash_sha2_256');
 const hash_sha2_384 = require('./hash/hash_sha2_384');

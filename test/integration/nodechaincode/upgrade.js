@@ -6,7 +6,7 @@
 
 // This is an end-to-end test that focuses on exercising all parts of the fabric APIs
 // in a happy-path scenario
-'use strict';
+
 
 const tape = require('tape');
 const _test = require('tape-promise').default;

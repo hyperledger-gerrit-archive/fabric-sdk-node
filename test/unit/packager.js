@@ -4,7 +4,7 @@ Copyright IBM Corp. All Rights Reserved.
 SPDX-License-Identifier: Apache-2.0
 */
 /* eslint-disable no-console */
-'use strict';
+
 
 const tape = require('tape');
 const _test = require('tape-promise').default;

@@ -6,7 +6,7 @@
 /* eslint-disable no-unused-vars */
 
 
-'use strict';
+
 
 /**
  * @typedef {Object} Wallet~IdentityInfo

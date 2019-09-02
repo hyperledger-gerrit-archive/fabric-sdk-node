@@ -14,7 +14,7 @@
  *  limitations under the License.
  */
 
-'use strict';
+
 
 const tape = require('tape');
 const _test = require('tape-promise').default;

@@ -12,7 +12,7 @@
  * limitations under the License.
  */
 
-'use strict';
+
 
 const Format = require('../../lib/utils/format');
 const Long = require('long');

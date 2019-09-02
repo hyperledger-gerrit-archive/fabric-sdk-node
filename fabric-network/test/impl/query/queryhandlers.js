@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-'use strict';
+
 
 const SingleQueryHandler = require('fabric-network/lib/impl/query/singlequeryhandler');
 const RoundRobinQueryHandler = require('fabric-network/lib/impl/query/roundrobinqueryhandler');

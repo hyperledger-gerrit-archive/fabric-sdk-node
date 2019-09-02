@@ -6,7 +6,7 @@
 
 // This is an end-to-end test that focuses on exercising all parts of the fabric APIs
 // in a happy-path scenario
-'use strict';
+
 
 const {Utils:utils} = require('fabric-common');
 const logger = utils.getLogger('E2E install-chaincode');
