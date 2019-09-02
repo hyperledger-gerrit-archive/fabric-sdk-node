@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-'use strict';
+
 const {Utils} = require('fabric-common');
 const logger = Utils.getLogger('AffiliationService');
 const checkRegistrar = require('./helper').checkRegistrar;

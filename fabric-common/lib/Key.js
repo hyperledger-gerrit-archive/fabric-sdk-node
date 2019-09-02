@@ -12,7 +12,7 @@
  * limitations under the License.
  */
 
-'use strict';
+
 
 /**
  * Key represents a cryptographic key. It can be symmetric or asymmetric. In the case of an

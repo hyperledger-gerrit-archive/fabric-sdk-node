@@ -12,7 +12,7 @@
  * limitations under the License.
  */
 
-'use strict';
+
 
 class FakeEndorsementHandler {
 	static create() {

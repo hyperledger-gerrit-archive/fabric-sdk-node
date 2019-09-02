@@ -12,7 +12,7 @@
  * limitations under the License.
  */
 
-'use strict';
+
 const Long = require('long');
 const {Utils: utils, Identity} = require('fabric-common');
 const clientUtils = require('./client-utils.js');

@@ -5,7 +5,7 @@
 
 */
 
-'use strict';
+
 
 const {KeyValueStore, Signer, SigningIdentity, Utils: sdkUtils, User, BaseClient} = require('fabric-common');
 

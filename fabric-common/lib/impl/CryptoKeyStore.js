@@ -5,7 +5,7 @@
 
 */
 
-'use strict';
+
 const {Utils: utils} = require('../../');
 const jsrsasign = require('jsrsasign');
 const KEYUTIL = jsrsasign.KEYUTIL;

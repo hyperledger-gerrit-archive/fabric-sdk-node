@@ -5,7 +5,7 @@
 
 */
 
-'use strict';
+
 
 const util = require('util');
 const fabprotos = require('fabric-protos');

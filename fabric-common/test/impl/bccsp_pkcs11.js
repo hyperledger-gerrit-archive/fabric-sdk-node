@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-'use strict';
+
 
 const rewire = require('rewire');
 const PKCS11_Rewire = rewire('../../lib/impl/bccsp_pkcs11');

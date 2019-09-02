@@ -12,7 +12,7 @@
  * limitations under the License.
  */
 
-'use strict';
+
 
 const CommitHandler = require('../lib/CommitHandler');
 

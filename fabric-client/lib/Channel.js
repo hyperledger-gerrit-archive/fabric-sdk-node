@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 
-'use strict';
+
 const {Identity, Utils: sdk_utils} = require('fabric-common');
 const client_utils = require('./client-utils.js');
 const util = require('util');

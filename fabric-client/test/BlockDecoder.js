@@ -12,7 +12,7 @@
  * limitations under the License.
  */
 
-'use strict';
+
 /* eslint-disable no-throw-literal */
 
 const fs = require('fs');

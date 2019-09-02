@@ -5,7 +5,7 @@
 
 */
 
-'use strict';
+
 
 const {Utils: utils, BaseClient} = require('fabric-common');
 

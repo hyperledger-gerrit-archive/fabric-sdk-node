@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-'use strict';
+
 
 const _policiesProto = require('fabric-protos').common;
 const Policy = require('fabric-client/lib/Policy.js');

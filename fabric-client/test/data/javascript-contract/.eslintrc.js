@@ -6,12 +6,13 @@
 
 module.exports = {
     env: {
+        es6: true,
         node: true,
         mocha: true
     },
     parserOptions: {
         ecmaVersion: 8,
-        sourceType: 'script'
+        sourceType: 'module'
     },
     extends: "eslint:recommended",
     rules: {

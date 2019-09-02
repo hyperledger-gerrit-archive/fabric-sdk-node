@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-'use strict';
+
 
 const Channel = require('fabric-client/lib/Channel');
 const Client = require('fabric-client/lib/Client');

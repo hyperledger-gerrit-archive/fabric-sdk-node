@@ -5,7 +5,7 @@
 
 */
 
-'use strict';
+
 
 const Long = require('long');
 const util = require('util');

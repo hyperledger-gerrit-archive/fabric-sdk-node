@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-'use strict';
+
 
 const FabricConstants = require('fabric-client/lib/Constants');
 const RoundRobinEventHubSelectionStrategy = require('fabric-network/lib/impl/event/roundrobineventhubselectionstrategy');

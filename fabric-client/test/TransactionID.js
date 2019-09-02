@@ -12,7 +12,7 @@
  * limitations under the License.
  */
 
-'use strict';
+
 
 const rewire = require('rewire');
 const TransactionID = require('../lib/TransactionID');

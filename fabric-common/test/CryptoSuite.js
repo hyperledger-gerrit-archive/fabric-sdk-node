@@ -4,6 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+
+
 const CryptoSuite = require('../lib/CryptoSuite');
 
 const chai = require('chai');

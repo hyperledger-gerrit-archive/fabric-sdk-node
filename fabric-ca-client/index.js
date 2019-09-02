@@ -12,8 +12,6 @@
  * limitations under the License.
  */
 
-'use strict';
-
 /**
  * This is the main module for the "fabric-ca-client" package. It communicates with the
  * "fabric-ca" server to manage user certificates lifecycle including register, enroll,

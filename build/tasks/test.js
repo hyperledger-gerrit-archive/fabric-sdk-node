@@ -7,8 +7,6 @@
 
 /* eslint-disable no-console */
 
-'use strict';
-
 const gulp = require('gulp');
 const mocha = require('gulp-mocha');
 const tape = require('gulp-tape');

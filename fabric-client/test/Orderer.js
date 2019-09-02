@@ -12,7 +12,7 @@
  * limitations under the License.
  */
 /* eslint-disable no-throw-literal */
-'use strict';
+
 
 const rewire = require('rewire');
 const Orderer = require('../lib/Orderer');

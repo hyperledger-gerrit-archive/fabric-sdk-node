@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-'use strict';
+
 
 const channel_util = require('../lib/channel');
 const chaincode_util = require('../lib/chaincode');

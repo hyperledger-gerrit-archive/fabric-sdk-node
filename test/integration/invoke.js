@@ -9,7 +9,7 @@
 //     and confirms that this fails.
 // (2) This also tries to invoke a transaction with inverted order of endrosements,
 //     and checks that it succeeds.
-'use strict';
+
 
 const tape = require('tape');
 const _test = require('tape-promise').default;

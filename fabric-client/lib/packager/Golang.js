@@ -11,7 +11,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-'use strict';
+
 
 const fs = require('fs-extra');
 const klaw = require('klaw');

@@ -12,7 +12,7 @@
  * limitations under the License.
  */
 
-'use strict';
+
 
 const Golang = require('./packager/Golang.js');
 const Car = require('./packager/Car.js');

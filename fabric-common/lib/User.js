@@ -3,6 +3,8 @@
  */
 const TYPE = 'User';
 
+
+
 const util = require('util');
 const CryptoAlgorithms = require('./CryptoAlgorithms');
 const Identity = require('./Identity');
