@@ -33,7 +33,7 @@ const org = 'org1';
 // before the orderer URL was set. Verify that an error is reported when tying
 // to send the request.
 //
-test('\n\n** TEST ** orderer via member missing orderer', (t) => {
+test('\n\n** TEST ** orderer via member missing orderer', async (t) => {
 	testUtil.resetDefaults();
 	utils.setConfigSetting('key-value-store', 'fabric-ca-client/lib/impl/FileKeyValueStore.js');// force for 'gulp test'
 	Client.addConfigFile(path.join(__dirname, 'e2e', 'config.json'));
@@ -45,7 +45,7 @@ test('\n\n** TEST ** orderer via member missing orderer', (t) => {
 	//
 	const channel = client.newChannel('testchannel-orderer-member2');
 	const cryptoSuite = Client.newCryptoSuite();
-	cryptoSuite.setCryptoKeyStore(Client.newCryptoKeyStore({path: testUtil.storePathForOrg(orgName)}));
+	await cryptoSuite.setCryptoKeyStore(Client.newCryptoKeyStore({path: testUtil.storePathForOrg(orgName)}));
 	client.setCryptoSuite(cryptoSuite);
 
 	Client.newDefaultKeyValueStore({

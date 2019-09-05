@@ -45,14 +45,14 @@ class HSMWalletMixin {
 		this.cryptoSuite = null;
 	}
 
-	getCryptoSuite(label, wallet) {
+	async getCryptoSuite(label, wallet) {
 		const key = '' + this.slot + '-' + this.pin;
 		this.cryptoSuite = HSMSuite.get(key);
 		if (!this.cryptoSuite) {
 			this.cryptoSuite = Client.newCryptoSuite({software: false, lib: this.library, slot: this.slot, pin: this.pin, usertype: this.usertype});
 			// we need to set a path in the CryptoKeyStore even though it is using HSM otherwise
 			// it will make the private key ephemeral and not store it in the HSM
-			this.cryptoSuite.setCryptoKeyStore(Client.newCryptoKeyStore({path: '/tmp'}));
+			await this.cryptoSuite.setCryptoKeyStore(Client.newCryptoKeyStore({path: '/tmp'}));
 			HSMSuite.set(key, this.cryptoSuite);
 		}
 		return this.cryptoSuite;

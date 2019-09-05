@@ -63,8 +63,8 @@ const BaseClient = class {
 	 * @param {Object} opts Implementation-specific option object used in the constructor
 	 * @returns {CryptoKeyStore} a new instance of the CryptoKeystore
 	 */
-	static newCryptoKeyStore(KVSImplClass, opts) {
-		return sdkUtils.newCryptoKeyStore(KVSImplClass, opts);
+	static async newCryptoKeyStore(KVSImplClass, opts) {
+		return await sdkUtils.newCryptoKeyStore(KVSImplClass, opts);
 	}
 
 	/**

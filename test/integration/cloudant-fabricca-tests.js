@@ -72,10 +72,10 @@ test('Use FabricCAServices wih a Cloudant CouchDB KeyValueStore', (t) => {
 			options = {name: dbname, url: cloudantUrl};
 			utils.newKeyValueStore(options)
 				.then(
-					(kvs) => {
+					async (kvs) => {
 						member = new User('admin2');
 						cryptoSuite = Client.newCryptoSuite();
-						cryptoSuite.setCryptoKeyStore(Client.newCryptoKeyStore(options));
+						await cryptoSuite.setCryptoKeyStore(Client.newCryptoKeyStore(options));
 						client.setCryptoSuite(cryptoSuite);
 						member.setCryptoSuite(cryptoSuite);
 
@@ -87,7 +87,7 @@ test('Use FabricCAServices wih a Cloudant CouchDB KeyValueStore', (t) => {
 							t.end();
 							process.exit(1);
 						}
-						return new FabricCAServices(fabricCAEndpoint, tlsOptions, ORGS[userOrg].ca.name, cryptoSuite);
+						return await new FabricCAServices(fabricCAEndpoint, tlsOptions, ORGS[userOrg].ca.name, cryptoSuite);
 					},
 					(err) => {
 						t.fail('Error initializing Cloudant KeyValueStore. Exiting.');

@@ -787,8 +787,8 @@ class CryptoSuite_PKCS11 extends api.CryptoSuite {
 		return objs;
 	}
 
-	setCryptoKeyStore(cryptoKeyStore) {
-		this._cryptoKeyStore = cryptoKeyStore;
+	async setCryptoKeyStore(cryptoKeyStore) {
+		this._cryptoKeyStore = await cryptoKeyStore;
 	}
 
 	/** ********************************************************************************
