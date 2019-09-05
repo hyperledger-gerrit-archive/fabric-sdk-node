@@ -102,16 +102,16 @@ describe('HSMWalletMixin', () => {
 			hsmWalletMixin = new HSMWalletMixin('somelib', '0', 'pin', 'sometype');
 		});
 
-		it('should set and return the cryptoSuite if one is available', () => {
+		it('should set and return the cryptoSuite if one is available', async () => {
 			const mapStub = {get: () => 'somecryptosuite'};
 			revert.push(HSMWalletMixin.__set__('HSMSuite', mapStub));
-			const cryptoSuite = hsmWalletMixin.getCryptoSuite();
+			const cryptoSuite = await hsmWalletMixin.getCryptoSuite();
 			cryptoSuite.should.equal('somecryptosuite');
 			hsmWalletMixin.cryptoSuite.should.equal('somecryptosuite');
 		});
 
-		it('should set and return a new cryptoSuite', () => {
-			const cryptoSuite = hsmWalletMixin.getCryptoSuite();
+		it('should set and return a new cryptoSuite', async () => {
+			const cryptoSuite = await hsmWalletMixin.getCryptoSuite();
 			sinon.assert.called(ClientStub.newCryptoSuite);
 			sinon.assert.calledWith(ClientStub.newCryptoSuite, {software: false, lib: 'somelib', slot: 0, pin: 'pin', usertype: 'sometype'});
 			cryptoSuite.should.equal(cryptoSuiteStub);

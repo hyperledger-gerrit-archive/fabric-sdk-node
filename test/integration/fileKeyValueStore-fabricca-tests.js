@@ -57,11 +57,11 @@ test('Use FabricCAServices with a File KeyValueStore', (t) => {
 
 	utils.newKeyValueStore({path: keyValStorePath})
 		.then(
-			(kvs) => {
+			async (kvs) => {
 
 				member = new User('admin2');
 				cryptoSuite = Client.newCryptoSuite();
-				cryptoSuite.setCryptoKeyStore(Client.newCryptoKeyStore({path: keyValStorePath}));
+				cryptoSuite.setCryptoKeyStore(await Client.newCryptoKeyStore({path: keyValStorePath}));
 				member.setCryptoSuite(cryptoSuite);
 
 				client.setStateStore(kvs);

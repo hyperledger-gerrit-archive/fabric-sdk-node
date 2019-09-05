@@ -23,7 +23,7 @@ const tag = 'integration.client: ';
 let caImport;
 logger.debug('caImport = %s', JSON.stringify(caImport));
 
-test('\n\n ** createUser happy path - file store **\n\n', (t) => {
+test('\n\n ** createUser happy path - file store **\n\n', async (t) => {
 	testUtil.resetDefaults();
 	Client.addConfigFile(path.join(__dirname, '../fixtures/caimport.json'));
 	caImport = utils.getConfigSetting('ca-import', 'notfound');
@@ -38,7 +38,7 @@ test('\n\n ** createUser happy path - file store **\n\n', (t) => {
 	const keyStoreOpts = {path: path.join(testUtil.getTempDir(), caImport.orgs[userOrg].storePath)};
 	const client = new Client();
 	const cryptoSuite = Client.newCryptoSuite();
-	cryptoSuite.setCryptoKeyStore(Client.newCryptoKeyStore(keyStoreOpts));
+	cryptoSuite.setCryptoKeyStore(await Client.newCryptoKeyStore(keyStoreOpts));
 	client.setCryptoSuite(cryptoSuite);
 
 	logger.debug('try to cleanup kvs Path: ' + keyStoreOpts.path);
@@ -77,7 +77,7 @@ test('\n\n ** createUser happy path - file store **\n\n', (t) => {
 		});
 });
 
-test('\n\n ** createUser happy path - CouchDB **\n\n', (t) => {
+test('\n\n ** createUser happy path - CouchDB **\n\n', async (t) => {
 	// Use the CouchDB specific config file
 	Client.addConfigFile('test/fixtures/couchdb.json');
 	utils.setConfigSetting('crypto-keysize', 256);
@@ -97,7 +97,7 @@ test('\n\n ** createUser happy path - CouchDB **\n\n', (t) => {
 
 	const client = new Client();
 	const cryptoSuite = Client.newCryptoSuite();
-	cryptoSuite.setCryptoKeyStore(Client.newCryptoKeyStore(keyStoreOpts));
+	cryptoSuite.setCryptoKeyStore(await Client.newCryptoKeyStore(keyStoreOpts));
 	client.setCryptoSuite(cryptoSuite);
 
 	couchdbUtil.destroy(dbname, keyValStorePath)
@@ -129,7 +129,7 @@ test('\n\n ** createUser happy path - CouchDB **\n\n', (t) => {
 		});
 });
 
-test('\n\n ** createUser happy path - Cloudant  **\n\n', (t) => {
+test('\n\n ** createUser happy path - Cloudant  **\n\n', async (t) => {
 	// Use the Cloudant specific config file
 	Client.addConfigFile('test/fixtures/cloudant.json');
 	utils.setConfigSetting('crypto-keysize', 256);
@@ -150,7 +150,7 @@ test('\n\n ** createUser happy path - Cloudant  **\n\n', (t) => {
 
 	const client = new Client();
 	const cryptoSuite = Client.newCryptoSuite();
-	cryptoSuite.setCryptoKeyStore(Client.newCryptoKeyStore(keyStoreOpts));
+	cryptoSuite.setCryptoKeyStore(await Client.newCryptoKeyStore(keyStoreOpts));
 	client.setCryptoSuite(cryptoSuite);
 
 	couchdbUtil.destroy(dbname, cloudantUrl)
@@ -181,7 +181,7 @@ test('\n\n ** createUser happy path - Cloudant  **\n\n', (t) => {
 		});
 });
 
-test('\n\n ** createUser happy path - Cloudant - PEM Strings  **\n\n', (t) => {
+test('\n\n ** createUser happy path - Cloudant - PEM Strings  **\n\n', async (t) => {
 	// Use the Cloudant specific config file
 	Client.addConfigFile('test/fixtures/cloudant.json');
 	utils.setConfigSetting('crypto-keysize', 256);
@@ -199,7 +199,7 @@ test('\n\n ** createUser happy path - Cloudant - PEM Strings  **\n\n', (t) => {
 
 	const client = new Client();
 	const cryptoSuite = Client.newCryptoSuite();
-	cryptoSuite.setCryptoKeyStore(Client.newCryptoKeyStore(keyStoreOpts));
+	cryptoSuite.setCryptoKeyStore(await Client.newCryptoKeyStore(keyStoreOpts));
 	client.setCryptoSuite(cryptoSuite);
 
 	couchdbUtil.destroy(dbname, cloudantUrl)

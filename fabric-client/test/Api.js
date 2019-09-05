@@ -75,10 +75,10 @@ describe('CryptoSuite', () => {
 	});
 
 	describe('#importKey', () => {
-		it('should return undefined', () => {
-			should.equal(cryptoSuite.importKey(), undefined);
-			should.equal(cryptoSuite.importKey('name'), undefined);
-			should.equal(cryptoSuite.importKey('name', {}), undefined);
+		it('should return undefined', async () => {
+			should.equal(await cryptoSuite.importKey(), undefined);
+			should.equal(await cryptoSuite.importKey('name'), undefined);
+			should.equal(await cryptoSuite.importKey('name', {}), undefined);
 		});
 	});
 

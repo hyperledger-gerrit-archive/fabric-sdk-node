@@ -43,7 +43,7 @@ test('\n\n*** GRPC message size tests ***\n\n', async (t) => {
 		const url = ORGS[userOrg].peer1.requests;
 		const data = fs.readFileSync(path.join(__dirname, 'e2e', ORGS[userOrg].peer1.tls_cacerts));
 		const cryptoSuite = Client.newCryptoSuite();
-		cryptoSuite.setCryptoKeyStore(Client.newCryptoKeyStore({path: testUtil.storePathForOrg(orgName)}));
+		cryptoSuite.setCryptoKeyStore(await Client.newCryptoKeyStore({path: testUtil.storePathForOrg(orgName)}));
 		client.setCryptoSuite(cryptoSuite);
 		const tlsInfo = await e2eUtils.tlsEnroll(userOrg);
 		client.setTlsClientCertAndKey(tlsInfo.certificate, tlsInfo.key);
