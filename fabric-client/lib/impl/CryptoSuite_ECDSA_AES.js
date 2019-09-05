@@ -103,18 +103,21 @@ class CryptoSuite_ECDSA_AES extends api.CryptoSuite {
 
 		if (typeof opts !== 'undefined' && typeof opts.ephemeral !== 'undefined' && opts.ephemeral === true) {
 			logger.debug('generateKey, ephemeral true, Promise resolved');
-			return new ECDSAKey(pair.prvKeyObj);
+			return await new ECDSAKey(pair.prvKeyObj);
 		} else {
 			if (!this._cryptoKeyStore) {
 				throw new Error('generateKey opts.ephemeral is false, which requires CryptoKeyStore to be set.');
 			}
 			// unless "opts.ephemeral" is explicitly set to "true", default to saving the key
 			const key = new ECDSAKey(pair.prvKeyObj);
-
-			const store = await this._cryptoKeyStore._getKeyStore();
-			logger.debug('generateKey, store.setValue');
-			await store.putKey(key);
-			return key;
+			const store = await this._cryptoKeyStore;
+			logger.debug('generateKey, store.putKey');
+			try {
+				await store.putKey(key);
+				return key;
+			} catch (err) {
+				throw err;
+			}
 		}
 	}
 
@@ -129,7 +132,7 @@ class CryptoSuite_ECDSA_AES extends api.CryptoSuite {
 	/**
 	 * This is an implementation of {@link module:api.CryptoSuite#importKey}
 	 */
-	importKey(pem, opts) {
+	async importKey(pem, opts) {
 		logger.debug('importKey - start');
 		let store_key = true; // default
 		if (typeof opts !== 'undefined' && typeof opts.ephemeral !== 'undefined' && opts.ephemeral === true) {
@@ -139,7 +142,6 @@ class CryptoSuite_ECDSA_AES extends api.CryptoSuite {
 			throw new Error('importKey opts.ephemeral is false, which requires CryptoKeyStore to be set.');
 		}
 
-		const self = this;
 		// attempt to import the raw content, assuming it's one of the following:
 		// X.509v1/v3 PEM certificate (RSA/DSA/ECC)
 		// PKCS#8 PEM RSA/DSA/ECC public key
@@ -177,17 +179,13 @@ class CryptoSuite_ECDSA_AES extends api.CryptoSuite {
 				logger.error('importKey - %j', error);
 				return Promise.reject(error);
 			}
-			return new Promise((resolve, reject) => {
-				return self._cryptoKeyStore._getKeyStore()
-					.then((store) => {
-						return store.putKey(theKey);
-					}).then(() => {
-						return resolve(theKey);
-					}).catch((err) => {
-						reject(err);
-					});
-
-			});
+			const store = await this._cryptoKeyStore;
+			try {
+				await store.putKey(theKey);
+				return theKey;
+			} catch (err) {
+				throw err;
+			}
 		}
 	}
 
@@ -196,7 +194,7 @@ class CryptoSuite_ECDSA_AES extends api.CryptoSuite {
 		if (!this._cryptoKeyStore) {
 			throw new Error('getKey requires CryptoKeyStore to be set.');
 		}
-		const store = await this._cryptoKeyStore._getKeyStore();
+		const store = await this._cryptoKeyStore;
 		const key = await store.getKey(ski);
 		if (key instanceof ECDSAKey) {
 			return key;

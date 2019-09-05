@@ -22,7 +22,8 @@ const path = require('path');
 const os = require('os');
 const Long = require('long');
 
-const Config = require('./Config.js');
+const Config = require('./Config');
+const {KeyValueStore} = require('./api');
 const sjcl = require('sjcl');
 
 //
@@ -47,10 +48,10 @@ module.exports.newCryptoSuite = (setting) => {
 	if (setting && typeof setting.software === 'boolean') {
 		useHSM = !setting.software;
 	} else {
-		useHSM = exports.getConfigSetting('crypto-hsm');
+		useHSM = getConfigSetting('crypto-hsm');
 	}
 
-	csImpl = useHSM ? exports.getConfigSetting('crypto-suite-hsm') : exports.getConfigSetting('crypto-suite-software');
+	csImpl = useHSM ? getConfigSetting('crypto-suite-hsm') : getConfigSetting('crypto-suite-software');
 
 	// this function supports the following:
 	// - newCryptoSuite({software: true, keysize: 256, algorithm: EC})
@@ -62,7 +63,7 @@ module.exports.newCryptoSuite = (setting) => {
 	if (setting && setting.keysize && typeof setting === 'object' && typeof setting.keysize === 'number') {
 		keysize = setting.keysize;
 	} else {
-		keysize = exports.getConfigSetting('crypto-keysize');
+		keysize = getConfigSetting('crypto-keysize');
 	}
 
 	if (setting && setting.algorithm && typeof setting === 'object' && typeof setting.algorithm === 'string') {
@@ -96,7 +97,7 @@ module.exports.newCryptoSuite = (setting) => {
 // Provide a Promise-based keyValueStore for couchdb, etc.
 module.exports.newKeyValueStore = async (options) => {
 	// initialize the correct KeyValueStore
-	const kvsEnv = exports.getConfigSetting('key-value-store');
+	const kvsEnv = getConfigSetting('key-value-store');
 	const store = require(kvsEnv);
 	return new store(options);
 };
@@ -164,7 +165,7 @@ module.exports.getLogger = function (name) {
 	}
 
 	// see if the config has it set
-	const config_log_setting = exports.getConfigSetting('hfc-logging', undefined); // environment setting will be HFC_LOGGING
+	const config_log_setting = getConfigSetting('hfc-logging', undefined); // environment setting will be HFC_LOGGING
 
 	const options = {};
 	if (config_log_setting) {
@@ -242,11 +243,11 @@ module.exports.setConfigSetting = (name, value) => {
 //
 // Internal method to get an override setting to the configuration settings
 //
-exports.getConfigSetting = (name, default_value) => {
+const getConfigSetting = (name, default_value) => {
 	const config = exports.getConfig();
 	return config.get(name, default_value);
 };
-
+exports.getConfigSetting = getConfigSetting;
 //
 // Internal method to get the configuration settings singleton
 //
@@ -333,7 +334,7 @@ module.exports.getNonce = (length) => {
 			throw new Error('Parameter must be an integer');
 		}
 	} else {
-		length = exports.getConfigSetting('nonce-size', 24);
+		length = getConfigSetting('nonce-size', 24);
 	}
 
 	const value = crypto.randomBytes(length);
@@ -363,75 +364,31 @@ module.exports.getBufferBit = (buf, idx) => {
 	}
 };
 
-module.exports.getDefaultKeyStorePath = () => {
+const getDefaultKeyStorePath = () => {
 	return path.join(os.homedir(), '.hfc-key-store');
 };
+module.exports.getDefaultKeyStorePath = getDefaultKeyStorePath;
 
-const CryptoKeyStore = function (KVSImplClass, opts) {
-	this.logger = module.exports.getLogger('utils.CryptoKeyStore');
-	this.logger.debug('CryptoKeyStore, constructor - start');
-	if (KVSImplClass && typeof opts === 'undefined') {
-		if (typeof KVSImplClass === 'function') {
-			// the super class module was passed in, but not the 'opts'
-			opts = null;
-		} else {
-			// called with only one argument for the 'opts' but KVSImplClass was skipped
-			opts = KVSImplClass;
-			KVSImplClass = null;
-		}
-	}
-
-	if (typeof opts === 'undefined' || opts === null) {
-		opts = {
-			path: module.exports.getDefaultKeyStorePath()
-		};
-	}
-	let superClass;
-	if (typeof KVSImplClass !== 'undefined' && KVSImplClass !== null) {
-		superClass = KVSImplClass;
-	} else {
-		// no super class specified, use the default key value store implementation
-		superClass = require(exports.getConfigSetting('key-value-store'));
-		this.logger.debug('constructor, no super class specified, using config: ' + module.exports.getConfigSetting('key-value-store'));
-	}
-
-	this._store = null;
-	this._storeConfig = {
-		superClass: superClass,
-		opts: opts
-
-	};
-
-	this._getKeyStore = function () {
-		const CKS = require('./impl/CryptoKeyStore.js');
-
-		const self = this;
-		return new Promise((resolve, reject) => {
-			if (self._store === null) {
-				self.logger.debug(util.format('This class requires a CryptoKeyStore to save keys, using the store: %j', self._storeConfig));
-
-				CKS(self._storeConfig.superClass, self._storeConfig.opts).then((ks) => {
-					self.logger.debug('_getKeyStore returning ks');
-					self._store = ks;
-					return resolve(self._store);
-				}).catch((err) => {
-					reject(err);
-				});
-			} else {
-				self.logger.debug('_getKeyStore resolving store');
-				return resolve(self._store);
-			}
-		});
-	};
-
-};
-
-module.exports.newCryptoKeyStore = (KVSImplClass, opts) => {
+module.exports.newCryptoKeyStore = async (KVSImplClass, opts) => {
 	// this function supports skipping any of the arguments such that it can be called in any of the following fashions:
-	// - newCryptoKeyStore(CouchDBKeyValueStore, {name: 'member_db', url: 'http://localhost:5984'})
+	// - newCryptoKeyStore({name: 'member_db', url: 'http://localhost:5984'},CouchDBKeyValueStore)
 	// - newCryptoKeyStore({path: '/tmp/app-state-store'})
 	// - newCryptoKeyStore()
-	return new CryptoKeyStore(KVSImplClass, opts);
+
+	if (!KVSImplClass || !(KVSImplClass.prototype instanceof KeyValueStore)) {
+		if (KVSImplClass) {
+			opts = KVSImplClass;
+		}
+		KVSImplClass = require(getConfigSetting('key-value-store'));
+	}
+	if (!opts || !(opts.path || opts.url)) {
+		opts = {path: getDefaultKeyStorePath()};
+	}
+
+	const cksImpl = getConfigSetting('crypto-key-store');
+	const CryptoKeyStore = require(cksImpl);
+	const kvsInstance = await new KVSImplClass(opts);
+	return new CryptoKeyStore(kvsInstance);
 };
 
 /*
@@ -443,7 +400,7 @@ module.exports.newCryptoKeyStore = (KVSImplClass, opts) => {
  */
 module.exports.checkAndAddConfigSetting = (option_name, default_value, options) => {
 	const return_options = {};
-	return_options[option_name] = module.exports.getConfigSetting(option_name, default_value);
+	return_options[option_name] = getConfigSetting(option_name, default_value);
 	if (options) {
 		const keys = Object.keys(options);
 		for (const i in keys) {
