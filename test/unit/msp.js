@@ -99,7 +99,7 @@ test('\n\n** MSP Tests **\n\n', async (t) => {
 
 	// test deserialization using the msp manager
 	const cryptoUtils = utils.newCryptoSuite();
-	cryptoUtils.setCryptoKeyStore(utils.newCryptoKeyStore());
+	cryptoUtils.setCryptoKeyStore(await utils.newCryptoKeyStore());
 	const mspImpl = new MSP({
 		rootCerts: [],
 		admins: [],

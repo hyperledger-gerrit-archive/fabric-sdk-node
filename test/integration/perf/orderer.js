@@ -49,7 +49,7 @@ async function perfTest1(t) {
 	client.setConfigSetting('grpc-wait-for-ready-timeout', 10000);
 
 	const cryptoSuite = Client.newCryptoSuite();
-	cryptoSuite.setCryptoKeyStore(Client.newCryptoKeyStore({path: testUtil.storePathForOrg(orgName)}));
+	cryptoSuite.setCryptoKeyStore(await Client.newCryptoKeyStore({path: testUtil.storePathForOrg(orgName)}));
 	client.setCryptoSuite(cryptoSuite);
 
 	const caRootsPath = ORGS.orderer.tls_cacerts;

@@ -43,7 +43,7 @@ async function installChaincode(ccName, ccId, ccType, ccVersion, tls, ccp, orgNa
 	}
 
 	const cryptoSuite = Client.newCryptoSuite();
-	cryptoSuite.setCryptoKeyStore(Client.newCryptoKeyStore({path: testUtil.storePathForOrg(orgName)}));
+	cryptoSuite.setCryptoKeyStore(await Client.newCryptoKeyStore({path: testUtil.storePathForOrg(orgName)}));
 	client.setCryptoSuite(cryptoSuite);
 
 	const ordererName = ccp.getOrderersForChannel(channelName)[0];
@@ -157,7 +157,7 @@ async function instantiateChaincode(ccName, ccId, ccType, args, version, upgrade
 	const channel = client.newChannel(channelName);
 
 	const cryptoSuite = Client.newCryptoSuite();
-	cryptoSuite.setCryptoKeyStore(Client.newCryptoKeyStore({path: testUtil.storePathForOrg(orgName)}));
+	cryptoSuite.setCryptoKeyStore(await Client.newCryptoKeyStore({path: testUtil.storePathForOrg(orgName)}));
 	client.setCryptoSuite(cryptoSuite);
 
 	// Conditional action on TLS enablement

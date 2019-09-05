@@ -77,11 +77,11 @@ test('Use FabricCAServices with a CouchDB KeyValueStore', (t) => {
 			const options = {name: dbname, url: keyValStorePath};
 			utils.newKeyValueStore(options)
 				.then(
-					(kvs) => {
+					async (kvs) => {
 
 						member = new User('admin2');
 						cryptoSuite = Client.newCryptoSuite(options);
-						cryptoSuite.setCryptoKeyStore(Client.newCryptoKeyStore(options));
+						cryptoSuite.setCryptoKeyStore(await Client.newCryptoKeyStore(options));
 						client.setCryptoSuite(cryptoSuite);
 						member.setCryptoSuite(cryptoSuite);
 
@@ -93,7 +93,7 @@ test('Use FabricCAServices with a CouchDB KeyValueStore', (t) => {
 							t.end();
 							process.exit(1);
 						}
-						return new FabricCAServices(fabricCAEndpoint, tlsOptions, ORGS[userOrg].ca.name,
+						return await new FabricCAServices(fabricCAEndpoint, tlsOptions, ORGS[userOrg].ca.name,
 							cryptoSuite);
 					},
 					(err) => {
