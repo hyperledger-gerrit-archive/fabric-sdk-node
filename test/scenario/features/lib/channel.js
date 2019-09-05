@@ -63,7 +63,7 @@ async function create_channels(channelTxPath, ccp, tls) {
 			const store = await Client.newDefaultKeyValueStore({path: testUtil.storePathForOrg(org)});
 			client.setStateStore(store);
 			const cryptoSuite = Client.newCryptoSuite();
-			cryptoSuite.setCryptoKeyStore(Client.newCryptoKeyStore({path: testUtil.storePathForOrg(org)}));
+			await cryptoSuite.setCryptoKeyStore(Client.newCryptoKeyStore({path: testUtil.storePathForOrg(org)}));
 			client.setCryptoSuite(cryptoSuite);
 
 			// Run this to set the required identity on the client object

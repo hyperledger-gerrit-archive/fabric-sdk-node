@@ -45,7 +45,7 @@ function installChaincode(org, chaincode_path, metadata_path, version, language,
 	return installChaincodeWithId(org, chaincode_id, chaincode_path, metadata_path, version, language, t, get_admin);
 }
 
-function installChaincodeWithId(org, chaincode_id, chaincode_path, metadata_path, version, language, t, get_admin) {
+async function installChaincodeWithId(org, chaincode_id, chaincode_path, metadata_path, version, language, t, get_admin) {
 	init();
 	Client.setConfigSetting('request-timeout', 60000);
 	const channel_name = Client.getConfigSetting('E2E_CONFIGTX_CHANNEL_NAME', testUtil.END2END.channel);
@@ -56,7 +56,7 @@ function installChaincodeWithId(org, chaincode_id, chaincode_path, metadata_path
 
 	const orgName = ORGS[org].name;
 	const cryptoSuite = Client.newCryptoSuite();
-	cryptoSuite.setCryptoKeyStore(Client.newCryptoKeyStore({path: testUtil.storePathForOrg(orgName)}));
+	await cryptoSuite.setCryptoKeyStore(Client.newCryptoKeyStore({path: testUtil.storePathForOrg(orgName)}));
 	client.setCryptoSuite(cryptoSuite);
 
 	const caRootsPath = ORGS.orderer.tls_cacerts;
@@ -173,7 +173,7 @@ function instantiateChaincode(userOrg, chaincode_path, version, language, upgrad
 }
 module.exports.instantiateChaincode = instantiateChaincode;
 
-function instantiateChaincodeWithId(userOrg, chaincode_id, chaincode_path, version, language, upgrade, badTransient, t, channel_name) {
+async function instantiateChaincodeWithId(userOrg, chaincode_id, chaincode_path, version, language, upgrade, badTransient, t, channel_name) {
 	init();
 
 	if (!channel_name) {
@@ -193,7 +193,7 @@ function instantiateChaincodeWithId(userOrg, chaincode_id, chaincode_path, versi
 
 	const orgName = ORGS[userOrg].name;
 	const cryptoSuite = Client.newCryptoSuite();
-	cryptoSuite.setCryptoKeyStore(Client.newCryptoKeyStore({path: testUtil.storePathForOrg(orgName)}));
+	await cryptoSuite.setCryptoKeyStore(Client.newCryptoKeyStore({path: testUtil.storePathForOrg(orgName)}));
 	client.setCryptoSuite(cryptoSuite);
 
 	const caRootsPath = ORGS.orderer.tls_cacerts;
@@ -457,7 +457,7 @@ function buildChaincodeProposal(client, theuser, chaincode_id, chaincode_path, v
 }
 module.exports.buildChaincodeProposal = buildChaincodeProposal;
 
-function invokeChaincode(userOrg, version, chaincodeId, t, useStore, fcn, args, expectedResult) {
+async function invokeChaincode(userOrg, version, chaincodeId, t, useStore, fcn, args, expectedResult) {
 	init();
 
 	logger.debug('invokeChaincode begin');
@@ -477,7 +477,7 @@ function invokeChaincode(userOrg, version, chaincodeId, t, useStore, fcn, args, 
 	let orgName = ORGS[userOrg].name;
 	const cryptoSuite = Client.newCryptoSuite();
 	if (useStore) {
-		cryptoSuite.setCryptoKeyStore(Client.newCryptoKeyStore({path: testUtil.storePathForOrg(orgName)}));
+		await cryptoSuite.setCryptoKeyStore(Client.newCryptoKeyStore({path: testUtil.storePathForOrg(orgName)}));
 		client.setCryptoSuite(cryptoSuite);
 	}
 
@@ -730,7 +730,7 @@ module.exports.invokeChaincode = invokeChaincode;
 
 // Targets parameter is needed to query private data that are only available on a subset of peers based on collection policy.
 // pass [] to targets when you don't want to query a specific peer
-function queryChaincode(org, version, targets, fcn, args, value, chaincodeId, t, transientMap) {
+async function queryChaincode(org, version, targets, fcn, args, value, chaincodeId, t, transientMap) {
 	init();
 
 	Client.setConfigSetting('request-timeout', 60000);
@@ -745,7 +745,7 @@ function queryChaincode(org, version, targets, fcn, args, value, chaincodeId, t,
 
 	const orgName = ORGS[org].name;
 	const cryptoSuite = Client.newCryptoSuite();
-	cryptoSuite.setCryptoKeyStore(Client.newCryptoKeyStore({path: testUtil.storePathForOrg(orgName)}));
+	await cryptoSuite.setCryptoKeyStore(Client.newCryptoKeyStore({path: testUtil.storePathForOrg(orgName)}));
 	client.setCryptoSuite(cryptoSuite);
 	let tlsInfo = null;
 
@@ -869,7 +869,7 @@ function readAllFiles(dir) {
 module.exports.readAllFiles = readAllFiles;
 
 function tlsEnroll(orgName) {
-	return new Promise(((resolve, reject) => {
+	return new Promise((async (resolve, reject) => {
 		FabricCAServices.addConfigFile(path.join(__dirname, 'config.json'));
 		const orgs = FabricCAServices.getConfigSetting('test-network');
 		if (!orgs[orgName]) {
@@ -880,7 +880,7 @@ function tlsEnroll(orgName) {
 			trustedRoots: [],
 			verify: false
 		};
-		const caService = new FabricCAServices(fabricCAEndpoint, tlsOptions, orgs[orgName].ca.name);
+		const caService = await new FabricCAServices(fabricCAEndpoint, tlsOptions, orgs[orgName].ca.name);
 		const req = {
 			enrollmentID: 'admin',
 			enrollmentSecret: 'adminpw',
@@ -935,7 +935,7 @@ async function getCollectionsConfig(t, org, chaincodeId, channel_name) {
 
 	const orgName = ORGS[org].name;
 	const cryptoSuite = Client.newCryptoSuite();
-	cryptoSuite.setCryptoKeyStore(Client.newCryptoKeyStore({path: testUtil.storePathForOrg(orgName)}));
+	await cryptoSuite.setCryptoKeyStore(Client.newCryptoKeyStore({path: testUtil.storePathForOrg(orgName)}));
 	client.setCryptoSuite(cryptoSuite);
 	let tlsInfo = null;
 

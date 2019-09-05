@@ -45,7 +45,7 @@ async function perfTest3(t) {
 	const orgName = ORGS[org].name;
 
 	const cryptoSuite = Client.newCryptoSuite();
-	cryptoSuite.setCryptoKeyStore(Client.newCryptoKeyStore({path: testUtil.storePathForOrg(orgName)}));
+	await cryptoSuite.setCryptoKeyStore(Client.newCryptoKeyStore({path: testUtil.storePathForOrg(orgName)}));
 	client.setCryptoSuite(cryptoSuite);
 
 	const caRootsPath = ORGS[org].peer1.tls_cacerts;

@@ -44,7 +44,7 @@ let ORGS, peer0;
 let tx_id = null;
 
 let data;
-test('  ---->>>>> Query channel working <<<<<-----', (t) => {
+test('  ---->>>>> Query channel working <<<<<-----', async (t) => {
 	Client.addConfigFile(path.join(__dirname, 'e2e', 'config.json'));
 	ORGS = Client.getConfigSetting('test-network');
 	orgName = ORGS[org].name;
@@ -58,7 +58,7 @@ test('  ---->>>>> Query channel working <<<<<-----', (t) => {
 
 	utils.setConfigSetting('key-value-store', 'fabric-client/lib/impl/FileKeyValueStore.js');
 	const cryptoSuite = Client.newCryptoSuite();
-	cryptoSuite.setCryptoKeyStore(Client.newCryptoKeyStore({path: testUtil.storePathForOrg(orgName)}));
+	await cryptoSuite.setCryptoKeyStore(Client.newCryptoKeyStore({path: testUtil.storePathForOrg(orgName)}));
 	client.setCryptoSuite(cryptoSuite);
 
 	return e2eUtils.tlsEnroll(org).then((enrollment) => {

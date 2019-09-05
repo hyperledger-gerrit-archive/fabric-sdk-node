@@ -57,10 +57,10 @@ test('  ---->>>>> get config <<<<<-----', (t) => {
 			tlsInfo = enrollment;
 			client.setTlsClientCertAndKey(tlsInfo.certificate, tlsInfo.key);
 			return Client.newDefaultKeyValueStore({path: testUtil.storePathForOrg(orgName)});
-		}).then((store) => {
+		}).then(async (store) => {
 			client.setStateStore(store);
 			const cryptoSuite = Client.newCryptoSuite();
-			cryptoSuite.setCryptoKeyStore(Client.newCryptoKeyStore({path: testUtil.storePathForOrg(orgName)}));
+			await cryptoSuite.setCryptoKeyStore(Client.newCryptoKeyStore({path: testUtil.storePathForOrg(orgName)}));
 			client.setCryptoSuite(cryptoSuite);
 
 			testUtil.getSubmitter(client, t, org)
