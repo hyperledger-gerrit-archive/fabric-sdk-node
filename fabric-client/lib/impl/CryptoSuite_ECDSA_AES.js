@@ -111,7 +111,7 @@ class CryptoSuite_ECDSA_AES extends api.CryptoSuite {
 			// unless "opts.ephemeral" is explicitly set to "true", default to saving the key
 			const key = new ECDSAKey(pair.prvKeyObj);
 
-			const store = await this._cryptoKeyStore._getKeyStore();
+			const store = await this._cryptoKeyStore;
 			logger.debug('generateKey, store.setValue');
 			await store.putKey(key);
 			return key;
@@ -178,15 +178,12 @@ class CryptoSuite_ECDSA_AES extends api.CryptoSuite {
 				return Promise.reject(error);
 			}
 			return new Promise((resolve, reject) => {
-				return self._cryptoKeyStore._getKeyStore()
-					.then((store) => {
-						return store.putKey(theKey);
-					}).then(() => {
+				return self._cryptoKeyStore.putKey(theKey)
+					.then(() => {
 						return resolve(theKey);
 					}).catch((err) => {
 						reject(err);
 					});
-
 			});
 		}
 	}
@@ -196,7 +193,7 @@ class CryptoSuite_ECDSA_AES extends api.CryptoSuite {
 		if (!this._cryptoKeyStore) {
 			throw new Error('getKey requires CryptoKeyStore to be set.');
 		}
-		const store = await this._cryptoKeyStore._getKeyStore();
+		const store = await this._cryptoKeyStore;
 		const key = await store.getKey(ski);
 		if (key instanceof ECDSAKey) {
 			return key;

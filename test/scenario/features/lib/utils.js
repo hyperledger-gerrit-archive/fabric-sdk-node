@@ -134,7 +134,7 @@ async function getMember(username, password, client, userOrg, ccp) {
 		if (!cryptoSuite) {
 			cryptoSuite = Client.newCryptoSuite();
 			if (userOrg) {
-				cryptoSuite.setCryptoKeyStore(Client.newCryptoKeyStore({path: module.exports.storePathForOrg(org.name)}));
+				cryptoSuite.setCryptoKeyStore(await Client.newCryptoKeyStore({path: module.exports.storePathForOrg(org.name)}));
 				client.setCryptoSuite(cryptoSuite);
 			}
 		}
@@ -170,7 +170,7 @@ async function getMember(username, password, client, userOrg, ccp) {
  * @param {CommonConnectionProfile} ccp the common connection profile
  * @return {User} The admin user identity.
  */
-function getOrgAdmin(client, userOrg, ccp) {
+async function getOrgAdmin(client, userOrg, ccp) {
 	try {
 
 		const org = ccp.getOrganization(userOrg);
@@ -182,7 +182,7 @@ function getOrgAdmin(client, userOrg, ccp) {
 		const certPEM = fs.readFileSync(org.signedCertPEM.path);
 
 		const cryptoSuite = Client.newCryptoSuite();
-		cryptoSuite.setCryptoKeyStore(Client.newCryptoKeyStore({path: module.exports.storePathForOrg(userOrg)}));
+		cryptoSuite.setCryptoKeyStore(await Client.newCryptoKeyStore({path: module.exports.storePathForOrg(userOrg)}));
 		client.setCryptoSuite(cryptoSuite);
 
 		return Promise.resolve(client.createUser({
