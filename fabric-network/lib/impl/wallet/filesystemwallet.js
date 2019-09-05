@@ -90,7 +90,7 @@ class FileSystemWallet extends BaseWallet {
 	async getCryptoSuite(label) {
 		const partitionedPath = this._getPartitionedPath(label);
 		const cryptoSuite = Client.newCryptoSuite();
-		cryptoSuite.setCryptoKeyStore(Client.newCryptoKeyStore({path: partitionedPath}));
+		await cryptoSuite.setCryptoKeyStore(Client.newCryptoKeyStore({path: partitionedPath}));
 		return cryptoSuite;
 	}
 

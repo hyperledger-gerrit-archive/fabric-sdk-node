@@ -1232,7 +1232,7 @@ const Client = class extends BaseClient {
 			this.setStateStore(key_value_store);
 			const crypto_suite = BaseClient.newCryptoSuite();
 			// all crypto suites should extends api.CryptoSuite
-			crypto_suite.setCryptoKeyStore(BaseClient.newCryptoKeyStore(client_config.credentialStore.cryptoStore));
+			await crypto_suite.setCryptoKeyStore(BaseClient.newCryptoKeyStore(client_config.credentialStore.cryptoStore));
 			this.setCryptoSuite(crypto_suite);
 			return true;
 		} else {

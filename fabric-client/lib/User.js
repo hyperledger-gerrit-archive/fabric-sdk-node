@@ -175,7 +175,7 @@ const User = class {
 		if (!this._cryptoSuite) {
 			this._cryptoSuite = sdkUtils.newCryptoSuite();
 			if (!skipPersistence) {
-				this._cryptoSuite.setCryptoKeyStore(sdkUtils.newCryptoKeyStore());
+				await this._cryptoSuite.setCryptoKeyStore(sdkUtils.newCryptoKeyStore());
 			}
 		}
 
@@ -204,7 +204,7 @@ const User = class {
 	 * @param {boolean} no_save - to indicate that the cryptoSuite should not save
 	 * @return {Member} Promise of the unmarshalled Member object represented by the serialized string
 	 */
-	fromString(str, no_save) {
+	async fromString(str, no_save) {
 		logger.debug('fromString --start');
 		const state = JSON.parse(str);
 
@@ -224,7 +224,7 @@ const User = class {
 
 		if (!this._cryptoSuite) {
 			this._cryptoSuite = sdkUtils.newCryptoSuite();
-			this._cryptoSuite.setCryptoKeyStore(sdkUtils.newCryptoKeyStore());
+			await this._cryptoSuite.setCryptoKeyStore(sdkUtils.newCryptoKeyStore());
 		}
 
 		const self = this;
