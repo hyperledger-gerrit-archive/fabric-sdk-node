@@ -1232,7 +1232,7 @@ const Client = class extends BaseClient {
 			this.setStateStore(key_value_store);
 			const crypto_suite = BaseClient.newCryptoSuite();
 			// all crypto suites should extends api.CryptoSuite
-			crypto_suite.setCryptoKeyStore(BaseClient.newCryptoKeyStore(client_config.credentialStore.cryptoStore));
+			crypto_suite.setCryptoKeyStore(await BaseClient.newCryptoKeyStore(client_config.credentialStore.cryptoStore));
 			this.setCryptoSuite(crypto_suite);
 			return true;
 		} else {
@@ -1300,7 +1300,7 @@ const Client = class extends BaseClient {
 	 * @param {string} certificate the PEM-encoded string of certificate
 	 * @param {string} mspid The Member Service Provider id for the local signing identity
 	 */
-	setAdminSigningIdentity(private_key, certificate, mspid) {
+	async setAdminSigningIdentity(private_key, certificate, mspid) {
 		logger.debug('setAdminSigningIdentity - start mspid:%s', mspid);
 		if (typeof private_key === 'undefined' || private_key === null || private_key === '') {
 			throw new Error('Invalid parameter. Must have a valid private key.');
@@ -1315,8 +1315,8 @@ const Client = class extends BaseClient {
 		if (!crypto_suite) {
 			crypto_suite = BaseClient.newCryptoSuite();
 		}
-		const key = crypto_suite.importKey(private_key, {ephemeral: true});
-		const public_key = crypto_suite.importKey(certificate, {ephemeral: true});
+		const key = await crypto_suite.importKey(private_key, {ephemeral: true});
+		const public_key = await crypto_suite.importKey(certificate, {ephemeral: true});
 
 		this._adminSigningIdentity = new SigningIdentity(certificate, public_key, mspid, crypto_suite, new Signer(crypto_suite, key));
 	}
@@ -1690,7 +1690,7 @@ const Client = class extends BaseClient {
 		if (this.getCryptoSuite() === null) {
 			logger.debug('cryptoSuite is null, creating default cryptoSuite and cryptoKeyStore');
 			this.setCryptoSuite(sdkUtils.newCryptoSuite());
-			this.getCryptoSuite().setCryptoKeyStore(Client.newCryptoKeyStore()); // This is impossible
+			this.getCryptoSuite().setCryptoKeyStore(await Client.newCryptoKeyStore()); // This is impossible
 		} else {
 			if (this.getCryptoSuite()._cryptoKeyStore) {
 				logger.debug('cryptoSuite has a cryptoKeyStore');

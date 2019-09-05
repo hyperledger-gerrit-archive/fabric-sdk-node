@@ -78,8 +78,8 @@ test('\n\n ** test TypeScript **', (t: any) => {
 	t.end();
 });
 
-test('test-crypto-key-store', (t: any) => {
-	const store: ICryptoKeyStore = Client.newCryptoKeyStore();
+test('test-crypto-key-store', async (t: any) => {
+	const store: ICryptoKeyStore = await Client.newCryptoKeyStore();
 	const cryptoSuite: ICryptoSuite = Client.newCryptoSuite();
 	cryptoSuite.setCryptoKeyStore(store);
 	t.end();
