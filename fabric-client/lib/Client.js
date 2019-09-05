@@ -1232,7 +1232,7 @@ const Client = class extends BaseClient {
 			this.setStateStore(key_value_store);
 			const crypto_suite = BaseClient.newCryptoSuite();
 			// all crypto suites should extends api.CryptoSuite
-			crypto_suite.setCryptoKeyStore(BaseClient.newCryptoKeyStore(client_config.credentialStore.cryptoStore));
+			crypto_suite.setCryptoKeyStore(await BaseClient.newCryptoKeyStore(client_config.credentialStore.cryptoStore));
 			this.setCryptoSuite(crypto_suite);
 			return true;
 		} else {
@@ -1690,7 +1690,7 @@ const Client = class extends BaseClient {
 		if (this.getCryptoSuite() === null) {
 			logger.debug('cryptoSuite is null, creating default cryptoSuite and cryptoKeyStore');
 			this.setCryptoSuite(sdkUtils.newCryptoSuite());
-			this.getCryptoSuite().setCryptoKeyStore(Client.newCryptoKeyStore()); // This is impossible
+			this.getCryptoSuite().setCryptoKeyStore(await Client.newCryptoKeyStore()); // This is impossible
 		} else {
 			if (this.getCryptoSuite()._cryptoKeyStore) {
 				logger.debug('cryptoSuite has a cryptoKeyStore');

@@ -78,7 +78,9 @@ const FabricCAServices = class extends BaseClient {
 			this.setCryptoSuite(cryptoSuite);
 		} else {
 			this.setCryptoSuite(utils.newCryptoSuite());
-			this.getCryptoSuite().setCryptoKeyStore(utils.newCryptoKeyStore());
+			Promise.resolve(utils.newCryptoKeyStore()).then((store) => {
+				this.getCryptoSuite().setCryptoKeyStore(store);
+			});
 		}
 
 		this._fabricCAClient = new FabricCAClient({
