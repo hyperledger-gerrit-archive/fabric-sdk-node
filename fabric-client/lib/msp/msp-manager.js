@@ -71,8 +71,7 @@ const MSPManager = class {
 			// TODO: for now using application-scope defaults but crypto parameters like key size, hash family
 			// and digital signature algorithm should be from the config itself
 			const cs = utils.newCryptoSuite();
-			cs.setCryptoKeyStore(utils.newCryptoKeyStore());
-
+			Promise.resolve(utils.newCryptoKeyStore()).then((store) => cs.setCryptoKeyStore(store));
 			// get the application org names
 			const orgs = [];
 			const org_units = fabricConfig.getOrganizationalUnitIdentifiers();
