@@ -100,22 +100,12 @@ class CryptoSuite_ECDSA_AES extends api.CryptoSuite {
 
 	async generateKey(opts) {
 		const pair = KEYUTIL.generateKeypair('EC', this._curveName);
-
-		if (typeof opts !== 'undefined' && typeof opts.ephemeral !== 'undefined' && opts.ephemeral === true) {
-			logger.debug('generateKey, ephemeral true, Promise resolved');
-			return new ECDSAKey(pair.prvKeyObj);
-		} else {
-			if (!this._cryptoKeyStore) {
-				throw new Error('generateKey opts.ephemeral is false, which requires CryptoKeyStore to be set.');
-			}
-			// unless "opts.ephemeral" is explicitly set to "true", default to saving the key
-			const key = new ECDSAKey(pair.prvKeyObj);
-
-			const store = await this._cryptoKeyStore._getKeyStore();
-			logger.debug('generateKey, store.setValue');
-			await store.putKey(key);
-			return key;
-		}
+		const key = new ECDSAKey(pair.prvKeyObj);
+		const store = this._cryptoKeyStore;
+		logger.debug('generateKey, store.setValue');
+		await store.initialize();
+		await store.putKey(key);
+		return key;
 	}
 
 	/**
@@ -178,7 +168,7 @@ class CryptoSuite_ECDSA_AES extends api.CryptoSuite {
 				return Promise.reject(error);
 			}
 			return new Promise((resolve, reject) => {
-				return self._cryptoKeyStore._getKeyStore()
+				return self._cryptoKeyStore
 					.then((store) => {
 						return store.putKey(theKey);
 					}).then(() => {
@@ -196,7 +186,8 @@ class CryptoSuite_ECDSA_AES extends api.CryptoSuite {
 		if (!this._cryptoKeyStore) {
 			throw new Error('getKey requires CryptoKeyStore to be set.');
 		}
-		const store = await this._cryptoKeyStore._getKeyStore();
+		const store = this._cryptoKeyStore;
+		await store.initialize();
 		const key = await store.getKey(ski);
 		if (key instanceof ECDSAKey) {
 			return key;
