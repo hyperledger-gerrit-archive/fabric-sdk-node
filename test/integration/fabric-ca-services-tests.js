@@ -68,7 +68,7 @@ test('\n\n ** FabricCAServices: Test enroll() With Dynamic CSR **\n\n', (t) => {
 
 	let eResult, member, webAdmin, signingIdentity;
 	return caService.enroll(req)
-		.then((enrollment) => {
+		.then(async (enrollment) => {
 			t.pass('Successfully enrolled \'' + req.enrollmentID + '\'.');
 			eResult = enrollment;
 
@@ -82,7 +82,7 @@ test('\n\n ** FabricCAServices: Test enroll() With Dynamic CSR **\n\n', (t) => {
 
 			t.equal(subject.commonName, req.enrollmentID, 'Subject should be /CN=' + req.enrollmentID);
 
-			return caService.getCryptoSuite().importKey(enrollment.certificate);
+			return await caService.getCryptoSuite().importKey(enrollment.certificate);
 		}, (err) => {
 			t.fail('Failed to enroll the admin. Can not progress any further. Exiting. ' + err.stack ? err.stack : err);
 

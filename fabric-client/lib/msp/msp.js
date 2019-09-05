@@ -147,7 +147,7 @@ const MSP = class {
 	 * @returns {Promise} Promise for an {@link Identity} instance or
 	 *           or the Identity object itself if "storeKey" argument is false
 	 */
-	deserializeIdentity(serializedIdentity, storeKey) {
+	async deserializeIdentity(serializedIdentity, storeKey) {
 		logger.debug('importKey - start');
 		let store_key = true; // default
 		// if storing is not required and therefore a promise will not be returned
@@ -159,7 +159,7 @@ const MSP = class {
 		const cert = sid.getIdBytes().toBinary();
 		logger.debug('Encoded cert from deserialized identity: %s', cert);
 		if (!store_key) {
-			const publicKey = this.cryptoSuite.importKey(cert, {algorithm: api.CryptoAlgorithms.X509Certificate, ephemeral: true});
+			const publicKey = await this.cryptoSuite.importKey(cert, {algorithm: api.CryptoAlgorithms.X509Certificate, ephemeral: true});
 			const sdk_identity = new Identity(cert, publicKey, this.getId(), this.cryptoSuite);
 			return sdk_identity;
 		} else {

@@ -66,7 +66,7 @@ const TEST_KEY_PRIVATE_CERT_PEM = '-----BEGIN CERTIFICATE-----' +
 'BAHpeA==' +
 '-----END CERTIFICATE-----';
 
-test('\n\n ** Identity class tests **\n\n', (t) => {
+test('\n\n ** Identity class tests **\n\n', async (t) => {
 	testutil.resetDefaults();
 
 	t.throws(
@@ -166,7 +166,7 @@ test('\n\n ** Identity class tests **\n\n', (t) => {
 	);
 
 	const cryptoUtils = utils.newCryptoSuite();
-	cryptoUtils.setCryptoKeyStore(utils.newCryptoKeyStore());
+	cryptoUtils.setCryptoKeyStore(await utils.newCryptoKeyStore());
 
 	// test identity serialization and deserialization
 	const mspImpl = new MSP({
@@ -176,12 +176,12 @@ test('\n\n ** Identity class tests **\n\n', (t) => {
 		cryptoSuite: cryptoUtils
 	});
 
-	let pubKey = cryptoUtils.importKey(TEST_CERT_PEM, {algorithm: api.CryptoAlgorithms.X509Certificate});
+	let pubKey = await cryptoUtils.importKey(TEST_CERT_PEM, {algorithm: api.CryptoAlgorithms.X509Certificate});
 	const identity = new Identity(TEST_CERT_PEM, pubKey, mspImpl.getId(), cryptoUtils);
 
 	const serializedID = identity.serialize();
 	// deserializeIdentity should work both ways ... with promise and without
-	const identity_g = mspImpl.deserializeIdentity(serializedID, false);
+	const identity_g = await mspImpl.deserializeIdentity(serializedID, false);
 	t.equals(identity_g.getMSPId(), 'testMSP', 'deserializeIdentity call without promise');
 
 	mspImpl.deserializeIdentity(serializedID)
