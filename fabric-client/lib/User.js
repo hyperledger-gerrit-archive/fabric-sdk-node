@@ -175,7 +175,7 @@ const User = class {
 		if (!this._cryptoSuite) {
 			this._cryptoSuite = sdkUtils.newCryptoSuite();
 			if (!skipPersistence) {
-				this._cryptoSuite.setCryptoKeyStore(sdkUtils.newCryptoKeyStore());
+				await this._cryptoSuite.setCryptoKeyStore(sdkUtils.newCryptoKeyStore());
 			}
 		}
 
@@ -224,7 +224,7 @@ const User = class {
 
 		if (!this._cryptoSuite) {
 			this._cryptoSuite = sdkUtils.newCryptoSuite();
-			this._cryptoSuite.setCryptoKeyStore(sdkUtils.newCryptoKeyStore());
+			Promise.resolve(this._cryptoSuite.setCryptoKeyStore(sdkUtils.newCryptoKeyStore()));
 		}
 
 		const self = this;

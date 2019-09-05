@@ -99,7 +99,7 @@ test('\n\n** MSP Tests **\n\n', async (t) => {
 
 	// test deserialization using the msp manager
 	const cryptoUtils = utils.newCryptoSuite();
-	cryptoUtils.setCryptoKeyStore(utils.newCryptoKeyStore());
+	await cryptoUtils.setCryptoKeyStore(utils.newCryptoKeyStore());
 	const mspImpl = new MSP({
 		rootCerts: [],
 		admins: [],
@@ -107,7 +107,7 @@ test('\n\n** MSP Tests **\n\n', async (t) => {
 		cryptoSuite: cryptoUtils
 	});
 
-	const pubKey = cryptoUtils.importKey(TEST_CERT_PEM);
+	const pubKey = await cryptoUtils.importKey(TEST_CERT_PEM);
 	let identity = new Identity(TEST_CERT_PEM, pubKey, mspImpl.getId(), cryptoUtils);
 
 	const serializedID = identity.serialize();

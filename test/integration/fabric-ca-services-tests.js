@@ -82,6 +82,7 @@ test('\n\n ** FabricCAServices: Test enroll() With Dynamic CSR **\n\n', (t) => {
 
 			t.equal(subject.commonName, req.enrollmentID, 'Subject should be /CN=' + req.enrollmentID);
 
+			console.log(caService.getCryptoSuite()._cryptoKeyStore);
 			return caService.getCryptoSuite().importKey(enrollment.certificate);
 		}, (err) => {
 			t.fail('Failed to enroll the admin. Can not progress any further. Exiting. ' + err.stack ? err.stack : err);

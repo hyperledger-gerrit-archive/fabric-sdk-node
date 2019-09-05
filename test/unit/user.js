@@ -135,7 +135,7 @@ test('\n\n ** User - constructor set get tests **\n\n', async (t) => {
 	// test set enrollment for identity and signing identity
 	try {
 		const cryptoUtils = utils.newCryptoSuite();
-		cryptoUtils.setCryptoKeyStore(utils.newCryptoKeyStore());
+		await cryptoUtils.setCryptoKeyStore(utils.newCryptoKeyStore());
 		const key = await cryptoUtils.generateKey();
 		await member2.setEnrollment(key, TEST_CERT_PEM, 'DEFAULT');
 		const id = member2.getIdentity();
