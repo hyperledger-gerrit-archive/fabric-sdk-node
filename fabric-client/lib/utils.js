@@ -22,7 +22,8 @@ const path = require('path');
 const os = require('os');
 const Long = require('long');
 
-const Config = require('./Config.js');
+const Config = require('./Config');
+const {KeyValueStore} = require('./api');
 const sjcl = require('sjcl');
 
 //
@@ -367,71 +368,26 @@ module.exports.getDefaultKeyStorePath = () => {
 	return path.join(os.homedir(), '.hfc-key-store');
 };
 
-const CryptoKeyStore = function (KVSImplClass, opts) {
-	this.logger = module.exports.getLogger('utils.CryptoKeyStore');
-	this.logger.debug('CryptoKeyStore, constructor - start');
-	if (KVSImplClass && typeof opts === 'undefined') {
-		if (typeof KVSImplClass === 'function') {
-			// the super class module was passed in, but not the 'opts'
-			opts = null;
-		} else {
-			// called with only one argument for the 'opts' but KVSImplClass was skipped
-			opts = KVSImplClass;
-			KVSImplClass = null;
-		}
-	}
-
-	if (typeof opts === 'undefined' || opts === null) {
-		opts = {
-			path: module.exports.getDefaultKeyStorePath()
-		};
-	}
-	let superClass;
-	if (typeof KVSImplClass !== 'undefined' && KVSImplClass !== null) {
-		superClass = KVSImplClass;
-	} else {
-		// no super class specified, use the default key value store implementation
-		superClass = require(exports.getConfigSetting('key-value-store'));
-		this.logger.debug('constructor, no super class specified, using config: ' + module.exports.getConfigSetting('key-value-store'));
-	}
-
-	this._store = null;
-	this._storeConfig = {
-		superClass: superClass,
-		opts: opts
-
-	};
-
-	this._getKeyStore = function () {
-		const CKS = require('./impl/CryptoKeyStore.js');
-
-		const self = this;
-		return new Promise((resolve, reject) => {
-			if (self._store === null) {
-				self.logger.debug(util.format('This class requires a CryptoKeyStore to save keys, using the store: %j', self._storeConfig));
-
-				CKS(self._storeConfig.superClass, self._storeConfig.opts).then((ks) => {
-					self.logger.debug('_getKeyStore returning ks');
-					self._store = ks;
-					return resolve(self._store);
-				}).catch((err) => {
-					reject(err);
-				});
-			} else {
-				self.logger.debug('_getKeyStore resolving store');
-				return resolve(self._store);
-			}
-		});
-	};
-
-};
-
-module.exports.newCryptoKeyStore = (KVSImplClass, opts) => {
+module.exports.newCryptoKeyStore = async (KVSImplClass, opts) => {
 	// this function supports skipping any of the arguments such that it can be called in any of the following fashions:
-	// - newCryptoKeyStore(CouchDBKeyValueStore, {name: 'member_db', url: 'http://localhost:5984'})
+	// - newCryptoKeyStore({name: 'member_db', url: 'http://localhost:5984'},CouchDBKeyValueStore)
 	// - newCryptoKeyStore({path: '/tmp/app-state-store'})
 	// - newCryptoKeyStore()
-	return new CryptoKeyStore(KVSImplClass, opts);
+
+	if (!KVSImplClass || !(KVSImplClass.prototype instanceof KeyValueStore)) {
+		if (KVSImplClass) {
+			opts = KVSImplClass;
+		}
+		KVSImplClass = require(exports.getConfigSetting('key-value-store'));
+	}
+	if (!opts) {
+		opts = {path: module.exports.getDefaultKeyStorePath()};
+	}
+
+	const cksImpl = exports.getConfigSetting('crypto-key-store');
+	const CryptoKeyStore = require(cksImpl);
+	const kvsInstance = await new KVSImplClass(opts);
+	return new CryptoKeyStore(kvsInstance);
 };
 
 /*

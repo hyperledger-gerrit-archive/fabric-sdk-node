@@ -133,7 +133,7 @@ function getMember(username, password, client, t, userOrg) {
 	return client.getUserContext(username, true)
 		.then((user) => {
 			// eslint-disable-next-line no-unused-vars
-			return new Promise((resolve, reject) => {
+			return new Promise(async (resolve, reject) => {
 				if (user && user.isEnrolled()) {
 					t.pass('Successfully loaded member from persistence');
 					return resolve(user);
@@ -144,7 +144,7 @@ function getMember(username, password, client, t, userOrg) {
 				if (!cryptoSuite) {
 					cryptoSuite = Client.newCryptoSuite();
 					if (userOrg) {
-						cryptoSuite.setCryptoKeyStore(Client.newCryptoKeyStore({path: module.exports.storePathForOrg(ORGS[userOrg].name)}));
+						await cryptoSuite.setCryptoKeyStore(Client.newCryptoKeyStore({path: module.exports.storePathForOrg(ORGS[userOrg].name)}));
 						client.setCryptoSuite(cryptoSuite);
 					}
 				}
@@ -180,7 +180,7 @@ module.exports.setAdmin = function(client, userOrg) {
 	return getAdmin(client, null, userOrg);
 };
 
-function getAdmin(client, t, userOrg) {
+async function getAdmin(client, t, userOrg) {
 	const keyPath = path.join(__dirname, util.format('../fixtures/crypto-material/crypto-config/peerOrganizations/%s.example.com/users/Admin@%s.example.com/msp/keystore', userOrg, userOrg));
 	const keyPEM = Buffer.from(readAllFiles(keyPath)[0]).toString();
 	const certPath = path.join(__dirname, util.format('../fixtures/crypto-material/crypto-config/peerOrganizations/%s.example.com/users/Admin@%s.example.com/msp/signcerts', userOrg, userOrg));
@@ -188,7 +188,7 @@ function getAdmin(client, t, userOrg) {
 
 	const cryptoSuite = Client.newCryptoSuite();
 	if (userOrg) {
-		cryptoSuite.setCryptoKeyStore(Client.newCryptoKeyStore({path: module.exports.storePathForOrg(ORGS[userOrg].name)}));
+		await cryptoSuite.setCryptoKeyStore(Client.newCryptoKeyStore({path: module.exports.storePathForOrg(ORGS[userOrg].name)}));
 		client.setCryptoSuite(cryptoSuite);
 	}
 

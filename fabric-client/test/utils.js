@@ -19,6 +19,7 @@ const Utils = rewire('../lib/utils');
 const Long = require('long');
 
 
+// eslint-disable-next-line no-unused-vars
 const should = require('chai').should();
 const sinon = require('sinon');
 
@@ -47,7 +48,7 @@ describe('Utils', () => {
 				software: false,
 				keysize: 1,
 				algorithm: 'sha',
-				hash: 'hash',
+				hash: 'hash'
 			};
 			const MockCryptoSuite = sinon.stub();
 			const getConfigSettingStub = sandbox.stub();
@@ -63,8 +64,7 @@ describe('Utils', () => {
 		});
 
 		it('should return cryptoSuite instance when parameters missing', () => {
-			const settings = {
-			};
+			const settings = {};
 			const MockCryptoSuite = sinon.stub();
 			const getConfigSettingStub = sandbox.stub();
 			getConfigSettingStub.withArgs('crypto-hsm').returns(false);
@@ -81,8 +81,7 @@ describe('Utils', () => {
 		});
 
 		it('should throw an error if csImpl does not exist', () => {
-			const settings = {
-			};
+			const settings = {};
 			const getConfigSettingStub = sandbox.stub();
 			getConfigSettingStub.withArgs('crypto-hsm').returns(true);
 			getConfigSettingStub.withArgs('crypto-suite-hsm').returns({});
@@ -126,8 +125,6 @@ describe('Utils', () => {
 		});
 	});
 
-	describe('#getLogger', () => {});
-
 	describe('#addConfigFile', () => {
 		it('should call exports.getConfig and config.file', () => {
 			const fileStub = sandbox.stub();
@@ -167,7 +164,8 @@ describe('Utils', () => {
 
 		beforeEach(() => {
 			getConfig = Utils.__get__('exports.getConfig');
-			MockConfig = class {};
+			MockConfig = class {
+			};
 			revert.push(Utils.__set__('Config', MockConfig));
 		});
 
@@ -284,10 +282,17 @@ describe('Utils', () => {
 	describe('#getClassMethods', () => {
 		it('should return the class methods for an instance', () => {
 			const MockClass = class {
-				constructor() {}
-				method1() {}
-				method2() {}
-				static staticFn() {}
+				constructor() {
+				}
+
+				method1() {
+				}
+
+				method2() {
+				}
+
+				static staticFn() {
+				}
 			};
 			const classMethods = Utils.getClassMethods(MockClass);
 			classMethods.length.should.equal(2);
@@ -328,119 +333,64 @@ describe('Utils', () => {
 		});
 	});
 
-	describe('#CryptoKeyStore', () => {
-		let CryptoKeyStore;
-		let mockLogger;
-		let debugStub;
-		let defaultKeyStorePathStub;
-
-		beforeEach(() => {
-			CryptoKeyStore = Utils.__get__('CryptoKeyStore');
-			defaultKeyStorePathStub = sandbox.stub();
-			debugStub = sandbox.stub();
-			mockLogger = sandbox.stub().returns({debug: debugStub});
-			revert.push(Utils.__set__('module.exports.getLogger', mockLogger));
-		});
-
-		it('should return a valid CryptoKeyStore instance when no opts are given', () => {
-			defaultKeyStorePathStub.returns('key-store-path');
-			revert.push(Utils.__set__('module.exports.getDefaultKeyStorePath', defaultKeyStorePathStub));
-			const keyStore = new CryptoKeyStore((value) => value);
-			sinon.assert.calledWith(mockLogger, 'utils.CryptoKeyStore');
-			sinon.assert.calledWith(debugStub, 'CryptoKeyStore, constructor - start');
-
-			keyStore._storeConfig.opts.should.deep.equal({path: 'key-store-path'});
-			keyStore._storeConfig.superClass('value').should.equal('value');
-		});
-
-		it('should return a valid CryptoKeyStore instance when KVSImplandClass are given', () => {
-			const getConfigSettingStub = sandbox.stub();
-			getConfigSettingStub.withArgs('key-value-store').returns('super-class-path');
-			revert.push(Utils.__set__('exports.getConfigSetting', getConfigSettingStub));
-			requireStub.withArgs('super-class-path').returns((value) => value);
-			revert.push(Utils.__set__('require', requireStub));
-			defaultKeyStorePathStub.returns('key-store-path');
-			revert.push(Utils.__set__('module.exports.getDefaultKeyStorePath', defaultKeyStorePathStub));
-
-			const keyStore = new CryptoKeyStore(undefined, {});
-			sinon.assert.calledWith(mockLogger, 'utils.CryptoKeyStore');
-			sinon.assert.calledWith(debugStub, 'CryptoKeyStore, constructor - start');
-
-			keyStore._storeConfig.opts.should.deep.equal({});
-			keyStore._storeConfig.superClass('value').should.equal('value');
-		});
-
-		it('should return a valid CryptoKeyStore instance when none function KVSImplandClass is given', () => {
-			const getConfigSettingStub = sandbox.stub();
-			getConfigSettingStub.withArgs('key-value-store').returns('super-class-path');
-			revert.push(Utils.__set__('exports.getConfigSetting', getConfigSettingStub));
-			requireStub.withArgs('super-class-path').returns((value) => value);
-			revert.push(Utils.__set__('require', requireStub));
-			defaultKeyStorePathStub.returns('key-store-path');
-			revert.push(Utils.__set__('module.exports.getDefaultKeyStorePath', defaultKeyStorePathStub));
-
-			const keyStore = new CryptoKeyStore({});
-			sinon.assert.calledWith(mockLogger, 'utils.CryptoKeyStore');
-			sinon.assert.calledWith(debugStub, 'CryptoKeyStore, constructor - start');
-
-			keyStore._storeConfig.opts.should.deep.equal({});
-			// keyStore._storeConfig.superClass('value').should.equal('value');
-		});
-	});
-
-	describe('#CryptoKeyStore._getKeyStore', () => {
-		let CryptoKeyStore;
-		let mockLogger;
-		let debugStub;
-		let defaultKeyStorePathStub;
-		let keyStore;
-
-		beforeEach(() => {
-			CryptoKeyStore = Utils.__get__('CryptoKeyStore');
-			defaultKeyStorePathStub = sandbox.stub();
-			debugStub = sandbox.stub();
-			mockLogger = sandbox.stub().returns({debug: debugStub});
-			revert.push(Utils.__set__('module.exports.getLogger', mockLogger));
-			defaultKeyStorePathStub.returns('key-store-path');
-			revert.push(Utils.__set__('module.exports.getDefaultKeyStorePath', defaultKeyStorePathStub));
-			requireStub = sandbox.stub();
-			revert.push(Utils.__set__('require', requireStub));
-			keyStore = new CryptoKeyStore((value) => value);
-		});
-
-		it('should return a promise to the this._store', async() => {
-			requireStub.returns(() => Promise.resolve('keystore'));
-			const result = await keyStore._getKeyStore();
-			result.should.equal('keystore');
-		});
-
-		it('should return a promise to the this._store if this._store is set', async() => {
-			keyStore._store = 'keystore';
-			const result = await keyStore._getKeyStore();
-			result.should.equal('keystore');
-		});
-
-		it('should throw an error if CKS rejects a promise', async() => {
-			requireStub.returns(() => Promise.reject('keystore-error'));
-			try {
-				await keyStore._getKeyStore();
-				should.fail();
-			} catch (err) {
-				err.should.equal('keystore-error');
-			}
-		});
-	});
-
 	describe('#newCryptoKeyStore', () => {
-		it('should create a new instance of CryptoKeyStore', () => {
+		it('should create a new instance of CryptoKeyStore with given KVSImplClass and opts', async () => {
 			const MockKeyStore = class {
 				constructor(KVSImplClass, opts) {
-					KVSImplClass.should.equal('KVSImplClass');
-					opts.should.equal('opts');
+					MockKeyStore._instance = KVSImplClass;
+					MockKeyStore._dir = opts.path;
 				}
 			};
-			revert.push(Utils.__set__('CryptoKeyStore', MockKeyStore));
-			const keyStore = Utils.newCryptoKeyStore('KVSImplClass', 'opts');
+			Utils.setConfigSetting('key-value-store', 'fabric-client/lib/impl/FileKeyValueStore.js');
+			const fileKeyValueStore = require(Utils.getConfigSetting('key-value-store'));
+			const MockCryptoKeyStore = sandbox.stub().returns(new MockKeyStore(fileKeyValueStore, {path: Utils.getDefaultKeyStorePath()}));
+			requireStub = sandbox.stub().returns(MockCryptoKeyStore);
+			revert.push(Utils.__set__('require', requireStub));
+
+			const keyStore = await Utils.newCryptoKeyStore(MockKeyStore._instance, {path: MockKeyStore._dir});
+			sinon.assert.calledWith(MockCryptoKeyStore, await new MockKeyStore._instance({path: MockKeyStore._dir}));
+			keyStore.should.be.instanceof(MockKeyStore);
+		});
+		it('should create a new instance of CryptoKeyStore with given KVSImplClass', async () => {
+			const MockKeyStore = class {
+				constructor(KVSImplClass) {
+					MockKeyStore._instance = KVSImplClass;
+				}
+			};
+			Utils.setConfigSetting('key-value-store', 'fabric-client/lib/impl/FileKeyValueStore.js');
+			const fileKeyValueStore = require(Utils.getConfigSetting('key-value-store'));
+			const MockCryptoKeyStore = sandbox.stub().returns(new MockKeyStore(fileKeyValueStore));
+			requireStub = sandbox.stub().returns(MockCryptoKeyStore);
+			revert.push(Utils.__set__('require', requireStub));
+
+			const keyStore = await Utils.newCryptoKeyStore(MockKeyStore._instance);
+			sinon.assert.calledWith(MockCryptoKeyStore, await new MockKeyStore._instance({path: Utils.getDefaultKeyStorePath()}));
+			keyStore.should.be.instanceof(MockKeyStore);
+		});
+		it('should create a new instance of CryptoKeyStore with given opts', async () => {
+			const MockKeyStore = class {
+				constructor(opts) {
+					MockKeyStore._dir = opts.path;
+				}
+			};
+			const MockCryptoKeyStore = sandbox.stub().returns(new MockKeyStore({path: Utils.getDefaultKeyStorePath()}));
+			requireStub = sandbox.stub().returns(MockCryptoKeyStore);
+			revert.push(Utils.__set__('require', requireStub));
+
+			const keyStore = await Utils.newCryptoKeyStore({path: MockKeyStore._dir});
+			sinon.assert.calledWith(MockCryptoKeyStore, {path: MockKeyStore._dir});
+			keyStore.should.be.instanceof(MockKeyStore);
+		});
+
+		it('should create a new instance of CryptoKeyStore with non given arguments', async () => {
+			const MockKeyStore = class {
+			};
+			const MockCryptoKeyStore = sandbox.stub().returns(new MockKeyStore());
+			requireStub = sandbox.stub().returns(MockCryptoKeyStore);
+			revert.push(Utils.__set__('require', requireStub));
+
+			const keyStore = await Utils.newCryptoKeyStore();
+			sinon.assert.calledWith(MockCryptoKeyStore, {path: Utils.getDefaultKeyStorePath()});
 			keyStore.should.be.instanceof(MockKeyStore);
 		});
 	});
@@ -450,7 +400,7 @@ describe('Utils', () => {
 
 		beforeEach(() => {
 			getConfigSettingStub = sandbox.stub();
-			revert.push(Utils.__set__('module.exports.getConfigSetting', getConfigSettingStub));
+			revert.push(Utils.__set__('exports.getConfigSetting', getConfigSettingStub));
 		});
 
 		it('should reutrn a list of return options', () => {
@@ -553,6 +503,4 @@ describe('Utils', () => {
 			result.should.be.false;
 		});
 	});
-
-	describe('#convertByteToString', () => {});
 });

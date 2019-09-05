@@ -44,7 +44,7 @@ class InMemoryWallet extends BaseWallet {
 		logger.debug('in getCryptoSuite, label = %s', label);
 		label = this.normalizeLabel(label);
 		const cryptoSuite = Client.newCryptoSuite();
-		cryptoSuite.setCryptoKeyStore(Client.newCryptoKeyStore(InMemoryKVS, label));
+		await cryptoSuite.setCryptoKeyStore(Client.newCryptoKeyStore(InMemoryKVS, label));
 		return cryptoSuite;
 	}
 
@@ -71,7 +71,7 @@ class InMemoryWallet extends BaseWallet {
 	}
 
 	async getAllLabels() {
-		const labels =  Array.from(memoryStore.keys());
+		const labels = Array.from(memoryStore.keys());
 		logger.debug('getAllLabels returns: %j', labels);
 		return labels;
 	}

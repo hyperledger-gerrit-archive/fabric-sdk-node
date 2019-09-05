@@ -71,7 +71,7 @@ test('\n\n***** End-to-end flow: setAnchorPeers *****\n\n', async (t) => {
 	const store = await Client.newDefaultKeyValueStore({path: testUtil.storePathForOrg(ORGS[org].name)});
 	client.setStateStore(store);
 	const cryptoSuite = Client.newCryptoSuite();
-	cryptoSuite.setCryptoKeyStore(Client.newCryptoKeyStore({path: testUtil.storePathForOrg(ORGS[org].name)}));
+	await cryptoSuite.setCryptoKeyStore(Client.newCryptoKeyStore({path: testUtil.storePathForOrg(ORGS[org].name)}));
 	client.setCryptoSuite(cryptoSuite);
 
 

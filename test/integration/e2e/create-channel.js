@@ -51,7 +51,7 @@ test('\n\n***** SDK Built config update  create flow  *****\n\n', async (t) => {
 	const store = await Client.newDefaultKeyValueStore({path: testUtil.storePathForOrg(org)});
 	client.setStateStore(store);
 	const cryptoSuite = Client.newCryptoSuite();
-	cryptoSuite.setCryptoKeyStore(Client.newCryptoKeyStore({path: testUtil.storePathForOrg(org)}));
+	await cryptoSuite.setCryptoKeyStore(Client.newCryptoKeyStore({path: testUtil.storePathForOrg(org)}));
 	client.setCryptoSuite(cryptoSuite);
 
 	// use the config update created by the configtx tool

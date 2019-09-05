@@ -64,7 +64,7 @@ class CouchDBWallet extends BaseWallet {
 		const method = 'getCryptoSuite';
 		logger.debug('in %s, label = %s', method, label);
 		const cryptoSuite = Client.newCryptoSuite();
-		cryptoSuite.setCryptoKeyStore(Client.newCryptoKeyStore(CouchDBWalletKeyValueStore, this._createOptions()));
+		await cryptoSuite.setCryptoKeyStore(Client.newCryptoKeyStore(CouchDBWalletKeyValueStore, this._createOptions()));
 		return cryptoSuite;
 	}
 
