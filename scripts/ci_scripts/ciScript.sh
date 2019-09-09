@@ -31,7 +31,7 @@ Parse_Arguments() {
     case $1 in
       --sdk_e2e_Tests)
           sdk_e2e_Tests
-          ;;
+          ;
       --publish_NpmModules)
           publish_NpmModules
           ;;
