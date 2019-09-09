@@ -5,7 +5,7 @@
 'use strict';
 
 const {Gateway, InMemoryWallet, X509WalletMixin} = require('fabric-network');
-const testUtil = require('./utils.js');
+const testUtil = require('./Utils.js');
 const fs = require('fs');
 const chai = require('chai');
 const expect = chai.expect;
