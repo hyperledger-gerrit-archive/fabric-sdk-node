@@ -6,7 +6,7 @@
 
 const Client = require('fabric-client');
 
-const testUtil = require('./utils.js');
+const testUtil = require('./Utils.js');
 const fs = require('fs');
 const path = require('path');
 

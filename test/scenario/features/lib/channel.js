@@ -5,7 +5,7 @@
 'use strict';
 
 const Client = require('fabric-client');
-const testUtil = require('./utils.js');
+const testUtil = require('./Utils.js');
 
 const path = require('path');
 const fs = require('fs');
