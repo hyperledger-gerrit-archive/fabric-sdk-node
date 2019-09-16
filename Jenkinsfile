@@ -15,15 +15,7 @@
 // https://github.com/hyperledger/ci-management/tree/master/vars (Global Shared scripts)
 timestamps { // set the timestamps on the jenkins console
   timeout(40) { // Build timeout set to 40 mins
-    if(env.NODE_ARCH != "hyp-x") {
-      node ('hyp-z') { // trigger jobs on s390x builds nodes
-        // Update the node version here
-        env.NODE_VER = "8.14.0" // Set node version
-        env.GOPATH = "$WORKSPACE/gopath"
-        env.PATH = "$GOPATH/bin:/usr/local/bin:/usr/bin:/usr/local/sbin:/usr/sbin:~/npm/bin:/home/jenkins/.nvm/versions/node/v${NODE_VER}/bin:$PATH"
-        buildStages() // call buildStages
-      } // End node
-    } else {
+    if(env.NODE_ARCH = "hyp-x") {
       node ('hyp-x') { // trigger jobs on x86_64 builds nodes
         // LF team has to install the newer version in Jenkins global config
         // Send an email to helpdesk@hyperledger.org to add newer version
