@@ -63,6 +63,11 @@ module.exports.sendPeersProposal = async (peers, proposal, timeout) => {
 			responses.push(result.reason());
 		}
 	});
+
+	if (responses.length !== peers.length) {
+		logger.error(`sendPeersProposal - the number of responses ${responses.length} is not the same as the number of peers ${peers.length}`);
+	}
+	logger.debug(`sendPeersProposal - returning ${responses.length} responses`);
 	return responses;
 };
 
