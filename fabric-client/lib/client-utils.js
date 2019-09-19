@@ -63,6 +63,8 @@ module.exports.sendPeersProposal = async (peers, proposal, timeout) => {
 			responses.push(result.reason());
 		}
 	});
+
+	logger.debug(`sendPeersProposal - returning ${responses.length} responses`);
 	return responses;
 };
 
