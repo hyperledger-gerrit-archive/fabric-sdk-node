@@ -45,6 +45,7 @@ module.exports = function () {
 
 			// ------------- test the package API
 			// const package_bytes = await chaincode.package(request);
+			testUtil.logMsg(` -- packaging step about to package ${chaincode_type} named ${chaincode_name}`);
 			await chaincode.package(request);
 
 			// save it for later use
@@ -62,7 +63,7 @@ module.exports = function () {
 
 			const request = {
 				target: peer,
-				request_timeout: 10000
+				request_timeout: 120000
 			};
 
 			// ------------- test the install API
@@ -119,7 +120,7 @@ module.exports = function () {
 				chaincode: chaincode,
 				targets: [peer],
 				txId: txId,
-				request_timeout: 3000
+				request_timeout: 60000
 			};
 
 			try {
@@ -170,7 +171,7 @@ module.exports = function () {
 				chaincode: chaincode,
 				targets: [peer1, peer2],
 				txId: txId,
-				request_timeout: 3000
+				request_timeout: 60000
 			};
 
 			try {
@@ -234,6 +235,7 @@ module.exports = function () {
 			}
 
 			try {
+				// might be the first time, so will take extra time
 				const results = await channel.sendTransactionProposal(request, 120000);
 				if (results && results[0]) {
 					const proposalResponses = results[0];
@@ -375,7 +377,7 @@ module.exports = function () {
 				if (result instanceof Error) {
 					testUtil.logAndThrow(result);
 				} else if (result) {
-					testUtil.logMsg(format('GetInstalledChaincodePackage - Good peer response %j', result));
+					testUtil.logMsg(format('GetInstalledChaincodePackage - Good peer response - too big to show'));
 				} else {
 					testUtil.logAndThrow('Problem with the GetInstalledChaincodePackage, no response returned');
 				}

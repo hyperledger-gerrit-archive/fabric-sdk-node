@@ -23,9 +23,6 @@ const e2e = testUtil.END2END;
 const e2e_node = testUtil.NODE_END2END;
 let ORGS;
 
-let tx_id = null;
-let the_user = null;
-
 function init() {
 	if (!ORGS) {
 		Client.addConfigFile(path.join(__dirname, './config.json'));
@@ -80,7 +77,6 @@ function installChaincodeWithId(org, chaincode_id, chaincode_path, metadata_path
 			return testUtil.getSubmitter(client, t, get_admin /* get peer org admin */, org);
 		}).then((admin) => {
 			t.pass('Successfully enrolled user \'admin\' (e2eUtil 1)');
-			the_user = admin;
 
 			channel.addOrderer(
 				client.newOrderer(
@@ -173,7 +169,7 @@ function instantiateChaincode(userOrg, chaincode_path, version, language, upgrad
 }
 module.exports.instantiateChaincode = instantiateChaincode;
 
-function instantiateChaincodeWithId(userOrg, chaincode_id, chaincode_path, version, language, upgrade, badTransient, t, channel_name) {
+async function instantiateChaincodeWithId(userOrg, chaincode_id, chaincode_path, version, language, upgrade, badTransient, t, channel_name) {
 	init();
 
 	if (!channel_name) {
@@ -200,145 +196,102 @@ function instantiateChaincodeWithId(userOrg, chaincode_id, chaincode_path, versi
 	const data = fs.readFileSync(path.join(__dirname, caRootsPath));
 	const caroots = Buffer.from(data).toString();
 
-	const badTransientMap = {'test1': Buffer.from('transientValue')}; // have a different key than what the chaincode example_cc1.go expects in Init()
+	// have a different key than what the chaincode example_cc1.go expects in Init()
+	const badTransientMap = {'test1': Buffer.from('transientValue')};
 	const transientMap = {'test': Buffer.from('transientValue')};
-	let tlsInfo = null;
 	let request = null;
 
-	return e2eUtils.tlsEnroll(userOrg)
-		.then((enrollment) => {
-			t.pass('Successfully retrieved TLS certificate');
-			tlsInfo = enrollment;
-			client.setTlsClientCertAndKey(tlsInfo.certificate, tlsInfo.key);
+	try {
+		const tlsInfo = await e2eUtils.tlsEnroll(userOrg);
+		t.pass('Successfully retrieved TLS certificate');
+		client.setTlsClientCertAndKey(tlsInfo.certificate, tlsInfo.key);
 
-			return Client.newDefaultKeyValueStore({path: testUtil.storePathForOrg(orgName)});
-		}).then((store) => {
+		const store = await Client.newDefaultKeyValueStore({path: testUtil.storePathForOrg(orgName)});
+		client.setStateStore(store);
 
-			client.setStateStore(store);
-			return testUtil.getSubmitter(client, t, true /* use peer org admin*/, userOrg);
+		const admin = await testUtil.getSubmitter(client, t, true /* use peer org admin*/, userOrg);
+		t.pass('Successfully enrolled user \'admin\' (e2eUtil 2)');
 
-		}).then((admin) => {
+		channel.addOrderer(
+			client.newOrderer(
+				ORGS.orderer.url,
+				{
+					'pem': caroots,
+					'ssl-target-name-override': ORGS.orderer['server-hostname']
+				}
+			)
+		);
 
-			t.pass('Successfully enrolled user \'admin\' (e2eUtil 2)');
-			the_user = admin;
-
-			channel.addOrderer(
-				client.newOrderer(
-					ORGS.orderer.url,
+		for (const org in ORGS) {
+			if (ORGS[org].hasOwnProperty('peer1')) {
+				const key = 'peer1';
+				const newData = fs.readFileSync(path.join(__dirname, ORGS[org][key].tls_cacerts));
+				logger.debug(' create new peer %s', ORGS[org][key].requests);
+				const peer = client.newPeer(
+					ORGS[org][key].requests,
 					{
-						'pem': caroots,
-						'ssl-target-name-override': ORGS.orderer['server-hostname']
+						pem: Buffer.from(newData).toString(),
+						'ssl-target-name-override': ORGS[org][key]['server-hostname']
 					}
-				)
-			);
+				);
 
-			for (const org in ORGS) {
-				if (ORGS[org].hasOwnProperty('peer1')) {
-					const key = 'peer1';
-					const newData = fs.readFileSync(path.join(__dirname, ORGS[org][key].tls_cacerts));
-					logger.debug(' create new peer %s', ORGS[org][key].requests);
-					const peer = client.newPeer(
-						ORGS[org][key].requests,
-						{
-							pem: Buffer.from(newData).toString(),
-							'ssl-target-name-override': ORGS[org][key]['server-hostname']
-						}
-					);
+				targets.push(peer);
+				channel.addPeer(peer);
 
-					targets.push(peer);
-					channel.addPeer(peer);
+				const eh = channel.newChannelEventHub(peer);
+				eventhubs.push(eh);
+			}
+		}
 
-					const eh = channel.newChannelEventHub(peer);
-					eventhubs.push(eh);
-				}
+		await channel.initialize();
+		t.pass('Successfully initialized Channel %j', channel.getOrganizations());
+
+		// the v1 chaincode has Init() method that expects a transient map
+		if (upgrade && badTransient) {
+		// first test that a bad transient map would get the chaincode to return an error
+			t.comment('about to upgrade with transient error');
+			const fail_request = buildChaincodeProposal(client, admin, chaincode_id, chaincode_path, version, language, upgrade, badTransientMap);
+
+			// this is the longest response delay in the test, sometimes
+			// x86 CI times out. set the per-request timeout to a super-long value
+			const fail_results = await channel.sendUpgradeProposal(fail_request, 10 * 60 * 1000);
+			const fail_proposalResponses = fail_results[0];
+			// expecting both peers to return an Error due to the bad transient map
+			let failed = false;
+			if (fail_proposalResponses && fail_proposalResponses.length > 0) {
+				fail_proposalResponses.forEach((response) => {
+					if (response && response instanceof Error && response.message.includes('Did not find expected')) {
+						failed = true;
+					} else {
+						failed = false;
+					}
+				});
 			}
 
-			// read the config block from the peer for the channel
-			// and initialize the verify MSPs based on the participating
-			// organizations
-			return channel.initialize();
-		}, (err) => {
-
-			t.fail('Failed to enroll user \'admin\'. ' + err);
-			throw new Error('Failed to enroll user \'admin\'. ' + err);
-
-		}).then(() => {
-			t.pass('Successfully initialized Channel');
-			logger.debug(' orglist:: ', channel.getOrganizations());
-			// the v1 chaincode has Init() method that expects a transient map
-			if (upgrade && badTransient) {
-			// first test that a bad transient map would get the chaincode to return an error
-				request = buildChaincodeProposal(client, the_user, chaincode_id, chaincode_path, version, language, upgrade, badTransientMap);
-				tx_id = request.txId;
-
-				logger.debug(util.format(
-					'Upgrading chaincode "%s" at path "%s" to version "%s" by passing args "%s" to method "%s" in transaction "%s"',
-					request.chaincodeId,
-					request.chaincodePath,
-					request.chaincodeVersion,
-					request.args,
-					request.fcn,
-					request.txId.getTransactionID()
-				));
-
-				// this is the longest response delay in the test, sometimes
-				// x86 CI times out. set the per-request timeout to a super-long value
-				return channel.sendUpgradeProposal(request, 10 * 60 * 1000)
-					.then((results) => {
-						const proposalResponses = results[0];
-
-						if (version === 'v1') {
-							// expecting both peers to return an Error due to the bad transient map
-							let success = false;
-							if (proposalResponses && proposalResponses.length > 0) {
-								proposalResponses.forEach((response) => {
-									if (response && response instanceof Error &&
-                    response.message.includes('Did not find expected key "test" in the transient map of the proposal')) {
-										success = true;
-									} else {
-										success = false;
-									}
-								});
-							}
-
-							if (success) {
-								// successfully tested the negative conditions caused by
-								// the bad transient map, now send the good transient map
-								request = buildChaincodeProposal(client, the_user, chaincode_id, chaincode_path,
-									version, language, upgrade, transientMap);
-								tx_id = request.txId;
-
-								return channel.sendUpgradeProposal(request, 10 * 60 * 1000);
-							} else {
-								throw new Error('Failed to test for bad transient map. The chaincode should have rejected the upgrade proposal.');
-							}
-						} else if (version === 'v3') {
-							return Promise.resolve(results);
-						}
-					});
+			if (failed) {
+				t.pass('Successfully tested for bad transient data');
 			} else {
-				const request2 = buildChaincodeProposal(client, the_user, chaincode_id, chaincode_path, version, language, upgrade, transientMap);
-				tx_id = request2.txId;
-
-				// this is the longest response delay in the test, sometimes
-				// x86 CI times out. set the per-request timeout to a super-long value
-				if (upgrade) {
-					return channel.sendUpgradeProposal(request2, 10 * 60 * 1000);
-				} else {
-					return channel.sendInstantiateProposal(request2, 10 * 60 * 1000);
-				}
+				t.fail('Failed the test for bad transient data');
+				throw new Error('Failed the test for bad transient map. The chaincode should have rejected the upgrade proposal.');
 			}
+		}
 
-		}, (err) => {
+		request = buildChaincodeProposal(client, admin, chaincode_id, chaincode_path, version, language, upgrade, transientMap);
 
-			t.fail(util.format('Failed to initialize the channel. %s', err.stack ? err.stack : err));
-			throw new Error('Failed to initialize the channel');
+		let results;
+		if (upgrade) {
+			t.comment('about to upgrade with good transient');
+			results = await channel.sendUpgradeProposal(request, 10 * 60 * 1000);
+		} else {
+			t.comment('about to instantiate');
+			results = await channel.sendInstantiateProposal(request, 10 * 60 * 1000);
+		}
 
-		}).then((results) => {
+		t.comment('have results of instantiate');
 
-			const proposalResponses = results[0];
-
-			const proposal = results[1];
+		const proposalResponses = results[0];
+		const proposal = results[1];
+		if (proposal && proposal.length > 0) {
 			let all_good = true;
 			for (const response of proposalResponses) {
 				if (response instanceof Error) {
@@ -351,70 +304,83 @@ function instantiateChaincodeWithId(userOrg, chaincode_id, chaincode_path, versi
 					all_good = false;
 				}
 			}
+
 			if (all_good) {
 				t.pass('Successfully sent Proposal and received ProposalResponse');
-				logger.debug(util.format('Successfully sent Proposal and received ProposalResponse: Status - %s, message - "%s", metadata - "%s", endorsement signature: %s', proposalResponses[0].response.status, proposalResponses[0].response.message, proposalResponses[0].response.payload, proposalResponses[0].endorsement.signature));
-				request = {
-					proposalResponses: proposalResponses,
-					proposal: proposal
-				};
 			} else {
-				logger.debug(JSON.stringify(proposalResponses));
+				t.fail('All proposals were not good');
 				throw new Error('All proposals were not good');
 			}
+		} else {
+			t.fail('no sendInstantiateProposal results');
+			throw new Error('No proposals to check - sendInstantiateProposal failed');
+		}
 
-			const deployId = tx_id.getTransactionID();
-			const eventPromises = [];
-			eventPromises.push(channel.sendTransaction(request));
+		t.comment('start the commit process');
 
-			eventhubs.forEach((eh) => {
-				const txPromise = new Promise((resolve, reject) => {
-					const handle = setTimeout(() => {
-						t.fail('Timeout - Failed to receive the event for instantiate:  waiting on ' + eh.getPeerAddr());
-						eh.disconnect();
-						reject('TIMEOUT waiting on ' + eh.getPeerAddr());
-					}, 120000);
+		const deployId = request.txId;
+		const commit_request = {
+			proposalResponses: proposalResponses,
+			proposal: proposal
+		};
+		const eventPromises = [];
+		t.comment('create commit request');
+		eventPromises.push(channel.sendTransaction(commit_request));
 
-					eh.registerTxEvent(deployId.toString(), (tx, code) => {
-						t.pass('The chaincode ' + type + ' transaction has been committed on peer ' + eh.getPeerAddr());
-						clearTimeout(handle);
-						if (code !== 'VALID') {
-							t.fail('The chaincode ' + type + ' transaction was invalid, code = ' + code);
-							reject();
-						} else {
-							t.pass('The chaincode ' + type + ' transaction was valid.');
-							resolve();
-						}
-					}, (err) => {
-						t.fail('There was a problem with the instantiate event ' + err);
-						clearTimeout(handle);
+		eventhubs.forEach((eh) => {
+			t.comment('create the promise for the event hub ' + eh.getPeerAddr());
+			const txPromise = new Promise((resolve, reject) => {
+				t.comment('create the application timeout');
+				const handle = setTimeout(() => {
+					t.fail('Timeout - Failed to receive the event for instantiate:  waiting on ' + eh.getPeerAddr());
+					eh.disconnect();
+					reject('TIMEOUT waiting on ' + eh.getPeerAddr());
+				}, 120000);
+
+				t.comment('register the transaction event');
+				eh.registerTxEvent(deployId.toString(), (tx, code) => {
+					t.pass('The chaincode ' + type + ' transaction has been committed on peer ' + eh.getPeerAddr());
+					clearTimeout(handle);
+					if (code !== 'VALID') {
+						t.fail('The chaincode ' + type + ' transaction was invalid, code = ' + code);
 						reject();
-					}, {
-						disconnect: true
-					});
-					eh.connect();
+					} else {
+						t.pass('The chaincode ' + type + ' transaction was valid.');
+						resolve();
+					}
+				}, (err) => {
+					t.fail('There was a problem with the instantiate event ' + err);
+					clearTimeout(handle);
+					reject();
+				}, {
+					disconnect: true
 				});
-				logger.debug('register eventhub %s with tx=%s', eh.getPeerAddr(), deployId);
-				eventPromises.push(txPromise);
+				t.comment('connect the the event hub');
+				eh.connect();
 			});
-
-			return Promise.all(eventPromises);
-		}).then((results) => {
-			if (results && !(results[0] instanceof Error) && results[0].status === 'SUCCESS') {
-				t.pass('Successfully sent ' + type + 'transaction to the orderer.');
-				return true;
-			} else {
-				t.fail('Failed to order the ' + type + 'transaction. Error code: ' + results[0].status);
-				Promise.reject(new Error('Failed to order the ' + type + 'transaction. Error code: ' + results[0].status));
-			}
-		}).catch((err) => {
-			t.fail('Failed to instantiate ' + type + ' due to error: ' + err.stack ? err.stack : err);
+			logger.debug('register eventhub %s with tx=%s', eh.getPeerAddr(), deployId);
+			eventPromises.push(txPromise);
 		});
+
+		t.comment('execute the promises');
+		results = await Promise.all(eventPromises);
+		t.comment('have commit and event results');
+		if (results && !(results[0] instanceof Error) && results[0].status === 'SUCCESS') {
+			t.pass('Successfully sent ' + type + 'transaction to the orderer.');
+		} else {
+			t.fail('Failed to order the ' + type + 'transaction. Error code: ' + results[0].status);
+			throw Error('Failed to order the ' + type + 'transaction. Error code: ' + results[0].status);
+		}
+	} catch (overall_error) {
+		t.fail('instantiateChaincode has failed');
+	}
+
+	t.end();
 }
 module.exports.instantiateChaincodeWithId = instantiateChaincodeWithId;
 
 function buildChaincodeProposal(client, theuser, chaincode_id, chaincode_path, version, type, upgrade, transientMap) {
-	tx_id = client.newTransactionID();
+	const tx_id = client.newTransactionID();
 
 	// send proposal to endorser
 	const request = {
@@ -467,6 +433,7 @@ function invokeChaincode(userOrg, version, chaincodeId, t, useStore, fcn, args, 
 
 	const eventhubs = [];
 	let pass_results = null;
+	let tx_id;
 
 	// this is a transaction, will just use org's identity to
 	// submit the request. intentionally we are using a different org
@@ -510,9 +477,7 @@ function invokeChaincode(userOrg, version, chaincodeId, t, useStore, fcn, args, 
 			}
 			return testUtil.getSubmitter(client, t, userOrg);
 		}).then((admin) => {
-
 			t.pass('Successfully enrolled user \'admin\' (e2eUtil 3)');
-			the_user = admin;
 
 			channel.addOrderer(
 				client.newOrderer(
@@ -766,8 +731,6 @@ function queryChaincode(org, version, targets, fcn, args, value, chaincodeId, t,
 			}
 			return testUtil.getSubmitter(client, t, org);
 		}).then((admin) => {
-			the_user = admin;
-
 			t.pass('Successfully enrolled user \'admin\' (e2eUtil 4)');
 
 			// set up the channel to use each org's 'peer1' for
