@@ -176,12 +176,11 @@ const Chaincode = class {
 		try {
 			tm = stub.getTransient();
 		} catch (e) {
-			logger.error('Did not find expected transient map in the proposal');
-			return shim.error(Buffer.from('{"Error":"Did not find expected transient map in the proposal}'));
+			logger.error('Did not find a transient map in the proposal');
+			return shim.error(Buffer.from('Error: Did not find a transient map in the proposal'));
 		}
 
 		const v = tm.get('test');
-
 		if (!v) {
 			logger.error('Did not find expected key "test" in the transient map of the proposal');
 			return shim.error(Buffer.from('{"Error":"Did not find expected key "test" in the transient map of the proposal}'));
