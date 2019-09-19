@@ -62,7 +62,7 @@ module.exports = function () {
 
 			const request = {
 				target: peer,
-				request_timeout: 10000
+				request_timeout: 20000
 			};
 
 			// ------------- test the install API
@@ -119,7 +119,7 @@ module.exports = function () {
 				chaincode: chaincode,
 				targets: [peer],
 				txId: txId,
-				request_timeout: 3000
+				request_timeout: 13000
 			};
 
 			try {
@@ -170,7 +170,7 @@ module.exports = function () {
 				chaincode: chaincode,
 				targets: [peer1, peer2],
 				txId: txId,
-				request_timeout: 3000
+				request_timeout: 13000
 			};
 
 			try {
