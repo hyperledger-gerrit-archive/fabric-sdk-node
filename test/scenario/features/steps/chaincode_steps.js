@@ -62,7 +62,7 @@ module.exports = function () {
 
 			const request = {
 				target: peer,
-				request_timeout: 10000
+				request_timeout: 5000
 			};
 
 			// ------------- test the install API
@@ -234,6 +234,7 @@ module.exports = function () {
 			}
 
 			try {
+				// might be the first time, so will take extra time
 				const results = await channel.sendTransactionProposal(request, 120000);
 				if (results && results[0]) {
 					const proposalResponses = results[0];
@@ -375,7 +376,7 @@ module.exports = function () {
 				if (result instanceof Error) {
 					testUtil.logAndThrow(result);
 				} else if (result) {
-					testUtil.logMsg(format('GetInstalledChaincodePackage - Good peer response %j', result));
+					testUtil.logMsg(format('GetInstalledChaincodePackage - Good peer response - too big to show'));
 				} else {
 					testUtil.logAndThrow('Problem with the GetInstalledChaincodePackage, no response returned');
 				}

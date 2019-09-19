@@ -23,6 +23,7 @@ const zlib = require('zlib');
 const {Utils: utils} = require('fabric-common');
 
 const logger = utils.getLogger('packager/BasePackager.js');
+const zeroTime = new Date(0);
 
 const BasePackager = class {
 
@@ -190,7 +191,6 @@ const BasePackager = class {
 
 	_buildHeader(name, size) {
 		// Use a deterministic "zero-time" for all date fields
-		const zeroTime = new Date(0);
 		const header = {
 			name: name,
 			size: size,
