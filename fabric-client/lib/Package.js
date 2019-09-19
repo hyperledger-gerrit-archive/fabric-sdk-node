@@ -33,7 +33,7 @@ class Package {
 		return new Promise((resolve) => {
 			const fileNames = [];
 			extract.on('entry', (header, stream, next) => {
-				logger.debug('Package._findFileNames - found entry %s', header.name);
+				// logger.debug('Package._findFileNames - found entry %s', header.name);
 				if (header.type === 'file') {
 					fileNames.push(header.name);
 				}
