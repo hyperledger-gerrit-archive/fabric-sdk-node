@@ -36,7 +36,7 @@
     "jssha": "^2.1.0",
     "klaw": "^2.0.0",
     "long": "^4.0.0",
-    "nano": "^6.4.4",
+    "nano": "^8.1.0",
     "nconf": "^0.10.0",
     "protobufjs": "5.0.3",
     "promise-settle": "^0.3.0",

@@ -52,7 +52,7 @@ describe('FileSystemWallet', () => {
 
 	describe('#_createFileKVS', () => {
 		it('should create a File Key Value Store', async () => {
-			sandbox.stub(fs, 'mkdirs').callsArg(1);
+			sandbox.stub(fs, 'mkdirs').withArgs('test');
 			const store = await FileSystemWallet._createFileKVS('test');
 			store.should.be.an.instanceof(api.KeyValueStore);
 		});
