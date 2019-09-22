@@ -13,7 +13,7 @@ const CouchdbMock = require('mock-couch');
 
 const CDBKVS = require('fabric-client/lib/impl/CouchDBKeyValueStore.js');
 
-test('\n\n** CouchDBKeyValueStore tests', (t) => {
+test('\n\n** CouchDBKeyValueStore tests', async (t) => {
 	t.throws(
 		() => {
 			new CDBKVS();
@@ -30,52 +30,47 @@ test('\n\n** CouchDBKeyValueStore tests', (t) => {
 		'Error checking in the constructor: opts object missing required "url"'
 	);
 
-	let store;
-
-	new CDBKVS({url: 'http://localhost:9999'})
-		.then(() => {
-			t.fail('Should not have been able to successfully construct a store from an invalid URL');
+	try {
+		await new CDBKVS({url: 'http://localhost:9999'});
+		t.fail('Should not have been able to successfully construct a store from an invalid URL');
+		throw new Error('Failed');
+	} catch (err) {
+		if (err.message && err.message.indexOf('ECONNREFUSED') > 0) {
+			t.pass('Successfully rejected the construction request due to invalid URL');
+		} else {
+			t.fail('Store construction failed for unknown reason: ' + err.stack ? err.stack : err);
 			throw new Error('Failed');
-		}, (err) => {
-			if (err.message && err.message.indexOf('ECONNREFUSED') > 0) {
-				t.pass('Successfully rejected the construction request due to invalid URL');
-			} else {
-				t.fail('Store construction failed for unknown reason: ' + err.stack ? err.stack : err);
-				throw new Error('Failed');
-			}
+		}
+	}
 
-			const couchdb = CouchdbMock.createServer();
-			couchdb.listen(5985);
+	try {
+		const couchdb = CouchdbMock.createServer();
+		couchdb.listen(5985);
 
-			// override t.end function so it'll always disconnect the event hub
-			t.end = ((context, mockdb, f) => {
-				return function() {
-					if (mockdb) {
-						t.comment('Disconnecting the mock couchdb server');
-						mockdb.close();
-					}
+		// override t.end function so it'll always disconnect the event hub
+		t.end = ((context, mockdb, f) => {
+			return function () {
+				if (mockdb) {
+					t.comment('Disconnecting the mock couchdb server');
+					mockdb.close();
+				}
 
-					f.apply(context, arguments);
-				};
-			})(t, couchdb, t.end);
+				f.apply(context, arguments);
+			};
+		})(t, couchdb, t.end);
+		const store = await new CDBKVS({url: 'http://localhost:5985'});
+		t.pass('Successfully connected the key value store to couchdb at localhost:5985');
 
-			return new CDBKVS({url: 'http://localhost:5985'});
-		}).then((st) => {
-			store = st;
-			t.pass('Successfully connected the key value store to couchdb at localhost:5985');
+		t.notEqual(store._database, undefined, 'Check "_database" value of the constructed store object');
 
-			t.notEqual(store._database, undefined, 'Check "_database" value of the constructed store object');
+		let value = await store.setValue('someKey', 'someValue');
+		t.equal(value, 'someValue', 'Check result of setValue()');
 
-			return store.setValue('someKey', 'someValue');
-		}).then((value) => {
-			t.equal(value, 'someValue', 'Check result of setValue()');
-
-			return store.getValue('someKey');
-		}).then((value) => {
-			t.equal(value, 'someValue', 'Check result of getValue()');
-			t.end();
-		}).catch((err) => {
-			t.fail(err.stack ? err.stack : err);
-			t.end();
-		});
+		value = await store.getValue('someKey');
+		t.equal(value, 'someValue', 'Check result of getValue()');
+		t.end();
+	} catch (err) {
+		t.fail(err.stack ? err.stack : err);
+		t.end();
+	}
 });
