@@ -8,16 +8,17 @@
 
 import * as Client from 'fabric-client';
 
-import { Wallet } from '../src/impl/wallet/wallet';
+import { Wallet } from '../lib/wallet';
 
-export {
-	Wallet,
-};
-
-export { Wallets } from '../src/impl/wallet/wallets';
-export { HsmOptions, HsmX509Provider, HsmX509Identity } from '../src/impl/wallet/hsmx509identity';
-export { X509Identity } from '../src/impl/wallet/x509identity';
-export { IdentityProviderRegistry } from '../src/impl/wallet/identityproviderregistry';
+export { Wallet };
+export { Wallets } from '../lib/wallets';
+export { WalletStore } from '../lib/walletstore';
+export { Identity } from '../lib/identity';
+export { IdentityData } from '../lib/identitydata';
+export { IdentityProvider } from '../lib/identityprovider';
+export { IdentityProviderRegistry } from '../lib/identityproviderregistry';
+export { HsmOptions, HsmX509Provider, HsmX509Identity } from '../lib/hsmx509identity';
+export { X509Identity } from '../lib/x509identity';
 
 // Main fabric network classes
 //-------------------------------------------
@@ -197,28 +198,4 @@ export interface AbstractEventHubSelectionStrategy {
 
 export class DefaultEventHubSelectionStrategies {
 	public static MSPID_SCOPE_ROUND_ROBIN: AbstractEventHubSelectionStrategy;
-}
-
-export interface WalletStore {
-	delete(label: string): Promise<void>;
-	get(label: string): Promise<Buffer | undefined>;
-	list(): Promise<string[]>;
-	put(label: string, data: Buffer): Promise<void>;
-}
-
-export interface Identity {
-	type: string;
-	mspId: string;
-}
-
-export interface IdentityData {
-	readonly type: string;
-	readonly version: number;
-}
-
-export interface IdentityProvider {
-	readonly type: string;
-	fromJson(data: IdentityData): Identity;
-	toJson(identity: Identity): IdentityData;
-	setUserContext(client: Client, identity: Identity, name: string): Promise<void>;
 }
