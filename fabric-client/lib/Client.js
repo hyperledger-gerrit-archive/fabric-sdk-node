@@ -1195,7 +1195,8 @@ const Client = class extends BaseClient {
 					version: request.chaincodeVersion,
 					path: request.chaincodePath,
 					type: request.chaincodeType,
-					metadataPath: request.metadataPath
+					metadataPath: request.metadataPath,
+					baseDir: request.baseDir
 				});
 				cdsBytes = await cdsPkg.toBuffer();
 				logger.debug(`installChaincode - built chaincode package (${cdsBytes.length} bytes)`);
