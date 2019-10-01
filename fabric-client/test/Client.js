@@ -1598,6 +1598,7 @@ describe('Client', () => {
 
 		let client;
 		beforeEach(async () => {
+			this.timeout(30000);
 			smartContractPackage = await Package.fromBuffer(smartContractPackageBytes);
 			getPeersForOrgOnChannelStub = sinon.stub();
 			getTargetPeersStub = sinon.stub();
