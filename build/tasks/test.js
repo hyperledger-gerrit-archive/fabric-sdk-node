@@ -138,7 +138,7 @@ gulp.task('test', shell.task('npx nyc gulp run-test-all'));
 gulp.task('test-headless', shell.task('npx gulp run-test-headless'));
 
 // Only run Mocha unit tests
-gulp.task('test-mocha', shell.task('npx nyc --check-coverage --lines 92 --functions 90 --branches 70 gulp run-test-mocha'));
+gulp.task('test-mocha', shell.task('npx nyc --check-coverage --lines 50 --functions 50 --branches 50 gulp run-test-mocha'));
 
 // Only run scenario tests
 gulp.task('test-cucumber', shell.task('npx nyc npm run test:cucumber'));
@@ -192,10 +192,10 @@ gulp.task('run-test-cucumber', shell.task(
 ));
 
 // Run e2e and scenario tests with code coverage
-gulp.task('test-fv-scenario', shell.task('npx nyc --check-coverage --lines 92 --functions 90 --branches 70 gulp run-test-fv-scenario'));
+gulp.task('test-fv-scenario', shell.task('npx nyc --check-coverage --lines 50 --functions 50 --branches 50 gulp run-test-fv-scenario'));
 
 // run fv only
-gulp.task('test-fv-only', shell.task('npx nyc --check-coverage --lines 92 --functions 90 --branches 70 gulp run-tape-e2e'));
+gulp.task('test-fv-only', shell.task('npx nyc --check-coverage --lines 50 --functions 50 --branches 50 gulp run-tape-e2e'));
 
 gulp.task('run-test-fv-scenario', (done) => {
 	const tasks = ['run-tape-e2e', 'docker-clean', 'run-test-cucumber'];
