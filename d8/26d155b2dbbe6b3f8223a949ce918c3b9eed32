@@ -1,0 +1,8 @@
+Code-Review+1: Wilfried Magne <wilfried.magne@gmail.com>
+Code-Review+2: Bret Harrison <beharrison@nc.rr.com>
+Verified+1: Hyperledger Jobbuilder <jobbuilder@jenkins.hyperledger.org>
+Submitted-by: Bret Harrison <beharrison@nc.rr.com>
+Submitted-at: Mon, 07 Oct 2019 14:43:38 +0000
+Reviewed-on: https://gerrit.hyperledger.org/r/c/fabric-sdk-node/+/33872
+Project: fabric-sdk-node
+Branch: refs/heads/master
