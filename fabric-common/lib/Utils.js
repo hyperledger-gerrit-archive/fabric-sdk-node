@@ -4,6 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+'use strict';
+
 const Long = require('long');
 const util = require('util');
 const winston = require('winston');
@@ -163,7 +165,7 @@ module.exports.getLogger = function (name) {
 				throw new Error('Environment variable "HFC_LOGGING" must be an object conforming to the format documented.');
 			}
 			for (const level in config) {
-				if (!config.hasOwnProperty(level)) {
+				if (!config.level) {
 					continue;
 				}
 
