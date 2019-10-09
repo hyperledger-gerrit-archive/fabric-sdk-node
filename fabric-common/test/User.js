@@ -4,6 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+'use strict';
+
 const rewire = require('rewire');
 const chai = require('chai');
 const chaiAsPromised = require('chai-as-promised');
@@ -12,6 +14,9 @@ chai.use(chaiAsPromised);
 
 const User = rewire('../lib/User');
 const TestUtils = require('./TestUtils');
+const {Utils} = require('..');
+const path = require('path');
+const fs = require('fs-extra');
 
 describe('User', () => {
 	TestUtils.setCryptoConfigSettings();
@@ -107,6 +112,35 @@ describe('User', () => {
 		// 	f_user.fromString(string, true);
 		// 	await f_user._name.should.be.equal('user');
 		// });
+
+		it('should throw an error when the private key is missing from a user enrollment object', async () => {
+			Utils.addConfigFile(path.join(__dirname, '../../fabric-client/config/default.json'));
+			const TEST_USER_ENROLLMENT = {
+				'name': 'admin2',
+				'mspid': 'test',
+				'roles': null,
+				'affiliation': '',
+				'enrollmentSecret': '',
+				'enrollment': {
+					'signingIdentity': '0e67f7fa577fd76e487ea3b660e1a3ff15320dbc95e396d8b0ff616c87f8c81a',
+					'identity': {
+						'certificate': TestUtils.TEST_KEY_PRIVATE_CERT_PEM
+					}
+				}
+			};
+			// manufacture an error condition where the private key does not exist for the SKI, and only the public key does
+			const cryptoSuite = Utils.newCryptoSuite();
+			cryptoSuite.setCryptoKeyStore(Utils.newCryptoKeyStore());
+			await cryptoSuite.importKey(TestUtils.TEST_CERT_PEM);
+
+			fs.removeSync(path.join(Utils.getDefaultKeyStorePath(), '0e67f7fa577fd76e487ea3b660e1a3ff15320dbc95e396d8b0ff616c87f8c81a-priv'));
+
+			const poorUser = new User('admin2');
+			poorUser.setCryptoSuite(cryptoSuite);
+			const enrollmentString = JSON.stringify(TEST_USER_ENROLLMENT);
+			await poorUser.fromString(enrollmentString).should.be.rejectedWith(/Private key missing from key store/);
+
+		});
 	});
 
 	describe('#toString', () => {
