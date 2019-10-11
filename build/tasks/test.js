@@ -141,7 +141,7 @@ gulp.task('test-headless', shell.task('npx gulp run-test-headless'));
 gulp.task('test-mocha', shell.task('npx nyc --check-coverage --lines 92 --functions 90 --branches 70 gulp run-test-mocha'));
 
 // Only run scenario tests
-gulp.task('test-cucumber', shell.task('npx nyc npm run test:cucumber'));
+gulp.task('test-cucumber', shell.task('npx nyc npm run test:scenario'));
 
 // Definition of Mocha (unit) test suites
 gulp.task('run-test-mocha', (done) => {
@@ -188,7 +188,7 @@ gulp.task('test-tape', shell.task('npx nyc gulp run-tape-unit'));
 
 // Definition of Cucumber (scenario) test suite
 gulp.task('run-test-cucumber', shell.task(
-	'export HFC_LOGGING=\'' + cucumber_log + '\'; npm run test:cucumber'
+	'export HFC_LOGGING=\'' + cucumber_log + '\'; npm run test:scenario'
 ));
 
 // Run e2e and scenario tests with code coverage
