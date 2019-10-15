@@ -19,16 +19,16 @@ const fs = require('fs-extra');
 const path = require('path');
 const util = require('util');
 const shell = require('gulp-shell');
-const testConstants = require('../../test/unit/constants.js');
+const tapeUtil = require('../../test/unit/util.js');
 
 // Debug level of Docker containers used in scenario tests
 process.env.DOCKER_DEBUG = 'INFO';
 
 // by default for running the tests print debug to a file
-const debugPath = path.join(testConstants.tempdir, 'debug.log');
+const debugPath = path.join(tapeUtil.getTempDir(), 'debug.log');
 process.env.HFC_LOGGING = util.format('{"debug":"%s"}', escapeWindowsPath(debugPath));
 // by default for running the tests print debug to a file
-const debugCPath = path.join(testConstants.tempdir, 'debugc.log');
+const debugCPath = path.join(tapeUtil.getTempDir(), 'debugc.log');
 const cucumber_log = util.format('{"debug":"%s"}', escapeWindowsPath(debugCPath));
 
 function escapeWindowsPath(p) {
@@ -90,7 +90,7 @@ gulp.task('pre-test', () => {
 gulp.task('clean-up', () => {
 	// some tests create temporary files or directories
 	// they are all created in the same temp folder
-	fs.removeSync(testConstants.tempdir);
+	fs.removeSync(tapeUtil.getTempDir());
 	fs.removeSync('fabric-network/lib');
 	return fs.ensureFileSync(debugPath);
 });
@@ -180,11 +180,8 @@ gulp.task('mocha-fabric-protos',
 	}
 );
 
-// Test to run all unit tests
-gulp.task('test-tape', shell.task('npx nyc gulp run-tape-unit'));
-
 // Definition of Javascript Cucumber (scenario) test suite
-gulp.task('run-test:cucumber', shell.task(
+gulp.task('run-test-cucumber', shell.task(
 	'export HFC_LOGGING=\'' + cucumber_log + '\'; npm run test:cucumber'
 ));
 // Definition of Typescript Cucumber (scenario) test suite
@@ -238,41 +235,9 @@ gulp.task('run-end-to-end', (done) => {
 
 // Run all non-integration tests
 gulp.task('run-test-headless', (done) => {
-	const tasks = ['clean-up', 'pre-test', 'compile', 'lint', 'test-mocha', 'run-tape-unit'];
+	const tasks = ['clean-up', 'pre-test', 'compile', 'lint', 'test-mocha'];
 	runSequence(...tasks, done);
 });
-
-gulp.task('run-tape-unit',
-	() => {
-		// this is needed to avoid a problem in tape-promise with adding
-		// too many listeners to the "unhandledRejection" event
-		process.setMaxListeners(0);
-
-		return gulp.src(shouldRunTests([
-			'test/unit/**/*.js',
-			'!test/unit/constants.js',
-			'!test/unit/util.js',
-			'!test/unit/logger.js'
-		]))
-			.pipe(tape({
-				reporter: tapColorize()
-			}));
-	});
-
-// must Run logger in isolation, where it is the only test within the node env
-gulp.task('test-logging',
-	() => {
-		// this is needed to avoid a problem in tape-promise with adding
-		// too many listeners to the "unhandledRejection" event
-		process.setMaxListeners(0);
-
-		return gulp.src([
-			'test/unit/logger.js'
-		])
-			.pipe(tape({
-				reporter: tapColorize()
-			}));
-	});
 
 // Run tape e2e test suite
 gulp.task('run-tape-e2e', ['docker-ready'],
