@@ -1,0 +1,7 @@
+Verified+1: Hyperledger Jobbuilder <jobbuilder@jenkins.hyperledger.org>
+Code-Review+2: Bret Harrison <beharrison@nc.rr.com>
+Submitted-by: Bret Harrison <beharrison@nc.rr.com>
+Submitted-at: Wed, 16 Oct 2019 00:16:15 +0000
+Reviewed-on: https://gerrit.hyperledger.org/r/c/fabric-sdk-node/+/33966
+Project: fabric-sdk-node
+Branch: refs/heads/release-1.4
