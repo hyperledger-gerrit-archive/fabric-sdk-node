@@ -8,13 +8,11 @@ import { Constants } from '../constants';
 import { CommonConnectionProfile } from './commonConnectionProfile';
 import * as AdminUtils from './utility/adminUtils';
 import * as BaseUtils from './utility/baseUtils';
-import { StateStore } from './utility/stateStore';
 
 import * as Client from 'fabric-client';
 import * as fs from 'fs';
 import * as path from 'path';
 
-const stateStore = StateStore.getInstance();
 const supportedLanguageTypes = ['node', 'golang'];
 const chaincodeRootPath = '../../../ts-fixtures/chaincode';
 
