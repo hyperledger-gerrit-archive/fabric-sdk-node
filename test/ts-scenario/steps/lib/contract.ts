@@ -45,6 +45,7 @@ export async function cli_chaincode_install_for_org(ccType: string, ccName: stri
 			];
 
 			await commandRunner.runShellCommand(true, installCommand.join(' '), VERBOSE_CLI);
+			await BaseUtils.sleep(Constants.INC_SHORT);
 
 			// Update state store with <name>@<version>
 			AdminUtils.addToInstalledContracts(persistName);
