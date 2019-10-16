@@ -263,3 +263,31 @@ export function addOrgToJointChannel(orgName: string, channelName: string) {
 		stateStore.set(Constants.JOINED_CHANNELS, joinedChannels);
 	}
 }
+
+/**
+ * Check if the channel has been updated
+ * @param channelName the channel name
+ * @param txName the txUpdate name
+ */
+export function channelHasBeenUpdated(channelName: string, txName: string) {
+	const updatedChannels = stateStore.get(Constants.UPDATED_CHANNELS);
+	return (updatedChannels && updatedChannels[channelName] && updatedChannels[channelName].includes(txName));
+}
+
+export function addToUpdatedChannel(channelName: string, txName: string) {
+	let updatedChannels = stateStore.get(Constants.UPDATED_CHANNELS);
+	if (updatedChannels && updatedChannels[channelName]) {
+		updatedChannels[channelName] = updatedChannels[channelName].concat(txName);
+		stateStore.set(Constants.UPDATED_CHANNELS, updatedChannels);
+	} else {
+		if (updatedChannels) {
+			// object exists, but no channel items
+			updatedChannels[channelName] = [txName];
+		} else {
+			// no object (first run through)
+			updatedChannels = {};
+			updatedChannels[channelName] = [txName];
+		}
+		stateStore.set(Constants.UPDATED_CHANNELS, updatedChannels);
+	}
+}
