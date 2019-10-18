@@ -23,7 +23,7 @@ The Fabric-SDK-Node repository contains unit and functional (e2e) tests to ensur
 Unit tests for each package are held locally under a `package/test` directory that mirrors the `package/lib` directory. Tests within these directories are written in Mocha, and may be run locally within the package via the `npm test` command at the package level. We make use of the following dependancies within the unit tests:
 - [Sinon](https://sinonjs.org/) for test spies, stubs and mocks
 - [Rewire](https://github.com/jhnns/rewire) for greater control of the component under test
-- [Istanbul](https://istanbul.js.org/) for code coverage reports
+- [Nyc](https://www.npmjs.com/package/nyc) for code coverage reports
 
 It is expected that new code deliveries come with unit tests that:
 - are isolated - all unit tests should be capable of being run indiviually as well as in the suite(s)
