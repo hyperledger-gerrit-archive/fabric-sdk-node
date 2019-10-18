@@ -113,15 +113,6 @@ sdk_e2e_Tests() {
   set -x
   gulp test-logging || err_Check "ERROR!!! gulp test-logging failed"
   set +x
-
-  echo " ################################## "
-  echo -e "\033[1m  R U N run-test-scenario  T E S T S \033[0m"
-  echo " ################################## "
-
-  echo -e "\033[32m Execute cucumber tests" "\033[0m"
-  set -x
-  gulp run-test-scenario || err_Check "ERROR!!! gulp run-test-scenario failed"
-  set +x
 }
 
 # Publish npm modules after successful merge on amd64
