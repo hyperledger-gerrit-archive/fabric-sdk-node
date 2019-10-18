@@ -106,6 +106,7 @@ sdk_e2e_Tests() {
   gulp test || err_Check "ERROR!!! gulp test failed"
   set +x
 
+<<<<<<< HEAD
   echo " ################################## "
   echo -e "\033[1m  RUN run-test-scenario  TESTS \033[0m"
   echo " ################################## "
@@ -113,6 +114,14 @@ sdk_e2e_Tests() {
   echo -e "\033[32m Execute cucumber tests" "\033[0m"
   set -x
   gulp run-test-scenario || err_Check "ERROR!!! gulp run-test-scenario failed"
+=======
+  echo " ############################# "
+  echo -e "\033[1m  R U N  test-logging T E S T S \033[0m"
+  echo " ############################# "
+
+  set -x
+  gulp test-logging || err_Check "ERROR!!! gulp test-logging failed"
+>>>>>>> [FAB-1395] Improve coverage reporting
   set +x
 }
 
