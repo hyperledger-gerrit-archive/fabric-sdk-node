@@ -126,8 +126,6 @@ test('  ---->>>>> Query channel working <<<<<-----', (t) => {
 	}).then((block) => {
 		logger.debug(' Channel getBlock() returned block number=%s', block.header.number);
 		t.equal(block.header.number.toString(), '1', 'checking query results are correct that we got a transaction block back');
-		t.equal(block.data.data[0].payload.data.actions[0].payload.action.endorsements[0].endorser.Mspid, 'Org1MSP', 'checking query results are correct that we got a transaction block back with correct endorsement MSP id');
-
 		tx_id = utils.getConfigSetting('E2E_TX_ID');
 		logger.debug('getConfigSetting("E2E_TX_ID") = %s', tx_id);
 		if (!tx_id) {
