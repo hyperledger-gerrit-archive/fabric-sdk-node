@@ -19,7 +19,7 @@ const fs = require('fs-extra');
 const path = require('path');
 const util = require('util');
 const shell = require('gulp-shell');
-const tapeUtil = require('../../test/unit/util.js');
+const tapeUtil = require('../../test/integration/util.js');
 
 // Debug level of Docker containers used in scenario tests
 process.env.DOCKER_DEBUG = 'INFO';
