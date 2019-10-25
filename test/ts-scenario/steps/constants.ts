@@ -23,6 +23,7 @@ export enum Constants {
 	LIB_TO_CHAINCODE = '../../../ts-fixtures/chaincode',
 	LIB_TO_POLICIES = '../../config/policies.json',
 	STEPS_TO_POLICIES= '../config/policies.json',
+	UTIL_TO_CONFIG = '../../../config',
 
 	GO_PATH= '../../../ts-fixtures/chaincode/goLang/',
 	GO_PRE_PEND = 'github.com',
@@ -35,13 +36,9 @@ export enum Constants {
 
 	// Known channels
 	CREATED_CHANNELS = 'CREATED_CHANNELS',
-	JOINED_CHANNELS = 'JOINT_CHANNELS',
 	UPDATED_CHANNELS = 'UPDATED_CHANNELS',
-	LIFECYCLE_CHANNEL = 'lifecyclechannel',
 
-	// Installed smart contracts
-	INSTALLED_SC = 'INSTALLED_SC',
-	INSTANTIATED_SC = 'INSTANTIATED_SC',
+	// Instantiated smart contracts
 	CONTRACTS  = 'CONTRACTS',
 
 	// Default container for use in certain CLI actions
@@ -52,12 +49,19 @@ export enum Constants {
 
 	// CLI command verbosity (true/false)
 	CLI_VERBOSITY = 'false',
+	CLI_TIMEOUT = '120s',
 
 	// Constants for network model actions
 	WALLET = 'WALLET',		// StateStore key to retrieve a wallet that contains users
 	GATEWAYS = 'GATEWAYS',	// StateStore key to retrieve a Map(gatewayName, Gateway) of gateways that may be re-used
 	LISTENERS = 'LISTENERS',
 	TRANSACTIONS = 'TRANSACTIONS',
+
+	// Wallet types
+	MEMORY_WALLET = 'memory',
+	FILE_WALLET = 'file',
+	COUCH_WALLET = 'couchDB',
+	COUCH_WALLET_URL = 'http://localhost:5984',
 
 	// Listener types
 	CONTRACT = 'CONTRACT',
