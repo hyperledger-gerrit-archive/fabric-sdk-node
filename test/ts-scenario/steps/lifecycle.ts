@@ -6,7 +6,7 @@
 
 import { Constants } from './constants';
 import * as Chaincode from './lib/chaincode';
-import { CommonConnectionProfile } from './lib/commonConnectionProfile';
+import { CommonConnectionProfile } from './lib/utility/commonConnectionProfile';
 import { StateStore } from './lib/utility/stateStore';
 
 import { Given, Then, When } from 'cucumber';
@@ -26,7 +26,7 @@ Given(/^I package a (node|java|golang) contract at version (.+?) named (.+?) as 
 	const orgNames = orgs.slice(1, -1).split(',');
 
 	for (const orgName of orgNames) {
-		await Chaincode.packageContractForOrg(orgName, contractName, contractType, contractVersion, tls, initRequired === 'required', ccp);
+		await Chaincode.packageContractForOrg(orgName, contractName, contractType, contractVersion, initRequired === 'required', ccp);
 	}
 
 });

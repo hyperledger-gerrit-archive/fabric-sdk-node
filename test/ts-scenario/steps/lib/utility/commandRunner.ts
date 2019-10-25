@@ -65,10 +65,8 @@ export class CommandRunner {
 					});
 
 					childCliProcess.on('error', (error) => {
-						if (verbose) {
-							logMsg('SCENARIO CMD - STDOUT:\n', stdout);
-							logMsg('SCENARIO CMD - STDERR:\n', stderr);
-						}
+						logMsg('SCENARIO CMD - STDOUT:\n', stdout);
+						logMsg('SCENARIO CMD - STDERR:\n', stderr);
 						this.lastResp = {
 							error,
 							stderr,

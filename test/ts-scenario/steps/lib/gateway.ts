@@ -5,9 +5,9 @@
 'use strict';
 
 import { Constants } from '../constants';
-import { CommonConnectionProfile } from './commonConnectionProfile';
 import * as AdminUtils from './utility/adminUtils';
 import * as BaseUtils from './utility/baseUtils';
+import { CommonConnectionProfile } from './utility/commonConnectionProfile';
 import { StateStore } from './utility/stateStore';
 
 import { Gateway, Wallet, Wallets } from 'fabric-network';

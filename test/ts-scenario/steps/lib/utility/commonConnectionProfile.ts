@@ -197,4 +197,19 @@ export class CommonConnectionProfile {
 	public getPeersForChannel(channelName: string) {
 		return this.profile.channels[channelName].peers;
 	}
+
+	/**
+	 * check if the CCP is for a TLS network
+	 */
+	public isTls() {
+		const peers: any = this.getPeers();
+		if (peers) {
+			for (const key of Object.keys(peers)) {
+				const peer = peers[key];
+				return (peer.url).includes('grpcs');
+			}
+		} else {
+			throw new Error('No peers listed in the CCP');
+		}
+	}
 }

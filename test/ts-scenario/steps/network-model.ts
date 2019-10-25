@@ -5,9 +5,9 @@
 'use strict';
 
 import { Constants } from './constants';
-import { CommonConnectionProfile } from './lib/commonConnectionProfile';
 import * as Gateway from './lib/gateway';
 import * as BaseUtils from './lib/utility/baseUtils';
+import { CommonConnectionProfile } from './lib/utility/commonConnectionProfile';
 import { StateStore } from './lib/utility/stateStore';
 
 import { Given, Then, When } from 'cucumber';
