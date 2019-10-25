@@ -11,7 +11,7 @@ import * as BaseUtils from './utility/baseUtils';
 
 import * as fs from 'fs';
 import * as path from 'path';
-import { CommonConnectionProfile } from './commonConnectionProfile';
+import { CommonConnectionProfile } from './utility/commonConnectionProfile';
 
 export async function commitProposal(proposalType: string, txId: Client.TransactionId, proposalResponses: any, proposal: any, channel: Client.Channel, peer: Client.Peer) {
 	const deployId = txId.getTransactionID();
@@ -89,7 +89,7 @@ export async function commitProposal(proposalType: string, txId: Client.Transact
 	}
 }
 
-export async function packageContractForOrg(orgName: string, contractName: string, contractType: string, contractVersion: string, tls: boolean,  initRequired: boolean, ccp: CommonConnectionProfile) {
+export async function packageContractForOrg(orgName: string, contractName: string, contractType: string, contractVersion: string,  initRequired: boolean, ccp: CommonConnectionProfile) {
 	const contractSaveName = `contract-${orgName}-${contractName}`;
 
 	// Determine path for contract and metadata
@@ -108,7 +108,7 @@ export async function packageContractForOrg(orgName: string, contractName: strin
 	const orgClient = await Client.loadFromConfig(clientPath);
 
 	// Augment it with full CCP
-	await AdminUtils.augmentBaseClientWithCcp(orgClient, orgName, ccp , tls);
+	await AdminUtils.assignOrgAdmin(orgClient, orgName, ccp);
 
 	// Use client to perform chaincode package
 	const chaincode = orgClient.newChaincode(contractName, contractVersion);
@@ -126,7 +126,7 @@ export async function packageContractForOrg(orgName: string, contractName: strin
 		chaincodeType: contractType,
 	} as Client.ChaincodePackageRequest;
 
-	// conditinoally add goPath
+	// conditionally add goPath
 	if (contractType === 'golang') {
 		request.goPath = path.join(__dirname, Constants.GO_PATH);
 	}
@@ -397,7 +397,7 @@ export async function performContractCommitWithOrgOnChannel(contractName: string
 					BaseUtils.logAndThrow(response);
 				} else if (response.response && response.response.status) {
 					if (response.response.status === 200) {
-						BaseUtils.logMsg(`Valide response status: ${response.response.status}`, undefined);
+						BaseUtils.logMsg(`Valid response status: ${response.response.status}`, undefined);
 					} else {
 						BaseUtils.logAndThrow(`Problem with the chaincode commit :: status: ${response.status} message: ${response.message}`);
 					}
@@ -455,6 +455,11 @@ export async function performContractTransactionForOrg(contract: string, contrac
 		BaseUtils.logError(`Unexpected error thrown in channel.sendTransactionProposal`, error);
 		throw(error);
 	}
+
+	// Conceivably, we might want to return something for a test to use, so create an object to pass back.
+	return {
+		txId,
+	};
 }
 
 async function submitChannelRequest(channel: Client.Channel, request: any, expectedError: any, expectedResult: any) {

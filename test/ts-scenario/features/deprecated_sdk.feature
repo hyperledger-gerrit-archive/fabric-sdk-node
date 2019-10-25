@@ -25,5 +25,5 @@ Feature: Use the Node SDK to install/instantiate/Upgrade chaincode with the depr
 	    Then The gateway named myDeprecatedGateway has a submit type response
 	 	When I use the gateway named myDeprecatedGateway to evaluate a transaction with args [querySingleCar,1001] for contract fabcar instantiated on channel deprecatedchannel
 	 	Then The gateway named myDeprecatedGateway has a evaluate type response matching "{\"color\":\"red\",\"docType\":\"car\",\"make\":\"Ariel\",\"model\":\"Atom\",\"owner\":\"Nick\"}"
-		 When I use the gateway named myDeprecatedGateway to evaluate a transaction with args [querySingleCar,1002] for contract fabcar instantiated on channel deprecatedchannel
+		When I use the gateway named myDeprecatedGateway to evaluate a transaction with args [querySingleCar,1002] for contract fabcar instantiated on channel deprecatedchannel
 	 	Then The gateway named myDeprecatedGateway has a evaluate type response matching "{\"color\":\"grey\",\"docType\":\"car\",\"make\":\"Lotus\",\"model\":\"Elise\",\"owner\":\"Mark\"}"

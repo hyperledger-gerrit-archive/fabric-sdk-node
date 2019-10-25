@@ -5,10 +5,10 @@
 'use strict';
 
 import { Constants } from './constants';
-import { CommonConnectionProfile } from './lib/commonConnectionProfile';
 import * as Deprecated from './lib/deprecatedSDK';
 import * as AdminUtils from './lib/utility/adminUtils';
 import * as BaseUtils from './lib/utility/baseUtils';
+import { CommonConnectionProfile } from './lib/utility/commonConnectionProfile';
 import { StateStore } from './lib/utility/stateStore';
 
 import { Given } from 'cucumber';
@@ -31,26 +31,21 @@ Given(/^I use the deprecated sdk to (.+?) a (.+?) smart contract named (.+?) at 
 	const isUpgrade = (deployType.localeCompare('upgrade') === 0);
 	const policy = require(path.join(__dirname, Constants.STEPS_TO_POLICIES))[policyType];
 	try {
-		// Install on each org if not already installed
-		const persistName = `${ccName}@${ccVersion}`;
-		if (AdminUtils.isContractInstalled(persistName)) {
-			// Do not reinstall
-			BaseUtils.logMsg(`Smart contract ${persistName} has already been installed `, undefined);
-		} else {
-			for (const orgName of Object.keys(ccp.getOrganizations())) {
+		for (const orgName of Object.keys(ccp.getOrganizations())) {
+			const isInstalled = await AdminUtils.isOrgChaincodeInstalled(orgName, ccp, ccName, ccVersion);
+			if (isInstalled) {
+				BaseUtils.logMsg(`Smart contract ${ccName} at version ${ccVersion} has already been installed on the peers for organization ${orgName}`, undefined);
+			} else {
 				await Deprecated.sdk_chaincode_install_for_org(ccType, ccName, ccVersion, ccId, tls, ccp, orgName, channelName);
 			}
-			// Update known installed in state store
-			AdminUtils.addToInstalledContracts(persistName);
 		}
 
 		// Instantiate
-		if (AdminUtils.isInstantiatedOnChannel(persistName, channelName)) {
-			BaseUtils.logMsg(`Smart contract ${persistName} has already been instantiated `, undefined);
+		const isInstantiated = AdminUtils.isChaincodeInstantiatedOnChannel(Object.keys(ccp.getOrganizations())[0], ccp, channelName, ccName, ccVersion);
+		if (isInstantiated) {
+			BaseUtils.logMsg(`Smart contract ${ccName} at version ${ccVersion} has already been instantiated on channel ${channelName} `, undefined);
 		} else {
 			await Deprecated.sdk_chaincode_instantiate(ccName, ccType, ccVersion, ccId, initArgs, isUpgrade, tls, ccp, Constants.DEFAULT_ORG, channelName, policy);
-			// Update known instantiated in state store
-			AdminUtils.addToInstantiatedContractsOnChannel(persistName, channelName);
 		}
 
 		return Promise.resolve();

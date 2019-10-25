@@ -199,9 +199,22 @@ declare namespace Client { // tslint:disable-line:no-namespace
 		txId?: TransactionId;
 	}
 
+	export interface ChannelChaincode {
+		chaincodes: ChaincodeInfo[];
+	}
+
+	export interface ChannelChaincodes {
+		[channelName: string]: ChannelChaincode;
+	}
+
 	export interface QueryInstalledChaincodeResult {
 		package_id: string;
 		label: string;
+		references: ChannelChaincodes;
+	}
+
+	export interface QueryInstalledChaincodesResult {
+		installed_chaincodes: QueryInstalledChaincodeResult[];
 	}
 
 	export class Channel {
@@ -278,7 +291,7 @@ declare namespace Client { // tslint:disable-line:no-namespace
 		public queryNamespaceDefinitions(request: QueryNamespaceDefinitionsRequest): Promise<object>;
 		public queryApprovalStatus(request: QueryApprovalStatusRequest): Promise<object>;
 		public queryInstalledChaincode(request: QueryInstalledChaincodeRequest): Promise<QueryInstalledChaincodeResult>;
-		public queryInstalledChaincodes(request: QueryInstalledChaincodesRequest): Promise<QueryInstalledChaincodeResult[]>;
+		public queryInstalledChaincodes(request: QueryInstalledChaincodesRequest): Promise<QueryInstalledChaincodesResult>;
 	}
 
 	export interface ChannelPeerRoles {

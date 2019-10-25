@@ -72,12 +72,6 @@ export async function cli_join_org_to_channel(orgName: string, channelName: stri
 		// Use CLI container to join org to channel
 		BaseUtils.logMsg(`Attempting to join organization ${orgName} to channel ${channelName} of type ${tls ? 'tls' : 'non-tls'}`, undefined);
 
-		// Dont join if already joined
-		if (AdminUtils.orgHasJointChannel(orgName, channelName)) {
-			BaseUtils.logMsg(`Organization ${orgName} has already joined channel ${channelName}, skipping ... `, undefined);
-			return;
-		}
-
 		let tlsOptions: string[];
 		if (tls) {
 			tlsOptions = ['--tls', 'true', '--cafile', '/etc/hyperledger/configtx/crypto-config/ordererOrganizations/example.com/tlsca/tlsca.example.com-cert.pem'];
@@ -95,7 +89,6 @@ export async function cli_join_org_to_channel(orgName: string, channelName: stri
 
 		await BaseUtils.sleep(Constants.INC_SHORT);
 		BaseUtils.logMsg(`Channel ${channelName} has been joined by organization ${orgName}`, undefined);
-		AdminUtils.addOrgToJointChannel(orgName, channelName);
 	} catch (err) {
 		BaseUtils.logError('Join Channel failure: ', err);
 		return Promise.reject(err);
