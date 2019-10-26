@@ -53,12 +53,10 @@ const CouchDBKeyValueStore = class extends KeyValueStore {
 	}
 
 	async initialize() {
-
 		// Initialize the CouchDB database client
 		const dbClient = nano(this._url);
-		const get = util.promisify(dbClient.db.get);
 		try {
-			await get(this._name);
+			await dbClient.db.get(this._name);
 			// Database exists
 			logger.debug('%s already exists', this._name);
 			// Specify it as the database to use
@@ -66,9 +64,8 @@ const CouchDBKeyValueStore = class extends KeyValueStore {
 		} catch (err) {
 			if (err.error === 'not_found') {
 				logger.debug('No %s found, creating %s', this._name);
-				const create = util.promisify(dbClient.db.create);
 				try {
-					await create(this._name);
+					await dbClient.db.create(this._name);
 					logger.debug('Created %s database', this._name);
 					// Specify it as the database to use
 					this._database = dbClient.use(this._name);
@@ -85,10 +82,8 @@ const CouchDBKeyValueStore = class extends KeyValueStore {
 	async getValue(name) {
 		logger.debug('getValue', {key: name});
 
-		const get = util.promisify(this._database.get);
-
 		try {
-			const body = await get(name);
+			const body = await this._database.get(name);
 			return body.member;
 		} catch (err) {
 			if (err.error !== 'not_found') {
@@ -102,15 +97,13 @@ const CouchDBKeyValueStore = class extends KeyValueStore {
 	}
 
 	async setValue(name, value) {
-		logger.debug('setValue', {key: name});
+		logger.debug('setValue', {key: name}, {value});
 
-		const insert = util.promisify(this._database.insert);
-		const get = util.promisify(this._database.get);
 		let isNew;
 		let body;
 		try {
 			// perform a get to see if the key exists
-			body = await get(name);
+			body = await this._database.get(name);
 
 			// Didn't error, so it exists
 			isNew = false;
@@ -127,7 +120,7 @@ const CouchDBKeyValueStore = class extends KeyValueStore {
 		// conditionally perform the set/update
 		const opts = isNew ? {_id: name, member: value} : {_id: name, _rev: body._rev, member: value};
 		try {
-			await insert(opts);
+			await this._database.insert(opts);
 			logger.debug('setValue [add]: ' + name + ', status: SUCCESS');
 			return value;
 		} catch (err) {

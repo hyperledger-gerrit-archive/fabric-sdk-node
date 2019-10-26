@@ -27,7 +27,7 @@
 	"dependencies": {
 		"elliptic": "^6.2.3",
 		"js-sha3": "^0.7.0",
-		"nano": "^6.4.4",
+		"nano": "^8.1.0",
 		"nconf": "^0.10.0",
 		"sjcl": "1.0.7",
 		"winston": "^2.2.0",
