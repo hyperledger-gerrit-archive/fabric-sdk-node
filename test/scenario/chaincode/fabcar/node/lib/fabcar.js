@@ -120,6 +120,17 @@ class FabCar extends Contract {
 			return ctx.stub.error(Buffer.from('Problem with the transient map in the proposal'));
 		}
 
+		console.info('============= PRIVATE DATA : createCar ==========='); // eslint-disable-line
+		try {
+			// FIXME need the collection name
+			ctx.stub.putPrivateData('collection_name', carNumber, Buffer.from(model));
+			console.info('========= private data key of ' + carNumber); // eslint-disable-line
+			console.info('========= private data value of ' + model); // eslint-disable-line
+		} catch (error) {
+			console.info('Problem with the private data map ' + error.toString()); // eslint-disable-line
+			return ctx.stub.error(Buffer.from('Problem with the private data map'));
+		}
+
 		console.info('============= END : Create Car ==========='); // eslint-disable-line
 	}
 

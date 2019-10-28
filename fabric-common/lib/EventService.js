@@ -79,13 +79,15 @@ class EventService extends ServiceAction {
 		this._haveTxListeners = false;
 		this._haveChaincodeListeners = false;
 
-		// peer's event service
-		this.targets = null;
+		// list of peer's event service endpoints
+		this.targets = null; // Eventer[]
+		// the endoint Eventer that responed to the start service
 		this._current_eventer = null;
-		// closing state to case of multiple calls
+		// closing state to have in case of multiple calls to close()
 		this._close_running = false;
 		// remember the blockType this EventService is listening
-		// will be set during the .build call
+		// will be set during the .build call and must set on
+		// the Eventer so it may create the correct grpc service stream
 		this.blockType = null;
 
 		this.channel = channel;
@@ -402,26 +404,27 @@ class EventService extends ServiceAction {
 				logger.debug('%s - resolve the promise', method);
 				resolve(eventer);
 
-				if (deliverResponse.Type === 'block' || deliverResponse.Type === 'filtered_block' || deliverResponse.Type === 'private_data') {
+				if (deliverResponse.Type === 'block' || deliverResponse.Type === 'filtered_block' || deliverResponse.Type === 'block_and_private_data') {
 					try {
-						let block = null;
 						let full_block = null;
 						let filtered_block = null;
 						let private_data = null;
 						let block_num = null;
+
 						if (deliverResponse.Type === 'block') {
 							full_block = BlockDecoder.decodeBlock(deliverResponse.block);
-							block = full_block;
-							block_num = convertToLong(block.header.number);
+							block_num = convertToLong(full_block.header.number);
+
 						} else if (deliverResponse.Type === 'filtered_block') {
-							block = JSON.parse(JSON.stringify(deliverResponse.filtered_block));
-							filtered_block = block;
-							block_num = convertToLong(block.number);
-						} else if (deliverResponse.Type === 'private_data') {
-							full_block = JSON.parse(JSON.stringify(deliverResponse.filtered_block));
-							block = full_block;
-							private_data = block; // FIX ME get the private data
-							block_num = convertToLong(block.number);
+							filtered_block = JSON.parse(JSON.stringify(deliverResponse.filtered_block));
+							block_num = convertToLong(filtered_block.number);
+
+						} else if (deliverResponse.Type === 'block_and_private_data') {
+							const results = BlockDecoder.decodeBlock(deliverResponse.block_and_private_data);
+							full_block = results.block;
+							private_data = results.private_data_map;
+							block_num = convertToLong(full_block.header.number);
+
 						} else {
 							throw Error(`Unknown block type "${deliverResponse.Type}`);
 						}
