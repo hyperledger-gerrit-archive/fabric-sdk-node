@@ -1,8 +1,7 @@
 /**
- * Copyright 2017 Kapil Sachdeva All Rights Reserved.
- *
  * SPDX-License-Identifier: Apache-2.0
  */
+
 
 /* tslint:disable:max-classes-per-file */
 /* tslint:disable:ordered-imports */
