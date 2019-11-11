@@ -336,14 +336,24 @@ const Client = class {
 	 * Will return a new instance. Does not check for existing instances
 	 * and does not keep a reference to this instance.
 	 *
-	 * @param {string} name The name of the channel.
+	 * @param {string} [name] The name of the channel.
+	 *  When not included the channel may only be used to query
+	 *  for information that is not specific to a channel.
 	 * @returns {Channel} The channel instance.
 	 */
-	newChannel(name = checkParameter('name')) {
+	newChannel(name) {
 		const method = `newChannel: ${this.name}`;
 		logger.debug('%s start name:%s', method, name);
+		let channel;
 
-		const channel = new Channel(name, this);
+		if (name) {
+			channel = new Channel(name, this);
+		} else {
+			// when making non channel related qqueries the channel
+			// name must be an empty string
+			channel = new Channel('system', this);
+			channel.name = '';
+		}
 
 		logger.debug('%s return new channel name:%s', method, name);
 		return channel;

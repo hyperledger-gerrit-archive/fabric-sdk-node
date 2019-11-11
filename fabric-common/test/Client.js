@@ -309,10 +309,10 @@ describe('Client', () => {
 		});
 	});
 	describe('#newChannel', () => {
-		it('should require a name', () => {
-			(() => {
-				client.newChannel();
-			}).should.throw('Missing name parameter');
+		it('should return an instance with no name', () => {
+			const inst = client.newChannel();
+			inst.type.should.equal('Channel');
+			inst.name.should.equal('');
 		});
 		it('should return an instance', () => {
 			const inst = client.newChannel('name');

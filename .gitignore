@@ -37,6 +37,15 @@ test/ts-fixtures/crypto-material/config-base/twoorgs.genesis.block
 test/typescript/**/*.js
 test/typescript/**/*.js.map
 
+#fabric admin items
+fabric-admin/.DS_Store
+fabric-admin/node_modules/*
+fabric-admin/.nyc_output
+fabric-admin/_*
+fabric-admin/e2e
+fabric-admin/OUTSTA*
+fabric-admin/lib/*
+
 #fabric client
 fabric-client/.DS_Store
 fabric-client/node_modules/*

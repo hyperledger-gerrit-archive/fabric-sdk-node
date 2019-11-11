@@ -103,10 +103,19 @@ gulp.task('docker-ready', ['docker-clean'], shell.task([
 
 gulp.task('lint', ['eslint', 'tslint']);
 
-gulp.task('compile', shell.task([
+gulp.task('compile', ['compile-fabric-network', 'compile-fabric-admin']);
+
+gulp.task('compile-fabric-network', shell.task([
 	'npm run compile'
 ], {
-	verbose: true, // so we can see the docker command output
+	verbose: true, // so we can see the command output
+	ignoreErrors: false // once compile failed, throw error
+}));
+
+gulp.task('compile-fabric-admin', shell.task([
+	'npm run compile:fabric-admin'
+], {
+	verbose: true, // so we can see the command output
 	ignoreErrors: false // once compile failed, throw error
 }));
 
@@ -124,7 +133,7 @@ gulp.task('test-mocha', shell.task('npx nyc gulp run-test-mocha'));
 
 // Definition of Mocha (unit) test suites
 gulp.task('run-test-mocha', (done) => {
-	const tasks = ['mocha-fabric-common', 'mocha-fabric-ca-client', 'mocha-fabric-client', 'mocha-fabric-network', 'mocha-fabric-protos'];
+	const tasks = ['mocha-fabric-common', 'mocha-fabric-ca-client', 'mocha-fabric-client', 'mocha-fabric-network', 'mocha-fabric-admin', 'mocha-fabric-protos'];
 	runSequence(...tasks, done);
 });
 gulp.task('mocha-fabric-common',
@@ -151,6 +160,13 @@ gulp.task('mocha-fabric-client',
 gulp.task('mocha-fabric-network',
 	() => {
 		return gulp.src(['./fabric-network/test/**/*.{js,ts}'], {read: false})
+			.pipe(mocha({reporter: 'list', exit: true, timeout: 10000, require: ['ts-node/register']}));
+	}
+);
+
+gulp.task('mocha-fabric-admin',
+	() => {
+		return gulp.src(['./fabric-admin/test/**/*.{js,ts}'], {read: false})
 			.pipe(mocha({reporter: 'list', exit: true, timeout: 10000, require: ['ts-node/register']}));
 	}
 );

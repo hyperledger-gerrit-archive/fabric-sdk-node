@@ -402,9 +402,11 @@ export async function submitChannelRequest(clientName: string, channelName: stri
 						})
 					};
 					let inc: number = 0;
-					for (const result of queryResponse.queryResults) {
-						queryObject.results[`peer${inc}`] = JSON.parse(result.toString());
-						inc++;
+					if (queryResponse.queryResults) {
+						for (const result of queryResponse.queryResults) {
+							queryObject.results[`peer${inc}`] = JSON.parse(result.toString());
+							inc++;
+						}
 					}
 				}
 			} catch (error) {

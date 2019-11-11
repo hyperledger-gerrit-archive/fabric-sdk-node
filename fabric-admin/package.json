@@ -1,0 +1,73 @@
+{
+  "name": "fabric-admin",
+  "description": "SDK for writing node.js applications to interact with Hyperledger Fabric. This package encapsulates the APIs to administer chaincode on a Fabric network and query the configuration of the Fabric network.",
+  "keywords": [
+    "hyperledger",
+    "blockchain"
+  ],
+  "version": "2.0.0-snapshot",
+  "tag": "unstable",
+  "main": "index.js",
+  "repository": {
+    "type": "gerrit",
+    "url": "https://gerrit.hyperledger.org/r/#/admin/projects/fabric-sdk-node"
+  },
+  "homepage": "https://www.hyperledger.org/projects/fabric",
+  "author": {
+    "name": "hyperledger/fabric",
+    "email": "fabric@lists.hyperledger.org"
+  },
+  "scripts": {
+    "test": "nyc mocha --recursive  -t 10000"
+  },
+  "engines": {
+    "node": "^8.9.0 || ^10.15.3",
+    "npm": "^5.5.1 || ^6.4.1"
+  },
+  "types": "./types/index.d.ts",
+  "dependencies": {
+    "fabric-common": "file:../fabric-common",
+    "fabric-protos": "file:../fabric-protos",
+    "fs-extra": "^8.1.0",
+    "nano": "^8.1.0"
+  },
+  "devDependencies": {
+    "@types/chai": "^4.2.0",
+    "@types/fs-extra": "^8.0.0",
+    "@types/mocha": "^5.2.7",
+    "@types/rimraf": "^2.0.2",
+    "mocha": "^5.2.0",
+    "nyc": "^12.0.2",
+    "proxyquire": "^2.1.0",
+    "rewire": "^4.0.1",
+    "rimraf": "^2.6.2",
+    "sinon": "^5.0.7"
+  },
+  "nyc": {
+    "exclude": [
+      "index.js",
+      "coverage/**",
+      "test/**"
+    ],
+    "extension": [
+      ".ts"
+    ],
+    "reporter": [
+      "text",
+      "html"
+    ],
+    "cache": true,
+    "check-coverage": true,
+    "statements": 94,
+    "branches": 95,
+    "functions":89,
+    "lines": 94
+  },
+  "license": "Apache-2.0",
+  "licenses": [
+    {
+      "type": "Apache-2.0",
+      "url": "https://github.com/hyperledger/fabric/blob/master/LICENSE"
+    }
+  ]
+}

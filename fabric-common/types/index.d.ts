@@ -53,14 +53,14 @@ export interface UserConfig {
 }
 
 export interface ProposalResponse {
-	errors: Error[],
-	responses: EndorsementResponse[],
-	queryResults: Buffer[]
+	errors?: Error[],
+	responses?: EndorsementResponse[],
+	queryResults?: Buffer[]
 }
 
 export interface EndorsementResponse {
 	response: {
-		status: string,
+		status: number,
 		message: string,
 		payload: Buffer
 	},
@@ -151,7 +151,7 @@ export class ServiceAction {
 export class Commit extends Proposal{
 	constructor(chaincodeName: string, channel: Channel, endorsement: Endorsement);
 	public build(idContext: IdentityContext, request: any): Buffer;
-	public send(request: any): Promise<any>;
+	public send(request?: any): Promise<any>;
 }
 
 export class Endorsement extends Proposal{
@@ -170,7 +170,7 @@ export class Proposal extends ServiceAction{
 	public addCollectionInterest(collectionName: string): Proposal;
 	public addChaincodeCollectionsInterest(collectionName: string, collectionNames: string[]): Proposal;
 	public build(idContext: IdentityContext, request: any): Buffer;
-	public send(request: any): Promise<ProposalResponse>;
+	public send(request?: any): Promise<ProposalResponse>;
 	public verifyProposalResponse(proposalResponse?: any): boolean;
 	public compareProposalResponseResults(proposalResponses: any[]): boolean;
 }
@@ -180,7 +180,7 @@ export class DiscoveryService extends ServiceAction{
 	public setDiscoverer(discoverer: Discoverer): DiscoveryService;
 	public newHandler(): DiscoveryHandler;
 	public build(idContext: IdentityContext, request: any): Buffer;
-	public send(request: any): Promise<any>;
+	public send(request?: any): Promise<any>;
 	public getDiscoveryResults(refresh?: boolean): Promise<any>;
 	public close(): void;
 }
@@ -228,7 +228,7 @@ export class EventService extends ServiceAction{
 	public getLastBlockNumber(): Long;
 	public close(): void;
 	public build(idContext: IdentityContext, request: any): Buffer;
-	public send(request: any): Promise<any>;
+	public send(request?: any): Promise<any>;
 	public isListening(): boolean;
 	public unregisterEventListener(eventListener: EventListener):EventService;
 	public registerTransactionListener(txid: string, callback: EventCallback, options: EventRegistrationOptions): EventListener;
@@ -252,7 +252,7 @@ export class Client {
 	public newEventer(name: string, mspid?: string): Eventer;
 	public newDiscoverer(name: string, mspid?: string): Discoverer;
 
-	public newChannel(name: string): Channel;
+	public newChannel(name?: string): Channel;
 	public getChannel(name: string): Channel;
 
 	public setTlsClientCertAndKey(clientCert: string, clientKey: string): Client;
@@ -271,6 +271,7 @@ export interface ConnectOptions {
 
 export class Channel {
 	constructor(name: string, client: Client);
+	public name: string;
 	public close(): void;
 
 	public newEndorsement(chaincodeName: string): Endorsement;
